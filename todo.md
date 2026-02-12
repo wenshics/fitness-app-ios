@@ -36,3 +36,6 @@
 - [x] Fix bug: FitLife Pro button still not working on login/paywall screen
 - [x] Implement mandatory subscription gate: all users must subscribe before accessing app content
 - [x] Remove any free/bypass paths — no way to skip payment
+- [x] Move subscription paywall from login to first exercise start
+- [x] Allow free browsing of exercises, plans, and profile without subscription
+- [x] Show paywall when user taps "Start Workout" or starts an exercise timer

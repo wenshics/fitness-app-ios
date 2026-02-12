@@ -3,6 +3,7 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { CATEGORY_COLORS, DIFFICULTY_COLORS, EXERCISES } from "@/constants/exercises";
 import { useColors } from "@/hooks/use-colors";
 import { useWorkout } from "@/lib/workout-store";
+import { useSubscription } from "@/lib/subscription-store";
 import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -14,6 +15,7 @@ export default function ExerciseDetailScreen() {
   const colors = useColors();
   const router = useRouter();
   const { state, addToPlan, removeFromPlan } = useWorkout();
+  const { subscription } = useSubscription();
 
   const exercise = EXERCISES.find((e) => e.id === id);
   const isInPlan = state.plan.includes(id || "");
@@ -55,13 +57,18 @@ export default function ExerciseDetailScreen() {
 
   const toggleTimer = useCallback(() => {
     if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    // Check subscription before starting exercise
+    if (!subscription.isSubscribed && !isRunning) {
+      router.push("/paywall" as any);
+      return;
+    }
     if (timeLeft === 0) {
       setTimeLeft(timerDuration);
       setIsRunning(true);
     } else {
       setIsRunning((prev) => !prev);
     }
-  }, [timeLeft, timerDuration]);
+  }, [timeLeft, timerDuration, subscription.isSubscribed, isRunning, router]);
 
   const resetTimer = useCallback(() => {
     setIsRunning(false);

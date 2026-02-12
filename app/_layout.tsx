@@ -31,28 +31,22 @@ export const unstable_settings = {
 
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, loading: isLoading } = useAuth();
-  const { subscription } = useSubscription();
   const segments = useSegments();
   const router = useRouter();
 
   useEffect(() => {
-    // Wait for both auth and subscription state to load
-    if (isLoading || !subscription.loaded) return;
+    if (isLoading) return;
 
     const inAuthGroup = segments[0] === "oauth" || segments[0] === "login";
-    const inPaywall = segments[0] === "paywall";
 
     if (!isAuthenticated && !inAuthGroup) {
       // Not logged in → go to login
       router.replace("/login");
-    } else if (isAuthenticated && !subscription.isSubscribed && !inPaywall && !inAuthGroup) {
-      // Logged in but not subscribed → go to paywall
-      router.replace("/paywall" as any);
-    } else if (isAuthenticated && subscription.isSubscribed && (inAuthGroup || inPaywall)) {
-      // Logged in and subscribed but on auth/paywall page → go to app
+    } else if (isAuthenticated && inAuthGroup) {
+      // Logged in but on auth page → go to app
       router.replace("/(tabs)");
     }
-  }, [isAuthenticated, isLoading, subscription.loaded, subscription.isSubscribed, segments, router]);
+  }, [isAuthenticated, isLoading, segments, router]);
 
   return <>{children}</>;
 }
@@ -117,7 +111,7 @@ export default function RootLayout() {
                 <Stack screenOptions={{ headerShown: false }}>
                   <Stack.Screen name="(tabs)" />
                   <Stack.Screen name="login" options={{ presentation: "fullScreenModal" }} />
-                  <Stack.Screen name="paywall" options={{ presentation: "fullScreenModal", gestureEnabled: false }} />
+                  <Stack.Screen name="paywall" options={{ presentation: "fullScreenModal", gestureEnabled: true }} />
                   <Stack.Screen name="oauth/callback" />
                   <Stack.Screen
                     name="exercise/[id]"

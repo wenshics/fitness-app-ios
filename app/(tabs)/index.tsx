@@ -4,6 +4,7 @@ import { CATEGORY_COLORS } from "@/constants/exercises";
 import { useAuth } from "@/hooks/use-auth";
 import { useColors } from "@/hooks/use-colors";
 import { useWorkout } from "@/lib/workout-store";
+import { useSubscription } from "@/lib/subscription-store";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
@@ -13,6 +14,7 @@ export default function HomeScreen() {
   const colors = useColors();
   const { user } = useAuth();
   const { state, getDailyPlanExercises, getTotalPlanDuration, refreshDailyPlan } = useWorkout();
+  const { subscription } = useSubscription();
   const router = useRouter();
   const planExercises = getDailyPlanExercises();
   const totalDuration = getTotalPlanDuration();
@@ -26,6 +28,10 @@ export default function HomeScreen() {
   const handleStartWorkout = () => {
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+    if (!subscription.isSubscribed) {
+      router.push("/paywall" as any);
+      return;
     }
     router.push("/workout-session" as any);
   };

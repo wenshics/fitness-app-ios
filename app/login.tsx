@@ -70,7 +70,7 @@ export default function LoginScreen() {
           </Pressable>
 
           <Text style={styles.disclaimer}>
-            7-day free trial · Starting at $0.77/week · Cancel anytime
+            Free to browse · Sign in to get started
           </Text>
         </View>
       </LinearGradient>

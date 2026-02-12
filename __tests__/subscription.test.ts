@@ -129,78 +129,106 @@ describe("Subscription State Logic", () => {
   });
 });
 
-describe("Auth Guard with Subscription", () => {
+describe("Auth Guard (login only, no subscription check)", () => {
   it("should redirect unauthenticated users to login", () => {
     const isAuthenticated = false;
-    const isSubscribed = false;
     const segment: string = "(tabs)";
-
     const inAuthGroup = segment === "oauth" || segment === "login";
-    const inPaywall = segment === "paywall";
 
     let redirectTo: string | null = null;
     if (!isAuthenticated && !inAuthGroup) {
       redirectTo = "/login";
-    } else if (isAuthenticated && !isSubscribed && !inPaywall && !inAuthGroup) {
-      redirectTo = "/paywall";
+    } else if (isAuthenticated && inAuthGroup) {
+      redirectTo = "/(tabs)";
     }
 
     expect(redirectTo).toBe("/login");
   });
 
-  it("should redirect authenticated but unsubscribed users to paywall", () => {
+  it("should allow authenticated users to access tabs without subscription", () => {
     const isAuthenticated = true;
-    const isSubscribed = false;
     const segment: string = "(tabs)";
-
     const inAuthGroup = segment === "oauth" || segment === "login";
-    const inPaywall = segment === "paywall";
 
     let redirectTo: string | null = null;
     if (!isAuthenticated && !inAuthGroup) {
       redirectTo = "/login";
-    } else if (isAuthenticated && !isSubscribed && !inPaywall && !inAuthGroup) {
-      redirectTo = "/paywall";
-    }
-
-    expect(redirectTo).toBe("/paywall");
-  });
-
-  it("should allow authenticated and subscribed users to access tabs", () => {
-    const isAuthenticated = true;
-    const isSubscribed = true;
-    const segment: string = "(tabs)";
-
-    const inAuthGroup = segment === "oauth" || segment === "login";
-    const inPaywall = segment === "paywall";
-
-    let redirectTo: string | null = null;
-    if (!isAuthenticated && !inAuthGroup) {
-      redirectTo = "/login";
-    } else if (isAuthenticated && !isSubscribed && !inPaywall && !inAuthGroup) {
-      redirectTo = "/paywall";
+    } else if (isAuthenticated && inAuthGroup) {
+      redirectTo = "/(tabs)";
     }
 
     expect(redirectTo).toBeNull();
   });
 
-  it("should redirect subscribed users away from paywall to tabs", () => {
+  it("should redirect authenticated users away from login to tabs", () => {
     const isAuthenticated = true;
-    const isSubscribed = true;
-    const segment: string = "paywall";
-
+    const segment: string = "login";
     const inAuthGroup = segment === "oauth" || segment === "login";
-    const inPaywall = segment === "paywall";
 
     let redirectTo: string | null = null;
     if (!isAuthenticated && !inAuthGroup) {
       redirectTo = "/login";
-    } else if (isAuthenticated && !isSubscribed && !inPaywall && !inAuthGroup) {
-      redirectTo = "/paywall";
-    } else if (isAuthenticated && isSubscribed && (inAuthGroup || inPaywall)) {
+    } else if (isAuthenticated && inAuthGroup) {
       redirectTo = "/(tabs)";
     }
 
     expect(redirectTo).toBe("/(tabs)");
+  });
+});
+
+describe("Subscription Gate at Exercise Start", () => {
+  it("should show paywall when unsubscribed user tries to start workout", () => {
+    const isSubscribed = false;
+    let navigatedTo: string | null = null;
+
+    // Simulate handleStartWorkout
+    if (!isSubscribed) {
+      navigatedTo = "/paywall";
+    } else {
+      navigatedTo = "/workout-session";
+    }
+
+    expect(navigatedTo).toBe("/paywall");
+  });
+
+  it("should allow subscribed user to start workout", () => {
+    const isSubscribed = true;
+    let navigatedTo: string | null = null;
+
+    if (!isSubscribed) {
+      navigatedTo = "/paywall";
+    } else {
+      navigatedTo = "/workout-session";
+    }
+
+    expect(navigatedTo).toBe("/workout-session");
+  });
+
+  it("should show paywall when unsubscribed user tries to start exercise timer", () => {
+    const isSubscribed = false;
+    const isRunning = false;
+    let navigatedTo: string | null = null;
+
+    if (!isSubscribed && !isRunning) {
+      navigatedTo = "/paywall";
+    }
+
+    expect(navigatedTo).toBe("/paywall");
+  });
+
+  it("should allow subscribed user to start exercise timer", () => {
+    const isSubscribed = true;
+    const isRunning = false;
+    let navigatedTo: string | null = null;
+    let timerStarted = false;
+
+    if (!isSubscribed && !isRunning) {
+      navigatedTo = "/paywall";
+    } else {
+      timerStarted = true;
+    }
+
+    expect(navigatedTo).toBeNull();
+    expect(timerStarted).toBe(true);
   });
 });

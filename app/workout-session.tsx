@@ -3,6 +3,7 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { EXERCISES } from "@/constants/exercises";
 import { useColors } from "@/hooks/use-colors";
 import { useWorkout } from "@/lib/workout-store";
+import { useSubscription } from "@/lib/subscription-store";
 import { useRouter } from "expo-router";
 import { useKeepAwake } from "expo-keep-awake";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -19,6 +20,14 @@ export default function WorkoutSessionScreen() {
   const colors = useColors();
   const router = useRouter();
   const { state, completeWorkout } = useWorkout();
+  const { subscription } = useSubscription();
+
+  // Redirect to paywall if not subscribed
+  useEffect(() => {
+    if (subscription.loaded && !subscription.isSubscribed) {
+      router.replace("/paywall" as any);
+    }
+  }, [subscription.loaded, subscription.isSubscribed, router]);
 
   const planExercises = state.dailyPlan
     .map((id: string) => EXERCISES.find((e) => e.id === id))

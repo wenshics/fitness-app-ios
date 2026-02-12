@@ -60,6 +60,26 @@ export default function PaywallScreen() {
           contentContainerStyle={styles.paywallContent}
           showsVerticalScrollIndicator={false}
         >
+          {/* Close button */}
+          <View style={styles.closeRow}>
+            <Pressable
+              onPress={() => {
+                if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                if (router.canGoBack()) {
+                  router.back();
+                } else {
+                  router.replace("/(tabs)" as any);
+                }
+              }}
+              style={({ pressed }) => [
+                styles.closeBtn,
+                pressed && { opacity: 0.7 },
+              ]}
+            >
+              <IconSymbol name="xmark.circle.fill" size={28} color="rgba(255,255,255,0.6)" />
+            </Pressable>
+          </View>
+
           {/* Header */}
           <View style={styles.paywallHeader}>
             <View style={styles.crownIcon}>
@@ -262,8 +282,18 @@ const styles = StyleSheet.create({
   paywallContent: {
     flexGrow: 1,
     paddingHorizontal: 24,
-    paddingTop: 48,
+    paddingTop: 12,
     paddingBottom: 40,
+  },
+  closeRow: {
+    alignItems: "flex-end",
+    marginBottom: 8,
+  },
+  closeBtn: {
+    width: 36,
+    height: 36,
+    justifyContent: "center",
+    alignItems: "center",
   },
   paywallHeader: {
     alignItems: "center",
