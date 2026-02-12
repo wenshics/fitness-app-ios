@@ -11,8 +11,8 @@ import {
 } from "../constants/exercises";
 
 describe("Exercise Data", () => {
-  it("should have exactly 25 exercises", () => {
-    expect(EXERCISES.length).toBe(25);
+  it("should have exactly 30 exercises", () => {
+    expect(EXERCISES.length).toBe(30);
   });
 
   it("should have unique IDs for all exercises", () => {
