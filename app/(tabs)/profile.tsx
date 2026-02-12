@@ -4,14 +4,16 @@ import { useAuth } from "@/hooks/use-auth";
 import { useColors } from "@/hooks/use-colors";
 import { AWARDS, useWorkout } from "@/lib/workout-store";
 import { useSubscription } from "@/lib/subscription-store";
-import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Alert, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import * as Haptics from "expo-haptics";
+import { useRouter } from "expo-router";
 
 export default function ProfileScreen() {
   const colors = useColors();
   const { user, logout } = useAuth();
   const { state, updateSettings, getUnlockedAwards, getLockedAwards } = useWorkout();
   const { subscription, getCurrentPlan, isTrialActive, getDaysRemaining } = useSubscription();
+  const router = useRouter();
 
   const totalWorkouts = state.history.length;
   const totalMinutes = Math.round(state.history.reduce((s, h) => s + h.totalDuration, 0) / 60);
@@ -19,9 +21,31 @@ export default function ProfileScreen() {
   const unlockedAwards = getUnlockedAwards();
   const lockedAwards = getLockedAwards();
 
-  const handleLogout = async () => {
+  const handleLogout = () => {
     if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-    await logout();
+
+    const doLogout = async () => {
+      try {
+        await logout();
+      } catch (err) {
+        console.error("[Profile] Logout error:", err);
+      }
+      // Always navigate to login after logout, regardless of API success
+      router.replace("/login" as any);
+    };
+
+    if (Platform.OS === "web") {
+      doLogout();
+    } else {
+      Alert.alert(
+        "Log Out",
+        "Are you sure you want to log out?",
+        [
+          { text: "Cancel", style: "cancel" },
+          { text: "Log Out", style: "destructive", onPress: doLogout },
+        ],
+      );
+    }
   };
 
   const restTimeOptions = [10, 15, 20, 30];

@@ -39,3 +39,5 @@
 - [x] Move subscription paywall from login to first exercise start
 - [x] Allow free browsing of exercises, plans, and profile without subscription
 - [x] Show paywall when user taps "Start Workout" or starts an exercise timer
+- [x] Fix bug: logout button not working on profile screen
+- [x] Fix UI bug: exercise categories tabs covered by exercise list on Exercises tab
