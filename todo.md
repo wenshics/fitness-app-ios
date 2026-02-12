@@ -31,3 +31,5 @@
 - [x] Fix bug: refresh button doesn't work for daily exercise plan
 - [x] Add proper payment plan screen with subscription options (weekly/monthly/yearly)
 - [x] Replace 8 demo images with animated GIFs (remaining 17 kept as static images)
+- [x] Fix bug: subscription button on paywall not triggering payment flow
+- [x] Fix bug: back button not working on exercise detail screen

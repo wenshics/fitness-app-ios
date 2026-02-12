@@ -85,7 +85,14 @@ export default function ExerciseDetailScreen() {
         {/* Header with back button */}
         <View style={styles.topBar}>
           <Pressable
-            onPress={() => router.back()}
+            onPress={() => {
+              if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              if (router.canGoBack()) {
+                router.back();
+              } else {
+                router.replace("/(tabs)/exercises" as any);
+              }
+            }}
             style={({ pressed }) => [
               styles.backBtn,
               { backgroundColor: colors.surface },
