@@ -20,6 +20,7 @@ import { trpc, createTRPCClient } from "@/lib/trpc";
 import { initManusRuntime, subscribeSafeAreaInsets } from "@/lib/_core/manus-runtime";
 import { useAuth } from "@/hooks/use-auth";
 import { WorkoutProvider } from "@/lib/workout-store";
+import { SubscriptionProvider, useSubscription } from "@/lib/subscription-store";
 
 const DEFAULT_WEB_INSETS: EdgeInsets = { top: 0, right: 0, bottom: 0, left: 0 };
 const DEFAULT_WEB_FRAME: Rect = { x: 0, y: 0, width: 0, height: 0 };
@@ -30,20 +31,28 @@ export const unstable_settings = {
 
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, loading: isLoading } = useAuth();
+  const { subscription } = useSubscription();
   const segments = useSegments();
   const router = useRouter();
 
   useEffect(() => {
-    if (isLoading) return;
+    // Wait for both auth and subscription state to load
+    if (isLoading || !subscription.loaded) return;
 
     const inAuthGroup = segments[0] === "oauth" || segments[0] === "login";
+    const inPaywall = segments[0] === "paywall";
 
     if (!isAuthenticated && !inAuthGroup) {
+      // Not logged in → go to login
       router.replace("/login");
-    } else if (isAuthenticated && inAuthGroup) {
+    } else if (isAuthenticated && !subscription.isSubscribed && !inPaywall && !inAuthGroup) {
+      // Logged in but not subscribed → go to paywall
+      router.replace("/paywall" as any);
+    } else if (isAuthenticated && subscription.isSubscribed && (inAuthGroup || inPaywall)) {
+      // Logged in and subscribed but on auth/paywall page → go to app
       router.replace("/(tabs)");
     }
-  }, [isAuthenticated, isLoading, segments, router]);
+  }, [isAuthenticated, isLoading, subscription.loaded, subscription.isSubscribed, segments, router]);
 
   return <>{children}</>;
 }
@@ -102,23 +111,26 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <trpc.Provider client={trpcClient} queryClient={queryClient}>
         <QueryClientProvider client={queryClient}>
-          <WorkoutProvider>
-            <AuthGuard>
-              <Stack screenOptions={{ headerShown: false }}>
-                <Stack.Screen name="(tabs)" />
-                <Stack.Screen name="login" options={{ presentation: "fullScreenModal" }} />
-                <Stack.Screen name="oauth/callback" />
-                <Stack.Screen
-                  name="exercise/[id]"
-                  options={{ presentation: "modal", gestureEnabled: true }}
-                />
-                <Stack.Screen
-                  name="workout-session"
-                  options={{ presentation: "fullScreenModal", gestureEnabled: false }}
-                />
-              </Stack>
-            </AuthGuard>
-          </WorkoutProvider>
+          <SubscriptionProvider>
+            <WorkoutProvider>
+              <AuthGuard>
+                <Stack screenOptions={{ headerShown: false }}>
+                  <Stack.Screen name="(tabs)" />
+                  <Stack.Screen name="login" options={{ presentation: "fullScreenModal" }} />
+                  <Stack.Screen name="paywall" options={{ presentation: "fullScreenModal", gestureEnabled: false }} />
+                  <Stack.Screen name="oauth/callback" />
+                  <Stack.Screen
+                    name="exercise/[id]"
+                    options={{ presentation: "modal", gestureEnabled: true }}
+                  />
+                  <Stack.Screen
+                    name="workout-session"
+                    options={{ presentation: "fullScreenModal", gestureEnabled: false }}
+                  />
+                </Stack>
+              </AuthGuard>
+            </WorkoutProvider>
+          </SubscriptionProvider>
           <StatusBar style="auto" />
         </QueryClientProvider>
       </trpc.Provider>

@@ -3,6 +3,7 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useAuth } from "@/hooks/use-auth";
 import { useColors } from "@/hooks/use-colors";
 import { AWARDS, useWorkout } from "@/lib/workout-store";
+import { useSubscription } from "@/lib/subscription-store";
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import * as Haptics from "expo-haptics";
 
@@ -10,6 +11,7 @@ export default function ProfileScreen() {
   const colors = useColors();
   const { user, logout } = useAuth();
   const { state, updateSettings, getUnlockedAwards, getLockedAwards } = useWorkout();
+  const { subscription, getCurrentPlan, isTrialActive, getDaysRemaining } = useSubscription();
 
   const totalWorkouts = state.history.length;
   const totalMinutes = Math.round(state.history.reduce((s, h) => s + h.totalDuration, 0) / 60);
@@ -54,11 +56,15 @@ export default function ProfileScreen() {
             <IconSymbol name="crown.fill" size={20} color="#FFD700" />
             <View>
               <Text style={styles.subTitle}>FitLife Pro</Text>
-              <Text style={styles.subPrice}>$1.99/week</Text>
+              <Text style={styles.subPrice}>
+                {getCurrentPlan()?.price ?? "$1.99"}{getCurrentPlan()?.period ?? "/week"}
+              </Text>
             </View>
           </View>
-          <View style={[styles.subBadge, { backgroundColor: "rgba(255,255,255,0.2)" }]}>
-            <Text style={styles.subBadgeText}>Active</Text>
+          <View style={[styles.subBadge, { backgroundColor: isTrialActive() ? "rgba(255,215,0,0.3)" : "rgba(255,255,255,0.2)" }]}>
+            <Text style={styles.subBadgeText}>
+              {isTrialActive() ? "Trial" : "Active"} · {getDaysRemaining()}d left
+            </Text>
           </View>
         </View>
 

@@ -33,3 +33,6 @@
 - [x] Replace 8 demo images with animated GIFs (remaining 17 kept as static images)
 - [x] Fix bug: subscription button on paywall not triggering payment flow
 - [x] Fix bug: back button not working on exercise detail screen
+- [x] Fix bug: FitLife Pro button still not working on login/paywall screen
+- [x] Implement mandatory subscription gate: all users must subscribe before accessing app content
+- [x] Remove any free/bypass paths — no way to skip payment
