@@ -43,3 +43,4 @@
 - [x] Fix UI bug: exercise categories tabs covered by exercise list on Exercises tab
 - [x] Fix bug: subscription paywall not triggered when new account starts an exercise
 - [x] Fix bug: data contamination between accounts — workout/subscription data shared across users
+- [x] Make exercise reminders editable — users can set custom times for weekday and weekend reminders

@@ -223,9 +223,24 @@ export interface WorkoutHistory {
   completedAt: string; // ISO string
 }
 
+export interface ReminderSettings {
+  weekdayEvening: { hour: number; minute: number };
+  weekendMorning: { hour: number; minute: number };
+  weekendEvening: { hour: number; minute: number };
+  enabled: boolean;
+}
+
+export const DEFAULT_REMINDERS: ReminderSettings = {
+  weekdayEvening: { hour: 19, minute: 30 },
+  weekendMorning: { hour: 8, minute: 30 },
+  weekendEvening: { hour: 19, minute: 30 },
+  enabled: true,
+};
+
 export interface WorkoutSettings {
   restTime: number;
   defaultDuration: number;
+  reminders: ReminderSettings;
 }
 
 interface WorkoutState {
@@ -308,7 +323,7 @@ const initialState: WorkoutState = {
   dailyPlanDate: todayStr,
   dailyPlanEdited: false,
   history: [],
-  settings: { restTime: DEFAULT_REST_TIME, defaultDuration: 30 },
+  settings: { restTime: DEFAULT_REST_TIME, defaultDuration: 30, reminders: DEFAULT_REMINDERS },
   todayCompleted: [],
   streak: 0,
   unlockedAwards: [],
@@ -431,7 +446,15 @@ export function WorkoutProvider({ children }: { children: React.ReactNode }) {
       const payload: Partial<WorkoutState> = {};
       if (planStr) payload.plan = JSON.parse(planStr);
       if (historyStr) payload.history = JSON.parse(historyStr);
-      if (settingsStr) payload.settings = JSON.parse(settingsStr);
+      if (settingsStr) {
+        const savedSettings = JSON.parse(settingsStr);
+        // Merge with defaults so old data without reminders gets the defaults
+        payload.settings = {
+          ...initialState.settings,
+          ...savedSettings,
+          reminders: { ...DEFAULT_REMINDERS, ...(savedSettings.reminders || {}) },
+        };
+      }
       if (streakStr) payload.streak = parseInt(streakStr, 10);
       if (unlockedAwardsStr) payload.unlockedAwards = JSON.parse(unlockedAwardsStr);
 
