@@ -39,6 +39,19 @@ const MAPPING = {
   "figure.run": "directions-run",
   "delete.left.fill": "backspace",
   "arrow.up.arrow.down": "swap-vert",
+  "crown.fill": "workspace-premium",
+  "medal.fill": "military-tech",
+  "star.circle.fill": "stars",
+  "flame.circle.fill": "whatshot",
+  "circle.grid.2x2.fill": "grid-view",
+  "sunrise.fill": "wb-sunny",
+  "bell.fill": "notifications",
+  "lock.fill": "lock",
+  "sparkles": "auto-awesome",
+  "arrow.clockwise": "refresh",
+  "chevron.up": "keyboard-arrow-up",
+  "chevron.down": "keyboard-arrow-down",
+  "figure.strengthtraining.traditional": "fitness-center",
 } as IconMapping;
 
 export function IconSymbol({

@@ -1,8 +1,9 @@
 import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { DIFFICULTY_COLORS, EXERCISES } from "@/constants/exercises";
+import { CATEGORY_COLORS, DIFFICULTY_COLORS, EXERCISES } from "@/constants/exercises";
 import { useColors } from "@/hooks/use-colors";
 import { useWorkout } from "@/lib/workout-store";
+import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
@@ -115,36 +116,19 @@ export default function ExerciseDetailScreen() {
           </Pressable>
         </View>
 
-        {/* YouTube Video Embed */}
-        <View style={styles.videoContainer}>
-          <View style={[styles.videoPlaceholder, { backgroundColor: "#000" }]}>
-            {Platform.OS === "web" ? (
-              <iframe
-                src={`https://www.youtube.com/embed/${exercise.youtubeVideoId}?rel=0&modestbranding=1`}
-                style={{ width: "100%", height: "100%", border: "none" } as any}
-                allowFullScreen
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              />
-            ) : (
-              <View style={styles.nativeVideoFallback}>
-                <IconSymbol name="play.fill" size={48} color="#FFFFFF" />
-                <Text style={styles.nativeVideoText}>
-                  Tap to watch demo on YouTube
-                </Text>
-                <Pressable
-                  onPress={() => {
-                    const url = `https://www.youtube.com/watch?v=${exercise.youtubeVideoId}`;
-                    import("expo-linking").then((Linking) => Linking.openURL(url));
-                  }}
-                  style={({ pressed }) => [
-                    styles.watchBtn,
-                    pressed && { opacity: 0.8 },
-                  ]}
-                >
-                  <Text style={styles.watchBtnText}>Watch Demo</Text>
-                </Pressable>
-              </View>
-            )}
+        {/* Demo Image */}
+        <View style={styles.imageContainer}>
+          <Image
+            source={{ uri: exercise.demoImage }}
+            style={styles.demoImage}
+            contentFit="cover"
+            transition={300}
+          />
+          <View style={styles.imageOverlay}>
+            <View style={[styles.calBadge, { backgroundColor: "rgba(0,0,0,0.6)" }]}>
+              <IconSymbol name="flame.fill" size={14} color="#FF6B35" />
+              <Text style={styles.calText}>~{exercise.caloriesPerMinute} cal/min</Text>
+            </View>
           </View>
         </View>
 
@@ -155,6 +139,13 @@ export default function ExerciseDetailScreen() {
             <View style={[styles.diffBadge, { backgroundColor: DIFFICULTY_COLORS[exercise.difficulty].bg }]}>
               <Text style={styles.diffText}>{exercise.difficulty}</Text>
             </View>
+          </View>
+          <View style={[styles.categoryTag, { backgroundColor: CATEGORY_COLORS[exercise.category].bg + "20" }]}>
+            <Text style={[styles.categoryTagText, { color: CATEGORY_COLORS[exercise.category].bg }]}>
+              {exercise.category === "fat-burning"
+                ? "Fat Burning"
+                : exercise.category.charAt(0).toUpperCase() + exercise.category.slice(1)}
+            </Text>
           </View>
           <Text style={[styles.description, { color: colors.muted }]}>{exercise.description}</Text>
 
@@ -214,7 +205,6 @@ export default function ExerciseDetailScreen() {
 
           {/* Timer Display */}
           <View style={[styles.timerCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            {/* Progress ring simplified as a bar */}
             <View style={styles.timerProgressContainer}>
               <View style={[styles.timerProgressBg, { backgroundColor: colors.border }]} />
               <View
@@ -286,38 +276,45 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   planBtnText: { fontSize: 14, fontWeight: "600" },
-  videoContainer: {
+  imageContainer: {
     marginHorizontal: 20,
     marginBottom: 20,
     borderRadius: 16,
     overflow: "hidden",
+    position: "relative",
   },
-  videoPlaceholder: {
+  demoImage: {
     width: "100%",
-    aspectRatio: 16 / 9,
+    aspectRatio: 16 / 10,
     borderRadius: 16,
-    overflow: "hidden",
   },
-  nativeVideoFallback: {
-    flex: 1,
-    justifyContent: "center",
+  imageOverlay: {
+    position: "absolute",
+    bottom: 12,
+    right: 12,
+  },
+  calBadge: {
+    flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
   },
-  nativeVideoText: { color: "rgba(255,255,255,0.7)", fontSize: 14 },
-  watchBtn: {
-    backgroundColor: "#FF0000",
-    paddingHorizontal: 24,
-    paddingVertical: 10,
-    borderRadius: 20,
-    marginTop: 8,
-  },
-  watchBtnText: { color: "#FFFFFF", fontSize: 14, fontWeight: "600" },
+  calText: { color: "#FFFFFF", fontSize: 13, fontWeight: "600" },
   infoSection: { paddingHorizontal: 20, marginBottom: 24 },
   titleRow: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 8 },
   exerciseName: { fontSize: 26, fontWeight: "700", flex: 1 },
   diffBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
-  diffText: { fontSize: 12, fontWeight: "600", color: "#FFFFFF" },
+  diffText: { fontSize: 12, fontWeight: "600", color: "#FFFFFF", textTransform: "capitalize" },
+  categoryTag: {
+    alignSelf: "flex-start",
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 8,
+    marginBottom: 10,
+  },
+  categoryTagText: { fontSize: 13, fontWeight: "600" },
   description: { fontSize: 15, lineHeight: 22 },
   muscleRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 12 },
   muscleBadge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 },
@@ -379,6 +376,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 1,
+    borderColor: "transparent",
   },
   timerPlayBtn: {
     width: 64,

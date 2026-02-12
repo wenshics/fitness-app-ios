@@ -17,3 +17,14 @@
 - [x] Add keep-awake during workout sessions
 - [x] Generate app logo and update branding
 - [x] Fix bug: after sign-in, user is redirected back to login screen after ~1s
+- [x] Replace YouTube videos with AI-generated demo images for all exercises
+- [x] Expand exercises from 16 to 25 total
+- [x] Add new category: Stretch exercises
+- [x] Add new category: Fast Fat Burning exercises
+- [x] Add new category: Gym exercises
+- [x] Build auto-generated daily exercise plan that refreshes every day
+- [x] Allow manual editing of the daily plan
+- [x] Update exercise detail screen to display demo images instead of YouTube WebView
+- [x] Add $1.99/week subscription paywall
+- [x] Add workout reminders: 7:30 PM weekdays, 8:30 AM + 7:30 PM weekends
+- [x] Add award/achievement system with badges and milestones (12 awards)

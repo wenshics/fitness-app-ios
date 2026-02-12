@@ -1,26 +1,48 @@
 import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { DIFFICULTY_COLORS, EXERCISES, type Difficulty } from "@/constants/exercises";
+import {
+  CATEGORY_COLORS,
+  DIFFICULTY_COLORS,
+  EXERCISES,
+  type Category,
+  type Difficulty,
+} from "@/constants/exercises";
 import { useColors } from "@/hooks/use-colors";
+import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { FlatList, Image, Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import { FlatList, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import * as Haptics from "expo-haptics";
 
-const TABS: { label: string; value: Difficulty | "all" }[] = [
+type FilterTab = "all" | Difficulty | Category;
+
+const DIFFICULTY_TABS: { label: string; value: FilterTab }[] = [
   { label: "All", value: "all" },
   { label: "Beginner", value: "beginner" },
   { label: "Intermediate", value: "intermediate" },
   { label: "Advanced", value: "advanced" },
 ];
 
+const CATEGORY_TABS: { label: string; value: FilterTab }[] = [
+  { label: "Bodyweight", value: "bodyweight" },
+  { label: "Stretch", value: "stretch" },
+  { label: "Fat Burning", value: "fat-burning" },
+  { label: "Gym", value: "gym" },
+];
+
+const ALL_TABS = [...DIFFICULTY_TABS, ...CATEGORY_TABS];
+
 export default function ExercisesScreen() {
   const colors = useColors();
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<Difficulty | "all">("all");
+  const [activeTab, setActiveTab] = useState<FilterTab>("all");
 
   const filtered =
-    activeTab === "all" ? EXERCISES : EXERCISES.filter((e) => e.difficulty === activeTab);
+    activeTab === "all"
+      ? EXERCISES
+      : EXERCISES.filter(
+          (e) => e.difficulty === activeTab || e.category === activeTab,
+        );
 
   return (
     <ScreenContainer className="pt-2">
@@ -32,8 +54,12 @@ export default function ExercisesScreen() {
       </View>
 
       {/* Filter Tabs */}
-      <View style={styles.tabsContainer}>
-        {TABS.map((tab) => {
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.tabsContainer}
+      >
+        {ALL_TABS.map((tab) => {
           const isActive = activeTab === tab.value;
           return (
             <Pressable
@@ -51,15 +77,13 @@ export default function ExercisesScreen() {
                 pressed && { opacity: 0.7 },
               ]}
             >
-              <Text
-                style={[styles.tabText, { color: isActive ? "#FFFFFF" : colors.muted }]}
-              >
+              <Text style={[styles.tabText, { color: isActive ? "#FFFFFF" : colors.muted }]}>
                 {tab.label}
               </Text>
             </Pressable>
           );
         })}
-      </View>
+      </ScrollView>
 
       <FlatList
         data={filtered}
@@ -75,7 +99,7 @@ export default function ExercisesScreen() {
               pressed && { opacity: 0.7 },
             ]}
           >
-            <Image source={{ uri: item.thumbnail }} style={styles.thumbnail} />
+            <Image source={{ uri: item.demoImage }} style={styles.thumbnail} contentFit="cover" />
             <View style={styles.cardContent}>
               <View style={styles.cardHeader}>
                 <Text style={[styles.cardTitle, { color: colors.foreground }]} numberOfLines={1}>
@@ -92,6 +116,22 @@ export default function ExercisesScreen() {
                   </Text>
                 </View>
               </View>
+              <View style={styles.badgeRow}>
+                <View
+                  style={[
+                    styles.categoryBadge,
+                    { backgroundColor: CATEGORY_COLORS[item.category].bg + "20" },
+                  ]}
+                >
+                  <Text
+                    style={[styles.categoryText, { color: CATEGORY_COLORS[item.category].bg }]}
+                  >
+                    {item.category === "fat-burning"
+                      ? "Fat Burning"
+                      : item.category.charAt(0).toUpperCase() + item.category.slice(1)}
+                  </Text>
+                </View>
+              </View>
               <Text style={[styles.cardDescription, { color: colors.muted }]} numberOfLines={2}>
                 {item.description}
               </Text>
@@ -103,9 +143,9 @@ export default function ExercisesScreen() {
                   </Text>
                 </View>
                 <View style={styles.metaItem}>
-                  <IconSymbol name="figure.run" size={14} color={colors.muted} />
+                  <IconSymbol name="flame.fill" size={14} color={colors.primary} />
                   <Text style={[styles.metaText, { color: colors.muted }]}>
-                    {item.muscleGroups.join(", ")}
+                    ~{item.caloriesPerMinute} cal/min
                   </Text>
                 </View>
               </View>
@@ -122,7 +162,6 @@ const styles = StyleSheet.create({
   title: { fontSize: 28, fontWeight: "700" },
   subtitle: { fontSize: 14, marginTop: 4 },
   tabsContainer: {
-    flexDirection: "row",
     paddingHorizontal: 20,
     gap: 8,
     marginBottom: 16,
@@ -144,7 +183,7 @@ const styles = StyleSheet.create({
   },
   thumbnail: {
     width: 100,
-    height: 100,
+    height: 110,
     backgroundColor: "#E0E0E0",
   },
   cardContent: {
@@ -165,6 +204,13 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   difficultyText: { fontSize: 11, fontWeight: "600", color: "#FFFFFF" },
+  badgeRow: { flexDirection: "row", marginTop: 4, gap: 6 },
+  categoryBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  categoryText: { fontSize: 11, fontWeight: "600" },
   cardDescription: { fontSize: 13, marginTop: 4, lineHeight: 18 },
   cardMeta: {
     flexDirection: "row",

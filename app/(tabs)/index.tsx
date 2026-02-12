@@ -1,9 +1,10 @@
 import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { EXERCISES } from "@/constants/exercises";
+import { CATEGORY_COLORS } from "@/constants/exercises";
 import { useAuth } from "@/hooks/use-auth";
 import { useColors } from "@/hooks/use-colors";
 import { useWorkout } from "@/lib/workout-store";
+import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import * as Haptics from "expo-haptics";
@@ -11,12 +12,12 @@ import * as Haptics from "expo-haptics";
 export default function HomeScreen() {
   const colors = useColors();
   const { user } = useAuth();
-  const { state, getPlanExercises, getTotalPlanDuration } = useWorkout();
+  const { state, getDailyPlanExercises, getTotalPlanDuration, refreshDailyPlan } = useWorkout();
   const router = useRouter();
-  const planExercises = getPlanExercises();
+  const planExercises = getDailyPlanExercises();
   const totalDuration = getTotalPlanDuration();
   const completedCount = state.todayCompleted.length;
-  const planCount = state.plan.length;
+  const planCount = state.dailyPlan.length;
   const progress = planCount > 0 ? completedCount / planCount : 0;
 
   const firstName = user?.name?.split(" ")[0] || "Athlete";
@@ -112,18 +113,68 @@ export default function HomeScreen() {
           />
         </View>
 
+        {/* Awards Preview */}
+        {state.unlockedAwards.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Awards</Text>
+              <Pressable
+                onPress={() => router.push("/(tabs)/profile" as any)}
+                style={({ pressed }) => [pressed && { opacity: 0.7 }]}
+              >
+                <Text style={[styles.seeAllText, { color: colors.primary }]}>See All</Text>
+              </Pressable>
+            </View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <View style={styles.awardsRow}>
+                {state.unlockedAwards.slice(0, 5).map((awardId) => (
+                  <View key={awardId} style={[styles.awardBadge, { backgroundColor: colors.primary + "15" }]}>
+                    <IconSymbol name="star.fill" size={20} color={colors.primary} />
+                  </View>
+                ))}
+                {state.unlockedAwards.length > 5 && (
+                  <View style={[styles.awardBadge, { backgroundColor: colors.surface }]}>
+                    <Text style={[styles.awardMoreText, { color: colors.muted }]}>
+                      +{state.unlockedAwards.length - 5}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            </ScrollView>
+          </View>
+        )}
+
         {/* Today's Plan */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Your Plan</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Today's Plan</Text>
+            <Pressable
+              onPress={() => {
+                if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                refreshDailyPlan();
+              }}
+              style={({ pressed }) => [pressed && { opacity: 0.7 }]}
+            >
+              <View style={styles.refreshRow}>
+                <IconSymbol name="arrow.clockwise" size={14} color={colors.primary} />
+                <Text style={[styles.refreshText, { color: colors.primary }]}>Refresh</Text>
+              </View>
+            </Pressable>
+          </View>
+          {state.dailyPlanEdited && (
+            <View style={[styles.editedBadge, { backgroundColor: colors.warning + "15" }]}>
+              <Text style={[styles.editedText, { color: colors.warning }]}>Manually edited</Text>
+            </View>
+          )}
           {planExercises.length === 0 ? (
             <View style={[styles.emptyCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
               <IconSymbol name="dumbbell.fill" size={32} color={colors.muted} />
               <Text style={[styles.emptyText, { color: colors.muted }]}>
-                No exercises in your plan yet.{"\n"}Go to "My Plan" to add some!
+                No exercises in today's plan.{"\n"}Tap refresh to generate one!
               </Text>
             </View>
           ) : (
-            planExercises.slice(0, 5).map((exercise, index) => {
+            planExercises.slice(0, 5).map((exercise, index: number) => {
               const isCompleted = state.todayCompleted.includes(exercise.id);
               return (
                 <Pressable
@@ -135,28 +186,37 @@ export default function HomeScreen() {
                     pressed && { opacity: 0.7 },
                   ]}
                 >
-                  <View style={[styles.exerciseIndex, { backgroundColor: isCompleted ? colors.success : colors.primary + "15" }]}>
-                    {isCompleted ? (
-                      <IconSymbol name="checkmark.circle.fill" size={18} color="#FFFFFF" />
-                    ) : (
-                      <Text style={[styles.exerciseIndexText, { color: colors.primary }]}>{index + 1}</Text>
-                    )}
-                  </View>
+                  <Image source={{ uri: exercise.demoImage }} style={styles.exerciseThumb} contentFit="cover" />
                   <View style={styles.exerciseInfo}>
                     <Text style={[styles.exerciseName, { color: colors.foreground }]}>{exercise.name}</Text>
-                    <Text style={[styles.exerciseMeta, { color: colors.muted }]}>
-                      {exercise.defaultDuration}s · {exercise.muscleGroups[0]}
-                    </Text>
+                    <View style={styles.exerciseMetaRow}>
+                      <Text style={[styles.exerciseMeta, { color: colors.muted }]}>
+                        {exercise.defaultDuration}s
+                      </Text>
+                      <View style={[styles.catDot, { backgroundColor: CATEGORY_COLORS[exercise.category].bg }]} />
+                      <Text style={[styles.exerciseMeta, { color: colors.muted }]}>
+                        {exercise.category === "fat-burning" ? "Fat Burn" : exercise.category}
+                      </Text>
+                    </View>
                   </View>
-                  <IconSymbol name="chevron.right" size={16} color={colors.muted} />
+                  {isCompleted ? (
+                    <IconSymbol name="checkmark.circle.fill" size={22} color={colors.success} />
+                  ) : (
+                    <IconSymbol name="chevron.right" size={16} color={colors.muted} />
+                  )}
                 </Pressable>
               );
             })
           )}
           {planExercises.length > 5 && (
-            <Text style={[styles.moreText, { color: colors.muted }]}>
-              +{planExercises.length - 5} more exercises
-            </Text>
+            <Pressable
+              onPress={() => router.push("/(tabs)/my-plan" as any)}
+              style={({ pressed }) => [pressed && { opacity: 0.7 }]}
+            >
+              <Text style={[styles.moreText, { color: colors.primary }]}>
+                View all {planExercises.length} exercises →
+              </Text>
+            </Pressable>
           )}
         </View>
       </ScrollView>
@@ -272,27 +332,53 @@ const styles = StyleSheet.create({
   statValue: { fontSize: 20, fontWeight: "700" },
   statLabel: { fontSize: 12 },
   section: { marginBottom: 24 },
-  sectionTitle: { fontSize: 20, fontWeight: "700", marginBottom: 12 },
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  sectionTitle: { fontSize: 20, fontWeight: "700" },
+  seeAllText: { fontSize: 14, fontWeight: "600" },
+  refreshRow: { flexDirection: "row", alignItems: "center", gap: 4 },
+  refreshText: { fontSize: 14, fontWeight: "600" },
+  editedBadge: {
+    alignSelf: "flex-start",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  editedText: { fontSize: 12, fontWeight: "600" },
+  awardsRow: { flexDirection: "row", gap: 8 },
+  awardBadge: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  awardMoreText: { fontSize: 13, fontWeight: "600" },
   exerciseRow: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 14,
+    padding: 12,
     borderRadius: 14,
     marginBottom: 8,
     borderWidth: 1,
     gap: 12,
   },
-  exerciseIndex: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    justifyContent: "center",
-    alignItems: "center",
+  exerciseThumb: {
+    width: 44,
+    height: 44,
+    borderRadius: 10,
+    backgroundColor: "#E0E0E0",
   },
-  exerciseIndexText: { fontSize: 14, fontWeight: "700" },
   exerciseInfo: { flex: 1 },
   exerciseName: { fontSize: 16, fontWeight: "600" },
-  exerciseMeta: { fontSize: 13, marginTop: 2 },
+  exerciseMetaRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 2 },
+  exerciseMeta: { fontSize: 13 },
+  catDot: { width: 6, height: 6, borderRadius: 3 },
   emptyCard: {
     alignItems: "center",
     padding: 32,
@@ -301,5 +387,5 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   emptyText: { fontSize: 14, textAlign: "center", lineHeight: 20 },
-  moreText: { fontSize: 13, textAlign: "center", marginTop: 4 },
+  moreText: { fontSize: 14, fontWeight: "600", textAlign: "center", marginTop: 8 },
 });

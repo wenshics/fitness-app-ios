@@ -1,29 +1,30 @@
 import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { DIFFICULTY_COLORS, EXERCISES } from "@/constants/exercises";
+import { CATEGORY_COLORS, DIFFICULTY_COLORS, EXERCISES } from "@/constants/exercises";
 import { useColors } from "@/hooks/use-colors";
 import { useWorkout } from "@/lib/workout-store";
+import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { Alert, FlatList, Platform, Pressable, StyleSheet, Text, View, Modal, ScrollView } from "react-native";
+import { Alert, FlatList, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import * as Haptics from "expo-haptics";
 
 export default function MyPlanScreen() {
   const colors = useColors();
   const router = useRouter();
-  const { state, removeFromPlan, addToPlan, reorderPlan, getTotalPlanDuration } = useWorkout();
+  const { state, removeFromPlan, addToPlan, reorderPlan, refreshDailyPlan, getTotalPlanDuration } = useWorkout();
   const [showAddModal, setShowAddModal] = useState(false);
 
-  const planExercises = state.plan
-    .map((id) => EXERCISES.find((e) => e.id === id))
+  const planExercises = state.dailyPlan
+    .map((id: string) => EXERCISES.find((e) => e.id === id))
     .filter(Boolean) as typeof EXERCISES;
 
   const totalDuration = getTotalPlanDuration();
-  const availableExercises = EXERCISES.filter((e) => !state.plan.includes(e.id));
+  const availableExercises = EXERCISES.filter((e) => !state.dailyPlan.includes(e.id));
 
   const handleRemove = (id: string, name: string) => {
     if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    Alert.alert("Remove Exercise", `Remove "${name}" from your plan?`, [
+    Alert.alert("Remove Exercise", `Remove "${name}" from today's plan?`, [
       { text: "Cancel", style: "cancel" },
       {
         text: "Remove",
@@ -35,16 +36,30 @@ export default function MyPlanScreen() {
 
   const handleMoveUp = (index: number) => {
     if (index === 0) return;
-    const newPlan = [...state.plan];
+    if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const newPlan = [...state.dailyPlan];
     [newPlan[index - 1], newPlan[index]] = [newPlan[index], newPlan[index - 1]];
     reorderPlan(newPlan);
   };
 
   const handleMoveDown = (index: number) => {
-    if (index === state.plan.length - 1) return;
-    const newPlan = [...state.plan];
+    if (index === state.dailyPlan.length - 1) return;
+    if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const newPlan = [...state.dailyPlan];
     [newPlan[index], newPlan[index + 1]] = [newPlan[index + 1], newPlan[index]];
     reorderPlan(newPlan);
+  };
+
+  const handleRefresh = () => {
+    if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    Alert.alert(
+      "Refresh Plan",
+      "Generate a new daily plan? Your current edits will be lost.",
+      [
+        { text: "Cancel", style: "cancel" },
+        { text: "Refresh", onPress: () => refreshDailyPlan() },
+      ],
+    );
   };
 
   const handleStartWorkout = () => {
@@ -56,24 +71,49 @@ export default function MyPlanScreen() {
     <ScreenContainer className="pt-2">
       <View style={styles.headerContainer}>
         <View style={styles.headerRow}>
-          <View>
-            <Text style={[styles.title, { color: colors.foreground }]}>My Plan</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.title, { color: colors.foreground }]}>Today's Plan</Text>
             <Text style={[styles.subtitle, { color: colors.muted }]}>
               {planExercises.length} exercises · {formatDuration(totalDuration)}
             </Text>
+            {state.dailyPlanEdited && (
+              <View style={[styles.editedBadge, { backgroundColor: colors.warning + "15" }]}>
+                <Text style={[styles.editedText, { color: colors.warning }]}>Manually edited</Text>
+              </View>
+            )}
           </View>
-          <Pressable
-            onPress={() => setShowAddModal(true)}
-            style={({ pressed }) => [
-              styles.addButton,
-              { backgroundColor: colors.primary },
-              pressed && { opacity: 0.8 },
-            ]}
-          >
-            <IconSymbol name="plus.circle.fill" size={18} color="#FFFFFF" />
-            <Text style={styles.addButtonText}>Add</Text>
-          </Pressable>
+          <View style={styles.headerActions}>
+            <Pressable
+              onPress={handleRefresh}
+              style={({ pressed }) => [
+                styles.iconBtn,
+                { backgroundColor: colors.surface, borderColor: colors.border },
+                pressed && { opacity: 0.7 },
+              ]}
+            >
+              <IconSymbol name="arrow.clockwise" size={18} color={colors.primary} />
+            </Pressable>
+            <Pressable
+              onPress={() => setShowAddModal(true)}
+              style={({ pressed }) => [
+                styles.addButton,
+                { backgroundColor: colors.primary },
+                pressed && { opacity: 0.8 },
+              ]}
+            >
+              <IconSymbol name="plus.circle.fill" size={18} color="#FFFFFF" />
+              <Text style={styles.addButtonText}>Add</Text>
+            </Pressable>
+          </View>
         </View>
+      </View>
+
+      {/* Info banner */}
+      <View style={[styles.infoBanner, { backgroundColor: colors.primary + "10" }]}>
+        <IconSymbol name="sparkles" size={16} color={colors.primary} />
+        <Text style={[styles.infoText, { color: colors.primary }]}>
+          A fresh plan is auto-generated every day. You can also edit it manually.
+        </Text>
       </View>
 
       {planExercises.length === 0 ? (
@@ -81,7 +121,7 @@ export default function MyPlanScreen() {
           <IconSymbol name="dumbbell.fill" size={48} color={colors.muted} />
           <Text style={[styles.emptyTitle, { color: colors.foreground }]}>No exercises yet</Text>
           <Text style={[styles.emptyText, { color: colors.muted }]}>
-            Tap "Add" to build your custom workout plan
+            Tap "Add" to build your workout plan or "Refresh" to auto-generate one
           </Text>
         </View>
       ) : (
@@ -91,50 +131,78 @@ export default function MyPlanScreen() {
             keyExtractor={(item) => item.id}
             contentContainerStyle={styles.listContent}
             showsVerticalScrollIndicator={false}
-            renderItem={({ item, index }) => (
-              <View
-                style={[styles.planCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
-              >
-                <View style={[styles.orderBadge, { backgroundColor: colors.primary }]}>
-                  <Text style={styles.orderText}>{index + 1}</Text>
-                </View>
-                <Pressable
-                  onPress={() => router.push(`/exercise/${item.id}` as any)}
-                  style={({ pressed }) => [styles.planCardContent, pressed && { opacity: 0.7 }]}
+            renderItem={({ item, index }) => {
+              const isCompleted = state.todayCompleted.includes(item.id);
+              return (
+                <View
+                  style={[
+                    styles.planCard,
+                    { backgroundColor: colors.surface, borderColor: colors.border },
+                    isCompleted && { opacity: 0.6 },
+                  ]}
                 >
-                  <View style={styles.planCardInfo}>
-                    <Text style={[styles.planCardTitle, { color: colors.foreground }]}>{item.name}</Text>
-                    <View style={styles.planCardMeta}>
-                      <View
-                        style={[styles.diffBadge, { backgroundColor: DIFFICULTY_COLORS[item.difficulty].bg }]}
-                      >
-                        <Text style={styles.diffText}>{item.difficulty}</Text>
+                  <Pressable
+                    onPress={() => router.push(`/exercise/${item.id}` as any)}
+                    style={({ pressed }) => [styles.planCardContent, pressed && { opacity: 0.7 }]}
+                  >
+                    <Image source={{ uri: item.demoImage }} style={styles.exerciseThumb} contentFit="cover" />
+                    <View style={styles.planCardInfo}>
+                      <View style={styles.planCardTitleRow}>
+                        <Text style={[styles.planCardTitle, { color: colors.foreground }]} numberOfLines={1}>
+                          {item.name}
+                        </Text>
+                        {isCompleted && (
+                          <IconSymbol name="checkmark.circle.fill" size={18} color={colors.success} />
+                        )}
                       </View>
-                      <Text style={[styles.planCardDuration, { color: colors.muted }]}>
-                        {item.defaultDuration}s
-                      </Text>
+                      <View style={styles.planCardMeta}>
+                        <View
+                          style={[styles.diffBadge, { backgroundColor: DIFFICULTY_COLORS[item.difficulty].bg }]}
+                        >
+                          <Text style={styles.diffText}>{item.difficulty}</Text>
+                        </View>
+                        <View
+                          style={[styles.catBadge, { backgroundColor: CATEGORY_COLORS[item.category].bg + "20" }]}
+                        >
+                          <Text style={[styles.catText, { color: CATEGORY_COLORS[item.category].bg }]}>
+                            {item.category === "fat-burning" ? "Fat Burn" : item.category}
+                          </Text>
+                        </View>
+                        <Text style={[styles.planCardDuration, { color: colors.muted }]}>
+                          {item.defaultDuration}s
+                        </Text>
+                      </View>
                     </View>
+                  </Pressable>
+                  <View style={styles.planCardActions}>
+                    <Pressable
+                      onPress={() => handleMoveUp(index)}
+                      style={({ pressed }) => [
+                        styles.actionBtn,
+                        { opacity: index === 0 ? 0.3 : pressed ? 0.5 : 1 },
+                      ]}
+                    >
+                      <IconSymbol name="chevron.up" size={14} color={colors.muted} />
+                    </Pressable>
+                    <Pressable
+                      onPress={() => handleMoveDown(index)}
+                      style={({ pressed }) => [
+                        styles.actionBtn,
+                        { opacity: index === planExercises.length - 1 ? 0.3 : pressed ? 0.5 : 1 },
+                      ]}
+                    >
+                      <IconSymbol name="chevron.down" size={14} color={colors.muted} />
+                    </Pressable>
+                    <Pressable
+                      onPress={() => handleRemove(item.id, item.name)}
+                      style={({ pressed }) => [styles.actionBtn, pressed && { opacity: 0.5 }]}
+                    >
+                      <IconSymbol name="xmark.circle.fill" size={18} color={colors.error} />
+                    </Pressable>
                   </View>
-                </Pressable>
-                <View style={styles.planCardActions}>
-                  <Pressable
-                    onPress={() => handleMoveUp(index)}
-                    style={({ pressed }) => [
-                      styles.actionBtn,
-                      { opacity: index === 0 ? 0.3 : pressed ? 0.5 : 1 },
-                    ]}
-                  >
-                    <IconSymbol name="arrow.up.arrow.down" size={14} color={colors.muted} />
-                  </Pressable>
-                  <Pressable
-                    onPress={() => handleRemove(item.id, item.name)}
-                    style={({ pressed }) => [styles.actionBtn, pressed && { opacity: 0.5 }]}
-                  >
-                    <IconSymbol name="xmark.circle.fill" size={18} color={colors.error} />
-                  </Pressable>
                 </View>
-              </View>
-            )}
+              );
+            }}
           />
 
           {/* Start Workout Button */}
@@ -187,6 +255,7 @@ export default function MyPlanScreen() {
                     pressed && { opacity: 0.7 },
                   ]}
                 >
+                  <Image source={{ uri: exercise.demoImage }} style={styles.addExerciseThumb} contentFit="cover" />
                   <View style={styles.addExerciseInfo}>
                     <Text style={[styles.addExerciseName, { color: colors.foreground }]}>
                       {exercise.name}
@@ -198,7 +267,7 @@ export default function MyPlanScreen() {
                         <Text style={styles.diffText}>{exercise.difficulty}</Text>
                       </View>
                       <Text style={[styles.planCardDuration, { color: colors.muted }]}>
-                        {exercise.defaultDuration}s · {exercise.muscleGroups[0]}
+                        {exercise.defaultDuration}s
                       </Text>
                     </View>
                   </View>
@@ -222,10 +291,27 @@ function formatDuration(seconds: number): string {
 }
 
 const styles = StyleSheet.create({
-  headerContainer: { paddingHorizontal: 20, marginBottom: 16 },
+  headerContainer: { paddingHorizontal: 20, marginBottom: 12 },
   headerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" },
   title: { fontSize: 28, fontWeight: "700" },
   subtitle: { fontSize: 14, marginTop: 4 },
+  editedBadge: {
+    alignSelf: "flex-start",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    marginTop: 6,
+  },
+  editedText: { fontSize: 11, fontWeight: "600" },
+  headerActions: { flexDirection: "row", gap: 8 },
+  iconBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+  },
   addButton: {
     flexDirection: "row",
     alignItems: "center",
@@ -235,6 +321,17 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   addButtonText: { fontSize: 14, fontWeight: "600", color: "#FFFFFF" },
+  infoBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginHorizontal: 20,
+    marginBottom: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 12,
+  },
+  infoText: { fontSize: 13, flex: 1, lineHeight: 18 },
   emptyState: {
     flex: 1,
     justifyContent: "center",
@@ -256,25 +353,27 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     overflow: "hidden",
   },
-  orderBadge: {
-    width: 32,
-    justifyContent: "center",
-    alignItems: "center",
-    alignSelf: "stretch",
+  planCardContent: { flex: 1, flexDirection: "row", alignItems: "center", padding: 10, gap: 12 },
+  exerciseThumb: {
+    width: 50,
+    height: 50,
+    borderRadius: 10,
+    backgroundColor: "#E0E0E0",
   },
-  orderText: { fontSize: 14, fontWeight: "700", color: "#FFFFFF" },
-  planCardContent: { flex: 1, padding: 14 },
-  planCardInfo: {},
-  planCardTitle: { fontSize: 16, fontWeight: "600" },
-  planCardMeta: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 4 },
+  planCardInfo: { flex: 1 },
+  planCardTitleRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  planCardTitle: { fontSize: 15, fontWeight: "600", flex: 1 },
+  planCardMeta: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4 },
   diffBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 },
-  diffText: { fontSize: 11, fontWeight: "600", color: "#FFFFFF" },
-  planCardDuration: { fontSize: 13 },
+  diffText: { fontSize: 11, fontWeight: "600", color: "#FFFFFF", textTransform: "capitalize" },
+  catBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 },
+  catText: { fontSize: 11, fontWeight: "600", textTransform: "capitalize" },
+  planCardDuration: { fontSize: 12 },
   planCardActions: {
-    flexDirection: "row",
+    flexDirection: "column",
     alignItems: "center",
-    gap: 8,
-    paddingRight: 12,
+    gap: 2,
+    paddingRight: 10,
   },
   actionBtn: { padding: 4 },
   bottomBar: {
@@ -308,12 +407,19 @@ const styles = StyleSheet.create({
   addExerciseCard: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 14,
+    padding: 10,
     borderRadius: 14,
     marginBottom: 8,
     borderWidth: 1,
+    gap: 12,
+  },
+  addExerciseThumb: {
+    width: 44,
+    height: 44,
+    borderRadius: 10,
+    backgroundColor: "#E0E0E0",
   },
   addExerciseInfo: { flex: 1 },
-  addExerciseName: { fontSize: 16, fontWeight: "600" },
+  addExerciseName: { fontSize: 15, fontWeight: "600" },
   addExerciseMeta: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 4 },
 });

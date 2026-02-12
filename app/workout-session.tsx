@@ -20,8 +20,8 @@ export default function WorkoutSessionScreen() {
   const router = useRouter();
   const { state, completeWorkout } = useWorkout();
 
-  const planExercises = state.plan
-    .map((id) => EXERCISES.find((e) => e.id === id))
+  const planExercises = state.dailyPlan
+    .map((id: string) => EXERCISES.find((e) => e.id === id))
     .filter(Boolean) as typeof EXERCISES;
 
   const [currentIndex, setCurrentIndex] = useState(0);
