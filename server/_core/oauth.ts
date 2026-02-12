@@ -74,7 +74,7 @@ export function registerOAuthRoutes(app: Express) {
     try {
       const tokenResponse = await sdk.exchangeCodeForToken(code, state);
       const userInfo = await sdk.getUserInfo(tokenResponse.accessToken);
-      await syncUser(userInfo);
+      const user = await syncUser(userInfo);
       const sessionToken = await sdk.createSessionToken(userInfo.openId!, {
         name: userInfo.name || "",
         expiresInMs: ONE_YEAR_MS,
@@ -84,12 +84,23 @@ export function registerOAuthRoutes(app: Express) {
       res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
 
       // Redirect to the frontend URL (Expo web on port 8081)
-      // Cookie is set with parent domain so it works across both 3000 and 8081 subdomains
+      // Include user info as base64-encoded query param so the frontend can cache it
       const frontendUrl =
         process.env.EXPO_WEB_PREVIEW_URL ||
         process.env.EXPO_PACKAGER_PROXY_URL ||
         "http://localhost:8081";
-      res.redirect(302, frontendUrl);
+
+      // Encode user info for the frontend to pick up
+      const userResponse = buildUserResponse(user);
+      const userBase64 = Buffer.from(JSON.stringify(userResponse)).toString("base64");
+
+      // Redirect to the oauth/callback route on the frontend so it can store user info
+      const redirectUrl = new URL(frontendUrl);
+      redirectUrl.pathname = "/oauth/callback";
+      redirectUrl.searchParams.set("sessionToken", sessionToken);
+      redirectUrl.searchParams.set("user", userBase64);
+
+      res.redirect(302, redirectUrl.toString());
     } catch (error) {
       console.error("[OAuth] Callback failed", error);
       res.status(500).json({ error: "OAuth callback failed" });

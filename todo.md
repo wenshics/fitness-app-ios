@@ -16,3 +16,4 @@
 - [x] Implement workout streak tracking
 - [x] Add keep-awake during workout sessions
 - [x] Generate app logo and update branding
+- [x] Fix bug: after sign-in, user is redirected back to login screen after ~1s
