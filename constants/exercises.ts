@@ -41,7 +41,7 @@ export const EXERCISES: Exercise[] = [
     category: "bodyweight",
     muscleGroups: ["legs", "glutes"],
     defaultDuration: 30,
-    demoImage: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663279123655/TFxxtfnatHulGoeN.png",
+    demoImage: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663279123655/rGNJstqgQcgELaCz.gif",
     description: "A fundamental lower body exercise that targets your quads, hamstrings, and glutes.",
     instructions: [
       "Stand with feet shoulder-width apart.",
@@ -111,7 +111,7 @@ export const EXERCISES: Exercise[] = [
     category: "bodyweight",
     muscleGroups: ["full-body", "cardio"],
     defaultDuration: 45,
-    demoImage: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663279123655/rEDfARhAWkRmSFwY.png",
+    demoImage: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663279123655/qpsCPSlFtKuEbzkp.gif",
     description: "A high-intensity full-body exercise that combines a squat, push-up, and jump.",
     instructions: [
       "Stand with feet shoulder-width apart.",
@@ -128,7 +128,7 @@ export const EXERCISES: Exercise[] = [
     category: "bodyweight",
     muscleGroups: ["full-body", "cardio", "core"],
     defaultDuration: 45,
-    demoImage: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663279123655/lUCzkGWLsnylZiIs.png",
+    demoImage: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663279123655/DQXKfopkbFhbIQhD.gif",
     description: "A dynamic exercise that builds cardiovascular endurance and core strength.",
     instructions: [
       "Start in a high plank position.",
@@ -179,7 +179,7 @@ export const EXERCISES: Exercise[] = [
     category: "bodyweight",
     muscleGroups: ["legs", "cardio"],
     defaultDuration: 30,
-    demoImage: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663279123655/VMFbNObiRifDLXTe.png",
+    demoImage: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663279123655/BZWpgoPVQDGAudvC.gif",
     description: "An explosive plyometric exercise that builds lower body power.",
     instructions: [
       "Stand with feet shoulder-width apart.",
@@ -198,7 +198,7 @@ export const EXERCISES: Exercise[] = [
     category: "bodyweight",
     muscleGroups: ["legs"],
     defaultDuration: 30,
-    demoImage: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663279123655/egDDVECJdvQCqynB.png",
+    demoImage: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663279123655/gPLcaTuweoGxLHyt.gif",
     description: "A challenging single-leg squat that requires strength, balance, and flexibility.",
     instructions: [
       "Stand on one leg with the other extended in front of you.",
@@ -249,7 +249,7 @@ export const EXERCISES: Exercise[] = [
     category: "bodyweight",
     muscleGroups: ["chest", "shoulders", "core"],
     defaultDuration: 30,
-    demoImage: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663279123655/eXVWGwMwCzXZKFJj.png",
+    demoImage: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663279123655/CBlXUMsjxNhjxWJg.gif",
     description: "An elite-level push-up variation with feet elevated for extreme upper body engagement.",
     instructions: [
       "Place your feet on an elevated surface (bench or box).",
@@ -285,7 +285,7 @@ export const EXERCISES: Exercise[] = [
     category: "stretch",
     muscleGroups: ["neck"],
     defaultDuration: 30,
-    demoImage: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663279123655/RaROqWppfsuOXAht.png",
+    demoImage: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663279123655/ZrtzmolRWQEwbvsq.gif",
     description: "A gentle stretch to relieve neck tension and improve range of motion.",
     instructions: [
       "Sit or stand with a straight spine.",
@@ -389,7 +389,7 @@ export const EXERCISES: Exercise[] = [
     category: "fat-burning",
     muscleGroups: ["full-body", "cardio"],
     defaultDuration: 30,
-    demoImage: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663279123655/PplKuXGFZsPSZTCG.png",
+    demoImage: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663279123655/ICZnNWiJpRAyJkMU.gif",
     description: "An explosive plyometric jump that engages your entire body for maximum calorie burn.",
     instructions: [
       "Start in a squat position with arms tucked in.",

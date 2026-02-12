@@ -28,3 +28,6 @@
 - [x] Add $1.99/week subscription paywall
 - [x] Add workout reminders: 7:30 PM weekdays, 8:30 AM + 7:30 PM weekends
 - [x] Add award/achievement system with badges and milestones (12 awards)
+- [x] Fix bug: refresh button doesn't work for daily exercise plan
+- [x] Add proper payment plan screen with subscription options (weekly/monthly/yearly)
+- [x] Replace 8 demo images with animated GIFs (remaining 17 kept as static images)

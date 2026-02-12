@@ -7,9 +7,49 @@ import { useState } from "react";
 import { StyleSheet, Text, View, Pressable, Platform, ScrollView } from "react-native";
 import * as Haptics from "expo-haptics";
 
+type PlanType = "weekly" | "monthly" | "yearly";
+
+interface PricePlan {
+  id: PlanType;
+  label: string;
+  price: string;
+  period: string;
+  perWeek: string;
+  savings?: string;
+  popular?: boolean;
+}
+
+const PLANS: PricePlan[] = [
+  {
+    id: "weekly",
+    label: "Weekly",
+    price: "$1.99",
+    period: "/week",
+    perWeek: "$1.99/wk",
+  },
+  {
+    id: "monthly",
+    label: "Monthly",
+    price: "$5.99",
+    period: "/month",
+    perWeek: "$1.50/wk",
+    savings: "Save 25%",
+    popular: true,
+  },
+  {
+    id: "yearly",
+    label: "Yearly",
+    price: "$39.99",
+    period: "/year",
+    perWeek: "$0.77/wk",
+    savings: "Save 61%",
+  },
+];
+
 export default function LoginScreen() {
   const colors = useColors();
   const [showPaywall, setShowPaywall] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<PlanType>("monthly");
 
   const handleGetStarted = () => {
     if (Platform.OS !== "web") {
@@ -35,6 +75,8 @@ export default function LoginScreen() {
   };
 
   if (showPaywall) {
+    const currentPlan = PLANS.find((p) => p.id === selectedPlan)!;
+
     return (
       <ScreenContainer edges={["top", "bottom", "left", "right"]}>
         <LinearGradient
@@ -67,7 +109,7 @@ export default function LoginScreen() {
               <PaywallFeature
                 icon="dumbbell.fill"
                 title="25 Expert Exercises"
-                desc="From stretching to gym workouts"
+                desc="From stretching to gym workouts with animated demos"
               />
               <PaywallFeature
                 icon="sparkles"
@@ -82,27 +124,67 @@ export default function LoginScreen() {
               <PaywallFeature
                 icon="trophy.fill"
                 title="Awards & Streaks"
-                desc="Stay motivated with achievements"
+                desc="Stay motivated with 12 achievements"
               />
               <PaywallFeature
                 icon="bell.fill"
                 title="Workout Reminders"
-                desc="Never miss a workout session"
-              />
-              <PaywallFeature
-                icon="chart.bar.fill"
-                title="Progress Tracking"
-                desc="Track your fitness journey"
+                desc="Smart reminders for weekdays & weekends"
               />
             </View>
 
-            {/* Price Card */}
-            <View style={styles.priceCard}>
-              <View style={styles.priceRow}>
-                <Text style={styles.priceAmount}>$1.99</Text>
-                <Text style={styles.pricePeriod}>/week</Text>
-              </View>
-              <Text style={styles.priceNote}>Cancel anytime. Billed weekly.</Text>
+            {/* Plan Selection */}
+            <Text style={styles.choosePlanLabel}>Choose Your Plan</Text>
+            <View style={styles.plansContainer}>
+              {PLANS.map((plan) => {
+                const isSelected = selectedPlan === plan.id;
+                return (
+                  <Pressable
+                    key={plan.id}
+                    onPress={() => {
+                      if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      setSelectedPlan(plan.id);
+                    }}
+                    style={({ pressed }) => [
+                      styles.planCard,
+                      isSelected && styles.planCardSelected,
+                      pressed && { opacity: 0.9 },
+                    ]}
+                  >
+                    {plan.popular && (
+                      <View style={styles.popularBadge}>
+                        <Text style={styles.popularBadgeText}>MOST POPULAR</Text>
+                      </View>
+                    )}
+                    {plan.savings && !plan.popular && (
+                      <View style={styles.savingsBadge}>
+                        <Text style={styles.savingsBadgeText}>{plan.savings}</Text>
+                      </View>
+                    )}
+                    <View style={styles.planCardInner}>
+                      <View style={[styles.radioOuter, isSelected && styles.radioOuterSelected]}>
+                        {isSelected && <View style={styles.radioInner} />}
+                      </View>
+                      <View style={styles.planInfo}>
+                        <Text style={[styles.planLabel, isSelected && styles.planLabelSelected]}>
+                          {plan.label}
+                        </Text>
+                        <Text style={[styles.planPerWeek, isSelected && styles.planPerWeekSelected]}>
+                          {plan.perWeek}
+                        </Text>
+                      </View>
+                      <View style={styles.planPriceCol}>
+                        <Text style={[styles.planPrice, isSelected && styles.planPriceSelected]}>
+                          {plan.price}
+                        </Text>
+                        <Text style={[styles.planPeriod, isSelected && styles.planPeriodSelected]}>
+                          {plan.period}
+                        </Text>
+                      </View>
+                    </View>
+                  </Pressable>
+                );
+              })}
             </View>
 
             {/* Subscribe Button */}
@@ -113,11 +195,13 @@ export default function LoginScreen() {
                 pressed && { transform: [{ scale: 0.97 }], opacity: 0.9 },
               ]}
             >
-              <Text style={styles.subscribeBtnText}>Start Free Trial & Subscribe</Text>
+              <Text style={styles.subscribeBtnText}>
+                Start Free Trial — {currentPlan.price}{currentPlan.period}
+              </Text>
             </Pressable>
 
             <Text style={styles.trialNote}>
-              7-day free trial, then $1.99/week
+              7-day free trial, then {currentPlan.price}{currentPlan.period}. Cancel anytime.
             </Text>
 
             {/* Restore / Terms */}
@@ -175,7 +259,7 @@ export default function LoginScreen() {
           </Pressable>
 
           <Text style={styles.disclaimer}>
-            7-day free trial · $1.99/week · Cancel anytime
+            7-day free trial · Starting at $0.77/week · Cancel anytime
           </Text>
         </View>
       </LinearGradient>
@@ -280,7 +364,7 @@ const styles = StyleSheet.create({
   // Paywall styles
   paywallContent: {
     flexGrow: 1,
-    paddingHorizontal: 28,
+    paddingHorizontal: 24,
     paddingTop: 16,
     paddingBottom: 40,
   },
@@ -291,88 +375,168 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.2)",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 16,
+    marginBottom: 12,
   },
   paywallHeader: {
     alignItems: "center",
-    marginBottom: 32,
+    marginBottom: 24,
   },
   crownIcon: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
     backgroundColor: "rgba(255,255,255,0.15)",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 16,
+    marginBottom: 12,
   },
   paywallTitle: {
-    fontSize: 32,
+    fontSize: 30,
     fontWeight: "800",
     color: "#FFFFFF",
     letterSpacing: -0.5,
   },
   paywallSubtitle: {
-    fontSize: 16,
+    fontSize: 15,
     color: "rgba(255,255,255,0.8)",
-    marginTop: 6,
+    marginTop: 4,
   },
   paywallFeatures: {
-    gap: 16,
-    marginBottom: 32,
+    gap: 14,
+    marginBottom: 28,
   },
   paywallFeatureRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 14,
+    gap: 12,
   },
   paywallFeatureIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
+    width: 40,
+    height: 40,
+    borderRadius: 10,
     backgroundColor: "rgba(255,255,255,0.15)",
     justifyContent: "center",
     alignItems: "center",
   },
   paywallFeatureInfo: { flex: 1 },
   paywallFeatureTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "700",
     color: "#FFFFFF",
   },
   paywallFeatureDesc: {
-    fontSize: 13,
+    fontSize: 12,
     color: "rgba(255,255,255,0.7)",
-    marginTop: 2,
+    marginTop: 1,
   },
-  priceCard: {
-    backgroundColor: "rgba(255,255,255,0.15)",
-    borderRadius: 16,
-    padding: 20,
-    alignItems: "center",
+  // Plan selection
+  choosePlanLabel: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#FFFFFF",
+    marginBottom: 12,
+  },
+  plansContainer: {
+    gap: 10,
     marginBottom: 20,
+  },
+  planCard: {
+    backgroundColor: "rgba(255,255,255,0.12)",
+    borderRadius: 14,
     borderWidth: 2,
-    borderColor: "rgba(255,255,255,0.3)",
+    borderColor: "rgba(255,255,255,0.15)",
+    overflow: "hidden",
   },
-  priceRow: {
+  planCardSelected: {
+    backgroundColor: "rgba(255,255,255,0.22)",
+    borderColor: "#FFFFFF",
+  },
+  planCardInner: {
     flexDirection: "row",
-    alignItems: "baseline",
+    alignItems: "center",
+    padding: 16,
+    gap: 12,
   },
-  priceAmount: {
-    fontSize: 40,
-    fontWeight: "800",
+  radioOuter: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 2,
+    borderColor: "rgba(255,255,255,0.4)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  radioOuterSelected: {
+    borderColor: "#FFFFFF",
+  },
+  radioInner: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: "#FFFFFF",
+  },
+  planInfo: {
+    flex: 1,
+  },
+  planLabel: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "rgba(255,255,255,0.8)",
+  },
+  planLabelSelected: {
     color: "#FFFFFF",
   },
-  pricePeriod: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "rgba(255,255,255,0.8)",
-    marginLeft: 4,
+  planPerWeek: {
+    fontSize: 12,
+    color: "rgba(255,255,255,0.5)",
+    marginTop: 2,
   },
-  priceNote: {
-    fontSize: 13,
-    color: "rgba(255,255,255,0.6)",
-    marginTop: 4,
+  planPerWeekSelected: {
+    color: "rgba(255,255,255,0.7)",
+  },
+  planPriceCol: {
+    alignItems: "flex-end",
+  },
+  planPrice: {
+    fontSize: 20,
+    fontWeight: "800",
+    color: "rgba(255,255,255,0.8)",
+  },
+  planPriceSelected: {
+    color: "#FFFFFF",
+  },
+  planPeriod: {
+    fontSize: 12,
+    color: "rgba(255,255,255,0.5)",
+  },
+  planPeriodSelected: {
+    color: "rgba(255,255,255,0.7)",
+  },
+  popularBadge: {
+    backgroundColor: "#FFD700",
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    alignSelf: "flex-start",
+    borderBottomRightRadius: 8,
+  },
+  popularBadgeText: {
+    fontSize: 10,
+    fontWeight: "800",
+    color: "#333",
+    letterSpacing: 0.5,
+  },
+  savingsBadge: {
+    backgroundColor: "rgba(255,255,255,0.2)",
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    alignSelf: "flex-start",
+    borderBottomRightRadius: 8,
+  },
+  savingsBadgeText: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: "#FFFFFF",
+    letterSpacing: 0.5,
   },
   subscribeBtn: {
     backgroundColor: "#FFFFFF",
@@ -386,30 +550,30 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   subscribeBtnText: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "700",
     color: "#FF6B35",
   },
   trialNote: {
-    fontSize: 13,
+    fontSize: 12,
     color: "rgba(255,255,255,0.6)",
     textAlign: "center",
-    marginTop: 12,
+    marginTop: 10,
   },
   legalRow: {
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
     gap: 8,
-    marginTop: 20,
+    marginTop: 16,
   },
   legalText: {
-    fontSize: 13,
+    fontSize: 12,
     color: "rgba(255,255,255,0.5)",
     textDecorationLine: "underline",
   },
   legalDot: {
-    fontSize: 13,
+    fontSize: 12,
     color: "rgba(255,255,255,0.3)",
   },
 });

@@ -54,6 +54,47 @@ function generateDailyPlan(date: string, difficulty?: Difficulty): string[] {
   return plan;
 }
 
+// Truly random plan for manual refresh (not seeded)
+function generateRandomPlan(): string[] {
+  const targetCount = 8;
+  const plan: string[] = [];
+  const categories: Category[] = ["bodyweight", "stretch", "fat-burning", "gym"];
+  const exercisesByCategory: Record<string, typeof EXERCISES> = {};
+  for (const cat of categories) {
+    exercisesByCategory[cat] = EXERCISES.filter((e) => e.category === cat);
+  }
+
+  // Randomize the distribution slightly each time
+  const distributions = [
+    [{ cat: "bodyweight" as Category, count: 3 }, { cat: "stretch" as Category, count: 2 }, { cat: "fat-burning" as Category, count: 2 }, { cat: "gym" as Category, count: 1 }],
+    [{ cat: "bodyweight" as Category, count: 2 }, { cat: "stretch" as Category, count: 2 }, { cat: "fat-burning" as Category, count: 2 }, { cat: "gym" as Category, count: 2 }],
+    [{ cat: "bodyweight" as Category, count: 2 }, { cat: "stretch" as Category, count: 3 }, { cat: "fat-burning" as Category, count: 1 }, { cat: "gym" as Category, count: 2 }],
+    [{ cat: "bodyweight" as Category, count: 2 }, { cat: "stretch" as Category, count: 1 }, { cat: "fat-burning" as Category, count: 3 }, { cat: "gym" as Category, count: 2 }],
+    [{ cat: "bodyweight" as Category, count: 3 }, { cat: "stretch" as Category, count: 1 }, { cat: "fat-burning" as Category, count: 3 }, { cat: "gym" as Category, count: 1 }],
+  ];
+  const distribution = distributions[Math.floor(Math.random() * distributions.length)];
+
+  for (const { cat, count } of distribution) {
+    const pool = exercisesByCategory[cat] || [];
+    const shuffled = [...pool].sort(() => Math.random() - 0.5);
+    for (let i = 0; i < Math.min(count, shuffled.length); i++) {
+      if (!plan.includes(shuffled[i].id)) {
+        plan.push(shuffled[i].id);
+      }
+    }
+  }
+
+  // Fill remaining slots
+  while (plan.length < targetCount) {
+    const remaining = EXERCISES.filter((e) => !plan.includes(e.id));
+    if (remaining.length === 0) break;
+    const pick = remaining[Math.floor(Math.random() * remaining.length)];
+    plan.push(pick.id);
+  }
+
+  return plan;
+}
+
 // ===== AWARDS SYSTEM =====
 export interface Award {
   id: string;
@@ -288,7 +329,8 @@ function workoutReducer(state: WorkoutState, action: WorkoutAction): WorkoutStat
       return { ...state, dailyPlan: action.payload, dailyPlanEdited: true };
     case "REFRESH_DAILY_PLAN": {
       const todayStr = getToday();
-      const newPlan = generateDailyPlan(todayStr + "-refresh-" + Date.now());
+      // Use truly random plan (not seeded) for manual refresh
+      const newPlan = generateRandomPlan();
       return { ...state, dailyPlan: newPlan, dailyPlanDate: todayStr, dailyPlanEdited: false };
     }
     case "COMPLETE_WORKOUT": {
