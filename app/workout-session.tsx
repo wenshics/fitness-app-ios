@@ -7,7 +7,7 @@ import { useSubscription } from "@/lib/subscription-store";
 import { useRouter } from "expo-router";
 import { useKeepAwake } from "expo-keep-awake";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Alert, Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import { Modal, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import * as Haptics from "expo-haptics";
 
 type SessionPhase = "exercise" | "rest" | "complete" | "countdown";
@@ -39,6 +39,7 @@ export default function WorkoutSessionScreen() {
   const [isPaused, setIsPaused] = useState(false);
   const [completedIds, setCompletedIds] = useState<string[]>([]);
   const [startTime] = useState(Date.now());
+  const [showEndConfirm, setShowEndConfirm] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const currentExercise = planExercises[currentIndex];
@@ -115,22 +116,23 @@ export default function WorkoutSessionScreen() {
     }
   }, [currentIndex, planExercises, currentExercise]);
 
-  const handleStop = useCallback(() => {
-    Alert.alert("End Workout", "Are you sure you want to end this workout?", [
-      { text: "Continue", style: "cancel" },
-      {
-        text: "End",
-        style: "destructive",
-        onPress: () => {
-          const totalDuration = Math.round((Date.now() - startTime) / 1000);
-          if (completedIds.length > 0) {
-            completeWorkout(completedIds, totalDuration);
-          }
-          router.back();
-        },
-      },
-    ]);
+  const handleStopRequest = useCallback(() => {
+    if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setShowEndConfirm(true);
+  }, []);
+
+  const handleStopConfirm = useCallback(() => {
+    setShowEndConfirm(false);
+    const totalDuration = Math.round((Date.now() - startTime) / 1000);
+    if (completedIds.length > 0) {
+      completeWorkout(completedIds, totalDuration);
+    }
+    router.back();
   }, [completedIds, startTime, completeWorkout, router]);
+
+  const handleStopCancel = useCallback(() => {
+    setShowEndConfirm(false);
+  }, []);
 
   const handleFinish = useCallback(() => {
     if (Platform.OS !== "web") {
@@ -220,7 +222,7 @@ export default function WorkoutSessionScreen() {
         {/* Top bar */}
         <View style={styles.sessionTopBar}>
           <Pressable
-            onPress={handleStop}
+            onPress={handleStopRequest}
             style={({ pressed }) => [
               styles.stopBtn,
               { backgroundColor: colors.error + "15" },
@@ -350,7 +352,7 @@ export default function WorkoutSessionScreen() {
           </Pressable>
 
           <Pressable
-            onPress={handleStop}
+            onPress={handleStopRequest}
             style={({ pressed }) => [
               styles.controlBtn,
               { backgroundColor: colors.surface },
@@ -362,6 +364,47 @@ export default function WorkoutSessionScreen() {
           </Pressable>
         </View>
       </View>
+
+      {/* End Workout Confirmation Modal */}
+      <Modal
+        visible={showEndConfirm}
+        transparent
+        animationType="fade"
+        onRequestClose={handleStopCancel}
+      >
+        <Pressable style={styles.modalOverlay} onPress={handleStopCancel}>
+          <Pressable style={[styles.modalContent, { backgroundColor: colors.background }]} onPress={(e) => e.stopPropagation()}>
+            <Text style={[styles.modalTitle, { color: colors.foreground }]}>End Workout?</Text>
+            <Text style={[styles.modalMessage, { color: colors.muted }]}>
+              Are you sure you want to end this workout?
+            </Text>
+            <View style={styles.modalButtons}>
+              <Pressable
+                onPress={handleStopCancel}
+                style={({ pressed }) => [
+                  styles.modalBtn,
+                  styles.modalBtnCancel,
+                  { backgroundColor: colors.surface },
+                  pressed && { opacity: 0.7 },
+                ]}
+              >
+                <Text style={[styles.modalBtnText, { color: colors.foreground }]}>Continue</Text>
+              </Pressable>
+              <Pressable
+                onPress={handleStopConfirm}
+                style={({ pressed }) => [
+                  styles.modalBtn,
+                  styles.modalBtnConfirm,
+                  { backgroundColor: colors.error },
+                  pressed && { opacity: 0.8 },
+                ]}
+              >
+                <Text style={[styles.modalBtnText, { color: "#FFFFFF" }]}>End</Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </ScreenContainer>
   );
 }
@@ -460,4 +503,49 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   finishBtnText: { fontSize: 18, fontWeight: "700", color: "#FFFFFF" },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalContent: {
+    width: "80%",
+    maxWidth: 400,
+    borderRadius: 20,
+    padding: 24,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    marginBottom: 12,
+    textAlign: "center",
+  },
+  modalMessage: {
+    fontSize: 16,
+    marginBottom: 24,
+    textAlign: "center",
+    lineHeight: 22,
+  },
+  modalButtons: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  modalBtn: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: "center",
+  },
+  modalBtnCancel: {},
+  modalBtnConfirm: {},
+  modalBtnText: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
 });
