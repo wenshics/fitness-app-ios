@@ -1,5 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import React, { createContext, useCallback, useContext, useEffect, useReducer } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useReducer, useRef } from "react";
 import { DEFAULT_REST_TIME, EXERCISES, type Category, type Difficulty } from "@/constants/exercises";
 
 // ===== DAILY PLAN GENERATOR =====
@@ -253,20 +253,25 @@ type WorkoutAction =
   | { type: "COMPLETE_WORKOUT"; payload: { exerciseIds: string[]; totalDuration: number } }
   | { type: "UPDATE_SETTINGS"; payload: Partial<WorkoutSettings> }
   | { type: "UNLOCK_AWARD"; payload: string }
-  | { type: "RESET_TODAY" };
+  | { type: "RESET_TODAY" }
+  | { type: "RESET_ALL" };
 
-const STORAGE_KEYS = {
-  PLAN: "fitlife_plan",
-  DAILY_PLAN: "fitlife_daily_plan",
-  DAILY_PLAN_DATE: "fitlife_daily_plan_date",
-  DAILY_PLAN_EDITED: "fitlife_daily_plan_edited",
-  HISTORY: "fitlife_history",
-  SETTINGS: "fitlife_settings",
-  TODAY_COMPLETED: "fitlife_today_completed",
-  TODAY_DATE: "fitlife_today_date",
-  STREAK: "fitlife_streak",
-  UNLOCKED_AWARDS: "fitlife_unlocked_awards",
-};
+// Storage keys are scoped to user ID
+function getStorageKeys(userId: string | number | null) {
+  const prefix = userId ? `fitlife_${userId}` : "fitlife";
+  return {
+    PLAN: `${prefix}_plan`,
+    DAILY_PLAN: `${prefix}_daily_plan`,
+    DAILY_PLAN_DATE: `${prefix}_daily_plan_date`,
+    DAILY_PLAN_EDITED: `${prefix}_daily_plan_edited`,
+    HISTORY: `${prefix}_history`,
+    SETTINGS: `${prefix}_settings`,
+    TODAY_COMPLETED: `${prefix}_today_completed`,
+    TODAY_DATE: `${prefix}_today_date`,
+    STREAK: `${prefix}_streak`,
+    UNLOCKED_AWARDS: `${prefix}_unlocked_awards`,
+  };
+}
 
 function getToday(): string {
   return new Date().toISOString().split("T")[0];
@@ -294,13 +299,13 @@ function calculateStreak(history: WorkoutHistory[]): number {
   return streak;
 }
 
-const today = getToday();
-const initialDailyPlan = generateDailyPlan(today);
+const todayStr = getToday();
+const initialDailyPlan = generateDailyPlan(todayStr);
 
 const initialState: WorkoutState = {
   plan: [],
   dailyPlan: initialDailyPlan,
-  dailyPlanDate: today,
+  dailyPlanDate: todayStr,
   dailyPlanEdited: false,
   history: [],
   settings: { restTime: DEFAULT_REST_TIME, defaultDuration: 30 },
@@ -328,15 +333,14 @@ function workoutReducer(state: WorkoutState, action: WorkoutAction): WorkoutStat
     case "EDIT_DAILY_PLAN":
       return { ...state, dailyPlan: action.payload, dailyPlanEdited: true };
     case "REFRESH_DAILY_PLAN": {
-      const todayStr = getToday();
-      // Use truly random plan (not seeded) for manual refresh
+      const today = getToday();
       const newPlan = generateRandomPlan();
-      return { ...state, dailyPlan: newPlan, dailyPlanDate: todayStr, dailyPlanEdited: false };
+      return { ...state, dailyPlan: newPlan, dailyPlanDate: today, dailyPlanEdited: false };
     }
     case "COMPLETE_WORKOUT": {
-      const todayStr = getToday();
+      const today = getToday();
       const newHistory: WorkoutHistory = {
-        date: todayStr,
+        date: today,
         exerciseIds: action.payload.exerciseIds,
         totalDuration: action.payload.totalDuration,
         completedAt: new Date().toISOString(),
@@ -369,6 +373,8 @@ function workoutReducer(state: WorkoutState, action: WorkoutAction): WorkoutStat
       return { ...state, unlockedAwards: [...state.unlockedAwards, action.payload] };
     case "RESET_TODAY":
       return { ...state, todayCompleted: [] };
+    case "RESET_ALL":
+      return { ...initialState, loaded: true };
     default:
       return state;
   }
@@ -388,89 +394,106 @@ interface WorkoutContextType {
   getTotalPlanDuration: () => number;
   getUnlockedAwards: () => Award[];
   getLockedAwards: () => Award[];
+  setUserId: (userId: string | number | null) => void;
 }
 
 const WorkoutContext = createContext<WorkoutContextType | null>(null);
 
 export function WorkoutProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(workoutReducer, initialState);
+  const userIdRef = useRef<string | number | null>(null);
 
-  // Load state from AsyncStorage on mount
-  useEffect(() => {
-    const loadState = async () => {
-      try {
-        const [
-          planStr, dailyPlanStr, dailyPlanDateStr, dailyPlanEditedStr,
-          historyStr, settingsStr, todayCompletedStr, todayDateStr, streakStr,
-          unlockedAwardsStr,
-        ] = await Promise.all([
-          AsyncStorage.getItem(STORAGE_KEYS.PLAN),
-          AsyncStorage.getItem(STORAGE_KEYS.DAILY_PLAN),
-          AsyncStorage.getItem(STORAGE_KEYS.DAILY_PLAN_DATE),
-          AsyncStorage.getItem(STORAGE_KEYS.DAILY_PLAN_EDITED),
-          AsyncStorage.getItem(STORAGE_KEYS.HISTORY),
-          AsyncStorage.getItem(STORAGE_KEYS.SETTINGS),
-          AsyncStorage.getItem(STORAGE_KEYS.TODAY_COMPLETED),
-          AsyncStorage.getItem(STORAGE_KEYS.TODAY_DATE),
-          AsyncStorage.getItem(STORAGE_KEYS.STREAK),
-          AsyncStorage.getItem(STORAGE_KEYS.UNLOCKED_AWARDS),
-        ]);
+  const loadStateForUser = useCallback(async (userId: string | number | null) => {
+    try {
+      const keys = getStorageKeys(userId);
+      console.log("[WorkoutStore] Loading state for user:", userId);
 
-        const todayStr = getToday();
-        const savedDate = todayDateStr || "";
+      const [
+        planStr, dailyPlanStr, dailyPlanDateStr, dailyPlanEditedStr,
+        historyStr, settingsStr, todayCompletedStr, todayDateStr, streakStr,
+        unlockedAwardsStr,
+      ] = await Promise.all([
+        AsyncStorage.getItem(keys.PLAN),
+        AsyncStorage.getItem(keys.DAILY_PLAN),
+        AsyncStorage.getItem(keys.DAILY_PLAN_DATE),
+        AsyncStorage.getItem(keys.DAILY_PLAN_EDITED),
+        AsyncStorage.getItem(keys.HISTORY),
+        AsyncStorage.getItem(keys.SETTINGS),
+        AsyncStorage.getItem(keys.TODAY_COMPLETED),
+        AsyncStorage.getItem(keys.TODAY_DATE),
+        AsyncStorage.getItem(keys.STREAK),
+        AsyncStorage.getItem(keys.UNLOCKED_AWARDS),
+      ]);
 
-        const payload: Partial<WorkoutState> = {};
-        if (planStr) payload.plan = JSON.parse(planStr);
-        if (historyStr) payload.history = JSON.parse(historyStr);
-        if (settingsStr) payload.settings = JSON.parse(settingsStr);
-        if (streakStr) payload.streak = parseInt(streakStr, 10);
-        if (unlockedAwardsStr) payload.unlockedAwards = JSON.parse(unlockedAwardsStr);
+      const today = getToday();
+      const savedDate = todayDateStr || "";
 
-        // Handle daily plan - auto-generate if it's a new day
-        if (dailyPlanDateStr === todayStr && dailyPlanStr) {
-          payload.dailyPlan = JSON.parse(dailyPlanStr);
-          payload.dailyPlanDate = todayStr;
-          payload.dailyPlanEdited = dailyPlanEditedStr === "true";
-        } else {
-          // New day - generate fresh plan
-          payload.dailyPlan = generateDailyPlan(todayStr);
-          payload.dailyPlanDate = todayStr;
-          payload.dailyPlanEdited = false;
-        }
+      const payload: Partial<WorkoutState> = {};
+      if (planStr) payload.plan = JSON.parse(planStr);
+      if (historyStr) payload.history = JSON.parse(historyStr);
+      if (settingsStr) payload.settings = JSON.parse(settingsStr);
+      if (streakStr) payload.streak = parseInt(streakStr, 10);
+      if (unlockedAwardsStr) payload.unlockedAwards = JSON.parse(unlockedAwardsStr);
 
-        // Reset today's completed if it's a new day
-        if (savedDate === todayStr && todayCompletedStr) {
-          payload.todayCompleted = JSON.parse(todayCompletedStr);
-        } else {
-          payload.todayCompleted = [];
-          await AsyncStorage.setItem(STORAGE_KEYS.TODAY_DATE, todayStr);
-        }
-
-        dispatch({ type: "LOAD_STATE", payload });
-      } catch (error) {
-        console.error("[WorkoutStore] Failed to load state:", error);
-        dispatch({ type: "LOAD_STATE", payload: {} });
+      // Handle daily plan - auto-generate if it's a new day
+      if (dailyPlanDateStr === today && dailyPlanStr) {
+        payload.dailyPlan = JSON.parse(dailyPlanStr);
+        payload.dailyPlanDate = today;
+        payload.dailyPlanEdited = dailyPlanEditedStr === "true";
+      } else {
+        // New day - generate fresh plan
+        payload.dailyPlan = generateDailyPlan(today);
+        payload.dailyPlanDate = today;
+        payload.dailyPlanEdited = false;
       }
-    };
-    loadState();
+
+      // Reset today's completed if it's a new day
+      if (savedDate === today && todayCompletedStr) {
+        payload.todayCompleted = JSON.parse(todayCompletedStr);
+      } else {
+        payload.todayCompleted = [];
+      }
+
+      dispatch({ type: "LOAD_STATE", payload });
+      console.log("[WorkoutStore] State loaded for user:", userId);
+    } catch (error) {
+      console.error("[WorkoutStore] Failed to load state:", error);
+      dispatch({ type: "LOAD_STATE", payload: {} });
+    }
   }, []);
 
-  // Persist state changes
+  const setUserId = useCallback((userId: string | number | null) => {
+    console.log("[WorkoutStore] setUserId:", userId, "previous:", userIdRef.current);
+    if (userId !== userIdRef.current) {
+      userIdRef.current = userId;
+      // Reset state first, then load for new user
+      dispatch({ type: "RESET_ALL" });
+      loadStateForUser(userId);
+    }
+  }, [loadStateForUser]);
+
+  // Initial load (anonymous)
+  useEffect(() => {
+    loadStateForUser(null);
+  }, [loadStateForUser]);
+
+  // Persist state changes (scoped to current user)
   useEffect(() => {
     if (!state.loaded) return;
     const persist = async () => {
       try {
+        const keys = getStorageKeys(userIdRef.current);
         await Promise.all([
-          AsyncStorage.setItem(STORAGE_KEYS.PLAN, JSON.stringify(state.plan)),
-          AsyncStorage.setItem(STORAGE_KEYS.DAILY_PLAN, JSON.stringify(state.dailyPlan)),
-          AsyncStorage.setItem(STORAGE_KEYS.DAILY_PLAN_DATE, state.dailyPlanDate),
-          AsyncStorage.setItem(STORAGE_KEYS.DAILY_PLAN_EDITED, state.dailyPlanEdited.toString()),
-          AsyncStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(state.history)),
-          AsyncStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(state.settings)),
-          AsyncStorage.setItem(STORAGE_KEYS.TODAY_COMPLETED, JSON.stringify(state.todayCompleted)),
-          AsyncStorage.setItem(STORAGE_KEYS.TODAY_DATE, getToday()),
-          AsyncStorage.setItem(STORAGE_KEYS.STREAK, state.streak.toString()),
-          AsyncStorage.setItem(STORAGE_KEYS.UNLOCKED_AWARDS, JSON.stringify(state.unlockedAwards)),
+          AsyncStorage.setItem(keys.PLAN, JSON.stringify(state.plan)),
+          AsyncStorage.setItem(keys.DAILY_PLAN, JSON.stringify(state.dailyPlan)),
+          AsyncStorage.setItem(keys.DAILY_PLAN_DATE, state.dailyPlanDate),
+          AsyncStorage.setItem(keys.DAILY_PLAN_EDITED, state.dailyPlanEdited.toString()),
+          AsyncStorage.setItem(keys.HISTORY, JSON.stringify(state.history)),
+          AsyncStorage.setItem(keys.SETTINGS, JSON.stringify(state.settings)),
+          AsyncStorage.setItem(keys.TODAY_COMPLETED, JSON.stringify(state.todayCompleted)),
+          AsyncStorage.setItem(keys.TODAY_DATE, getToday()),
+          AsyncStorage.setItem(keys.STREAK, state.streak.toString()),
+          AsyncStorage.setItem(keys.UNLOCKED_AWARDS, JSON.stringify(state.unlockedAwards)),
         ]);
       } catch (error) {
         console.error("[WorkoutStore] Failed to persist state:", error);
@@ -530,6 +553,7 @@ export function WorkoutProvider({ children }: { children: React.ReactNode }) {
     getTotalPlanDuration,
     getUnlockedAwards,
     getLockedAwards,
+    setUserId,
   };
 
   return <WorkoutContext.Provider value={value}>{children}</WorkoutContext.Provider>;

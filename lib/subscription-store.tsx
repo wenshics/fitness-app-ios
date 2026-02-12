@@ -1,5 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 
 // ===== SUBSCRIPTION PLANS =====
 export type PlanType = "weekly" | "monthly" | "yearly";
@@ -55,7 +55,11 @@ export interface SubscriptionState {
   loaded: boolean;
 }
 
-const STORAGE_KEY = "fitlife_subscription";
+// Storage key is scoped to user ID
+function getStorageKey(userId: string | number | null): string {
+  if (!userId) return "fitlife_subscription_anonymous";
+  return `fitlife_subscription_${userId}`;
+}
 
 interface SubscriptionContextType {
   subscription: SubscriptionState;
@@ -64,6 +68,7 @@ interface SubscriptionContextType {
   isTrialActive: () => boolean;
   getDaysRemaining: () => number;
   getCurrentPlan: () => PricePlan | null;
+  setUserId: (userId: string | number | null) => void;
 }
 
 const SubscriptionContext = createContext<SubscriptionContextType | null>(null);
@@ -79,31 +84,49 @@ const initialState: SubscriptionState = {
 
 export function SubscriptionProvider({ children }: { children: React.ReactNode }) {
   const [subscription, setSubscription] = useState<SubscriptionState>(initialState);
+  const userIdRef = useRef<string | number | null>(null);
 
-  // Load subscription state from AsyncStorage
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const stored = await AsyncStorage.getItem(STORAGE_KEY);
-        if (stored) {
-          const parsed = JSON.parse(stored) as Omit<SubscriptionState, "loaded">;
-          setSubscription({ ...parsed, loaded: true });
-        } else {
-          setSubscription({ ...initialState, loaded: true });
-        }
-      } catch (err) {
-        console.error("[Subscription] Failed to load:", err);
+  const loadForUser = useCallback(async (userId: string | number | null) => {
+    try {
+      const key = getStorageKey(userId);
+      console.log("[Subscription] Loading for user:", userId, "key:", key);
+      const stored = await AsyncStorage.getItem(key);
+      if (stored) {
+        const parsed = JSON.parse(stored) as Omit<SubscriptionState, "loaded">;
+        setSubscription({ ...parsed, loaded: true });
+        console.log("[Subscription] Loaded state:", parsed.isSubscribed ? "subscribed" : "not subscribed");
+      } else {
+        console.log("[Subscription] No stored state for user, starting fresh");
         setSubscription({ ...initialState, loaded: true });
       }
-    };
-    load();
+    } catch (err) {
+      console.error("[Subscription] Failed to load:", err);
+      setSubscription({ ...initialState, loaded: true });
+    }
   }, []);
+
+  const setUserId = useCallback((userId: string | number | null) => {
+    console.log("[Subscription] setUserId:", userId, "previous:", userIdRef.current);
+    // Only reload if user actually changed
+    if (userId !== userIdRef.current) {
+      userIdRef.current = userId;
+      // Reset to loading state, then load for new user
+      setSubscription({ ...initialState, loaded: false });
+      loadForUser(userId);
+    }
+  }, [loadForUser]);
+
+  // Initial load (anonymous/no user)
+  useEffect(() => {
+    loadForUser(null);
+  }, [loadForUser]);
 
   // Persist subscription state
   const persist = useCallback(async (state: SubscriptionState) => {
     try {
+      const key = getStorageKey(userIdRef.current);
       const { loaded, ...toStore } = state;
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(toStore));
+      await AsyncStorage.setItem(key, JSON.stringify(toStore));
     } catch (err) {
       console.error("[Subscription] Failed to persist:", err);
     }
@@ -173,6 +196,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     isTrialActive,
     getDaysRemaining,
     getCurrentPlan,
+    setUserId,
   };
 
   return (

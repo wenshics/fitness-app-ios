@@ -19,7 +19,7 @@ import type { EdgeInsets, Metrics, Rect } from "react-native-safe-area-context";
 import { trpc, createTRPCClient } from "@/lib/trpc";
 import { initManusRuntime, subscribeSafeAreaInsets } from "@/lib/_core/manus-runtime";
 import { useAuth } from "@/hooks/use-auth";
-import { WorkoutProvider } from "@/lib/workout-store";
+import { WorkoutProvider, useWorkout } from "@/lib/workout-store";
 import { SubscriptionProvider, useSubscription } from "@/lib/subscription-store";
 
 const DEFAULT_WEB_INSETS: EdgeInsets = { top: 0, right: 0, bottom: 0, left: 0 };
@@ -28,6 +28,25 @@ const DEFAULT_WEB_FRAME: Rect = { x: 0, y: 0, width: 0, height: 0 };
 export const unstable_settings = {
   anchor: "(tabs)",
 };
+
+/**
+ * Syncs user ID to subscription and workout stores so data is scoped per user.
+ * This component must be rendered inside both providers AND have access to useAuth.
+ */
+function UserDataSync({ children }: { children: React.ReactNode }) {
+  const { user, isAuthenticated } = useAuth();
+  const { setUserId: setSubUserId } = useSubscription();
+  const { setUserId: setWorkoutUserId } = useWorkout();
+
+  useEffect(() => {
+    const userId = user?.id ?? null;
+    console.log("[UserDataSync] User changed:", userId, "isAuthenticated:", isAuthenticated);
+    setSubUserId(userId);
+    setWorkoutUserId(userId);
+  }, [user?.id, isAuthenticated, setSubUserId, setWorkoutUserId]);
+
+  return <>{children}</>;
+}
 
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, loading: isLoading } = useAuth();
@@ -107,22 +126,24 @@ export default function RootLayout() {
         <QueryClientProvider client={queryClient}>
           <SubscriptionProvider>
             <WorkoutProvider>
-              <AuthGuard>
-                <Stack screenOptions={{ headerShown: false }}>
-                  <Stack.Screen name="(tabs)" />
-                  <Stack.Screen name="login" options={{ presentation: "fullScreenModal" }} />
-                  <Stack.Screen name="paywall" options={{ presentation: "fullScreenModal", gestureEnabled: true }} />
-                  <Stack.Screen name="oauth/callback" />
-                  <Stack.Screen
-                    name="exercise/[id]"
-                    options={{ presentation: "modal", gestureEnabled: true }}
-                  />
-                  <Stack.Screen
-                    name="workout-session"
-                    options={{ presentation: "fullScreenModal", gestureEnabled: false }}
-                  />
-                </Stack>
-              </AuthGuard>
+              <UserDataSync>
+                <AuthGuard>
+                  <Stack screenOptions={{ headerShown: false }}>
+                    <Stack.Screen name="(tabs)" />
+                    <Stack.Screen name="login" options={{ presentation: "fullScreenModal" }} />
+                    <Stack.Screen name="paywall" options={{ presentation: "fullScreenModal", gestureEnabled: true }} />
+                    <Stack.Screen name="oauth/callback" />
+                    <Stack.Screen
+                      name="exercise/[id]"
+                      options={{ presentation: "modal", gestureEnabled: true }}
+                    />
+                    <Stack.Screen
+                      name="workout-session"
+                      options={{ presentation: "fullScreenModal", gestureEnabled: false }}
+                    />
+                  </Stack>
+                </AuthGuard>
+              </UserDataSync>
             </WorkoutProvider>
           </SubscriptionProvider>
           <StatusBar style="auto" />

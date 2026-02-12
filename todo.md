@@ -41,3 +41,5 @@
 - [x] Show paywall when user taps "Start Workout" or starts an exercise timer
 - [x] Fix bug: logout button not working on profile screen
 - [x] Fix UI bug: exercise categories tabs covered by exercise list on Exercises tab
+- [x] Fix bug: subscription paywall not triggered when new account starts an exercise
+- [x] Fix bug: data contamination between accounts — workout/subscription data shared across users
