@@ -54,3 +54,4 @@
 - [ ] Update category filters and daily plan generation for new categories
 - [x] Generate new professional logo for ActiveLife
 - [x] Update app name from FitLife to ActiveLife throughout the app
+- [x] Fix bug: refresh button to generate daily plan is not working

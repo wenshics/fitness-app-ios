@@ -14,6 +14,8 @@ export default function MyPlanScreen() {
   const router = useRouter();
   const { state, removeFromPlan, addToPlan, reorderPlan, refreshDailyPlan, getTotalPlanDuration } = useWorkout();
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showRefreshConfirm, setShowRefreshConfirm] = useState(false);
+  const [showRemoveConfirm, setShowRemoveConfirm] = useState<{ id: string; name: string } | null>(null);
 
   const planExercises = state.dailyPlan
     .map((id: string) => EXERCISES.find((e) => e.id === id))
@@ -24,14 +26,14 @@ export default function MyPlanScreen() {
 
   const handleRemove = (id: string, name: string) => {
     if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    Alert.alert("Remove Exercise", `Remove "${name}" from today's plan?`, [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Remove",
-        style: "destructive",
-        onPress: () => removeFromPlan(id),
-      },
-    ]);
+    setShowRemoveConfirm({ id, name });
+  };
+
+  const confirmRemove = () => {
+    if (showRemoveConfirm) {
+      removeFromPlan(showRemoveConfirm.id);
+      setShowRemoveConfirm(null);
+    }
   };
 
   const handleMoveUp = (index: number) => {
@@ -52,14 +54,12 @@ export default function MyPlanScreen() {
 
   const handleRefresh = () => {
     if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    Alert.alert(
-      "Refresh Plan",
-      "Generate a new daily plan? Your current edits will be lost.",
-      [
-        { text: "Cancel", style: "cancel" },
-        { text: "Refresh", onPress: () => refreshDailyPlan() },
-      ],
-    );
+    setShowRefreshConfirm(true);
+  };
+
+  const confirmRefresh = () => {
+    refreshDailyPlan();
+    setShowRefreshConfirm(false);
   };
 
   const handleStartWorkout = () => {
@@ -278,6 +278,74 @@ export default function MyPlanScreen() {
           )}
         </View>
       </Modal>
+
+      {/* Refresh Confirmation Modal */}
+      <Modal visible={showRefreshConfirm} transparent animationType="fade">
+        <View style={styles.confirmOverlay}>
+          <View style={[styles.confirmBox, { backgroundColor: colors.surface }]}>
+            <Text style={[styles.confirmTitle, { color: colors.foreground }]}>Refresh Plan?</Text>
+            <Text style={[styles.confirmMessage, { color: colors.muted }]}>
+              Generate a new daily plan? Your current edits will be lost.
+            </Text>
+            <View style={styles.confirmButtons}>
+              <Pressable
+                onPress={() => setShowRefreshConfirm(false)}
+                style={({ pressed }) => [
+                  styles.confirmBtn,
+                  { backgroundColor: colors.background, borderColor: colors.border },
+                  pressed && { opacity: 0.7 },
+                ]}
+              >
+                <Text style={[styles.confirmBtnText, { color: colors.foreground }]}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                onPress={confirmRefresh}
+                style={({ pressed }) => [
+                  styles.confirmBtn,
+                  { backgroundColor: colors.primary },
+                  pressed && { opacity: 0.8 },
+                ]}
+              >
+                <Text style={[styles.confirmBtnText, { color: "#FFFFFF" }]}>Refresh</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Remove Confirmation Modal */}
+      <Modal visible={!!showRemoveConfirm} transparent animationType="fade">
+        <View style={styles.confirmOverlay}>
+          <View style={[styles.confirmBox, { backgroundColor: colors.surface }]}>
+            <Text style={[styles.confirmTitle, { color: colors.foreground }]}>Remove Exercise?</Text>
+            <Text style={[styles.confirmMessage, { color: colors.muted }]}>
+              Remove "{showRemoveConfirm?.name}" from today's plan?
+            </Text>
+            <View style={styles.confirmButtons}>
+              <Pressable
+                onPress={() => setShowRemoveConfirm(null)}
+                style={({ pressed }) => [
+                  styles.confirmBtn,
+                  { backgroundColor: colors.background, borderColor: colors.border },
+                  pressed && { opacity: 0.7 },
+                ]}
+              >
+                <Text style={[styles.confirmBtnText, { color: colors.foreground }]}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                onPress={confirmRemove}
+                style={({ pressed }) => [
+                  styles.confirmBtn,
+                  { backgroundColor: colors.error },
+                  pressed && { opacity: 0.8 },
+                ]}
+              >
+                <Text style={[styles.confirmBtnText, { color: "#FFFFFF" }]}>Remove</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ScreenContainer>
   );
 }
@@ -422,4 +490,29 @@ const styles = StyleSheet.create({
   addExerciseInfo: { flex: 1 },
   addExerciseName: { fontSize: 15, fontWeight: "600" },
   addExerciseMeta: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 4 },
+  confirmOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  confirmBox: {
+    width: "100%",
+    maxWidth: 340,
+    borderRadius: 16,
+    padding: 24,
+    gap: 16,
+  },
+  confirmTitle: { fontSize: 20, fontWeight: "700", textAlign: "center" },
+  confirmMessage: { fontSize: 15, textAlign: "center", lineHeight: 22 },
+  confirmButtons: { flexDirection: "row", gap: 12, marginTop: 8 },
+  confirmBtn: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: "center",
+    borderWidth: 1,
+  },
+  confirmBtnText: { fontSize: 16, fontWeight: "600" },
 });
