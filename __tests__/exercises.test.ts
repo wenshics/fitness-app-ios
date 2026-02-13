@@ -29,7 +29,7 @@ describe("Exercise Data", () => {
   });
 
   it("should have valid categories", () => {
-    const validCategories: Category[] = ["bodyweight", "stretch", "fat-burning", "gym"];
+    const validCategories: Category[] = ["outdoor", "home", "gym"];
     EXERCISES.forEach((e: Exercise) => {
       expect(validCategories).toContain(e.category);
     });
@@ -56,12 +56,11 @@ describe("Exercise Data", () => {
     });
   });
 
-  it("should have exercises from all 4 categories", () => {
+  it("should have exercises from all 3 categories", () => {
     const categories = new Set(EXERCISES.map((e: Exercise) => e.category));
-    expect(categories.size).toBe(4);
-    expect(categories.has("bodyweight")).toBe(true);
-    expect(categories.has("stretch")).toBe(true);
-    expect(categories.has("fat-burning")).toBe(true);
+    expect(categories.size).toBe(3);
+    expect(categories.has("outdoor")).toBe(true);
+    expect(categories.has("home")).toBe(true);
     expect(categories.has("gym")).toBe(true);
   });
 

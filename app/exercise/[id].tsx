@@ -156,9 +156,7 @@ export default function ExerciseDetailScreen() {
           </View>
           <View style={[styles.categoryTag, { backgroundColor: CATEGORY_COLORS[exercise.category].bg + "20" }]}>
             <Text style={[styles.categoryTagText, { color: CATEGORY_COLORS[exercise.category].bg }]}>
-              {exercise.category === "fat-burning"
-                ? "Fat Burning"
-                : exercise.category.charAt(0).toUpperCase() + exercise.category.slice(1)}
+              {exercise.category.charAt(0).toUpperCase() + exercise.category.slice(1)}
             </Text>
           </View>
           <Text style={[styles.description, { color: colors.muted }]}>{exercise.description}</Text>

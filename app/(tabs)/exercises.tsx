@@ -24,9 +24,8 @@ const DIFFICULTY_TABS: { label: string; value: FilterTab }[] = [
 ];
 
 const CATEGORY_TABS: { label: string; value: FilterTab }[] = [
-  { label: "Bodyweight", value: "bodyweight" },
-  { label: "Stretch", value: "stretch" },
-  { label: "Fat Burning", value: "fat-burning" },
+  { label: "Outdoor", value: "outdoor" },
+  { label: "Home", value: "home" },
   { label: "Gym", value: "gym" },
 ];
 
@@ -131,9 +130,7 @@ export default function ExercisesScreen() {
                     <Text
                       style={[styles.categoryText, { color: CATEGORY_COLORS[item.category].bg }]}
                     >
-                      {item.category === "fat-burning"
-                        ? "Fat Burning"
-                        : item.category.charAt(0).toUpperCase() + item.category.slice(1)}
+                      {item.category.charAt(0).toUpperCase() + item.category.slice(1)}
                     </Text>
                   </View>
                 </View>

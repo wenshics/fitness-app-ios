@@ -201,7 +201,7 @@ export default function HomeScreen() {
                       </Text>
                       <View style={[styles.catDot, { backgroundColor: CATEGORY_COLORS[exercise.category].bg }]} />
                       <Text style={[styles.exerciseMeta, { color: colors.muted }]}>
-                        {exercise.category === "fat-burning" ? "Fat Burn" : exercise.category}
+                        {exercise.category.charAt(0).toUpperCase() + exercise.category.slice(1)}
                       </Text>
                     </View>
                   </View>

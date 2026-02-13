@@ -55,3 +55,10 @@
 - [x] Generate new professional logo for ActiveLife
 - [x] Update app name from FitLife to ActiveLife throughout the app
 - [x] Fix bug: refresh button to generate daily plan is not working
+- [x] Delete all existing 30 exercises
+- [x] Create 10 new Outdoor exercises (covering beginner/intermediate/advanced)
+- [x] Create 10 new Home/Indoor exercises (covering beginner/intermediate/advanced)
+- [x] Create 10 new Gym exercises (covering beginner/intermediate/advanced)
+- [x] Generate demo images for all 30 new exercises
+- [x] Update category type and constants (outdoor, home, gym)
+- [x] Update category colors and filters in Exercises tab

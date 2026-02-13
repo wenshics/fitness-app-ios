@@ -12,18 +12,17 @@ function generateDailyPlan(date: string, difficulty?: Difficulty): string[] {
   const plan: string[] = [];
 
   // Ensure variety: pick from different categories
-  const categories: Category[] = ["bodyweight", "stretch", "fat-burning", "gym"];
+  const categories: Category[] = ["outdoor", "home", "gym"];
   const exercisesByCategory: Record<string, typeof EXERCISES> = {};
   for (const cat of categories) {
     exercisesByCategory[cat] = EXERCISES.filter((e) => e.category === cat);
   }
 
-  // Pick 3 bodyweight, 2 stretch, 2 fat-burning, 1 gym
+  // Pick 3 outdoor, 3 home, 2 gym
   const distribution: { cat: Category; count: number }[] = [
-    { cat: "bodyweight", count: 3 },
-    { cat: "stretch", count: 2 },
-    { cat: "fat-burning", count: 2 },
-    { cat: "gym", count: 1 },
+    { cat: "outdoor", count: 3 },
+    { cat: "home", count: 3 },
+    { cat: "gym", count: 2 },
   ];
 
   let rngIdx = 0;
@@ -58,7 +57,7 @@ function generateDailyPlan(date: string, difficulty?: Difficulty): string[] {
 function generateRandomPlan(): string[] {
   const targetCount = 8;
   const plan: string[] = [];
-  const categories: Category[] = ["bodyweight", "stretch", "fat-burning", "gym"];
+  const categories: Category[] = ["outdoor", "home", "gym"];
   const exercisesByCategory: Record<string, typeof EXERCISES> = {};
   for (const cat of categories) {
     exercisesByCategory[cat] = EXERCISES.filter((e) => e.category === cat);
@@ -66,11 +65,11 @@ function generateRandomPlan(): string[] {
 
   // Randomize the distribution slightly each time
   const distributions = [
-    [{ cat: "bodyweight" as Category, count: 3 }, { cat: "stretch" as Category, count: 2 }, { cat: "fat-burning" as Category, count: 2 }, { cat: "gym" as Category, count: 1 }],
-    [{ cat: "bodyweight" as Category, count: 2 }, { cat: "stretch" as Category, count: 2 }, { cat: "fat-burning" as Category, count: 2 }, { cat: "gym" as Category, count: 2 }],
-    [{ cat: "bodyweight" as Category, count: 2 }, { cat: "stretch" as Category, count: 3 }, { cat: "fat-burning" as Category, count: 1 }, { cat: "gym" as Category, count: 2 }],
-    [{ cat: "bodyweight" as Category, count: 2 }, { cat: "stretch" as Category, count: 1 }, { cat: "fat-burning" as Category, count: 3 }, { cat: "gym" as Category, count: 2 }],
-    [{ cat: "bodyweight" as Category, count: 3 }, { cat: "stretch" as Category, count: 1 }, { cat: "fat-burning" as Category, count: 3 }, { cat: "gym" as Category, count: 1 }],
+    [{ cat: "outdoor" as Category, count: 3 }, { cat: "home" as Category, count: 3 }, { cat: "gym" as Category, count: 2 }],
+    [{ cat: "outdoor" as Category, count: 2 }, { cat: "home" as Category, count: 4 }, { cat: "gym" as Category, count: 2 }],
+    [{ cat: "outdoor" as Category, count: 4 }, { cat: "home" as Category, count: 2 }, { cat: "gym" as Category, count: 2 }],
+    [{ cat: "outdoor" as Category, count: 3 }, { cat: "home" as Category, count: 2 }, { cat: "gym" as Category, count: 3 }],
+    [{ cat: "outdoor" as Category, count: 2 }, { cat: "home" as Category, count: 3 }, { cat: "gym" as Category, count: 3 }],
   ];
   const distribution = distributions[Math.floor(Math.random() * distributions.length)];
 

@@ -1,5 +1,5 @@
 export type Difficulty = "beginner" | "intermediate" | "advanced";
-export type Category = "bodyweight" | "stretch" | "fat-burning" | "gym";
+export type Category = "outdoor" | "home" | "gym";
 export type MuscleGroup = "full-body" | "legs" | "core" | "chest" | "arms" | "back" | "glutes" | "cardio" | "shoulders" | "hips" | "neck" | "hamstrings" | "spine";
 
 export interface Exercise {

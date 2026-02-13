@@ -165,7 +165,7 @@ export default function MyPlanScreen() {
                           style={[styles.catBadge, { backgroundColor: CATEGORY_COLORS[item.category].bg + "20" }]}
                         >
                           <Text style={[styles.catText, { color: CATEGORY_COLORS[item.category].bg }]}>
-                            {item.category === "fat-burning" ? "Fat Burn" : item.category}
+                            {item.category.charAt(0).toUpperCase() + item.category.slice(1)}
                           </Text>
                         </View>
                         <Text style={[styles.planCardDuration, { color: colors.muted }]}>
