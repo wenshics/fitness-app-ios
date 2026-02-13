@@ -47,3 +47,10 @@
 - [x] Fix bug: "End" button not working during workout session
 - [x] Add 5 more gym-style exercises (expand from 25 to 30 total exercises)
 - [x] Fix bug: app keeps loading and never opens
+- [ ] Generate animated GIF demos for all 30 exercises
+- [ ] Restructure exercises into 3 categories: Outdoor, Home, Gym (at least 10 each)
+- [ ] Ensure beginner/intermediate/advanced levels in every category
+- [ ] Generate demo images for new exercises
+- [ ] Update category filters and daily plan generation for new categories
+- [x] Generate new professional logo for ActiveLife
+- [x] Update app name from FitLife to ActiveLife throughout the app

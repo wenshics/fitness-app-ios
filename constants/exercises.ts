@@ -353,7 +353,7 @@ export const EXERCISES: Exercise[] = [
     category: "stretch",
     muscleGroups: ["full-body", "hips", "spine"],
     defaultDuration: 45,
-    demoImage: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663279123655/nmKhhEbylnIKgCWE.png",
+    demoImage: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663279123655/dEkcrfdlZhLiVEGY.gif",
     description: "A dynamic full-body stretch that opens hips, thoracic spine, and hamstrings.",
     instructions: [
       "Step into a deep lunge with your right foot forward.",

@@ -85,7 +85,7 @@ export default function PaywallScreen() {
             <View style={styles.crownIcon}>
               <IconSymbol name="crown.fill" size={48} color="#FFD700" />
             </View>
-            <Text style={styles.paywallTitle}>FitLife Pro</Text>
+            <Text style={styles.paywallTitle}>ActiveLife Pro</Text>
             <Text style={styles.paywallSubtitle}>
               Unlock your full fitness potential
             </Text>

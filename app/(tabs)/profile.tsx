@@ -143,7 +143,7 @@ export default function ProfileScreen() {
           <View style={styles.subLeft}>
             <IconSymbol name="crown.fill" size={20} color="#FFD700" />
             <View>
-              <Text style={styles.subTitle}>FitLife Pro</Text>
+              <Text style={styles.subTitle}>ActiveLife Pro</Text>
               <Text style={styles.subPrice}>
                 {getCurrentPlan()?.price ?? "$1.99"}{getCurrentPlan()?.period ?? "/week"}
               </Text>

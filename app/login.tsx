@@ -38,7 +38,7 @@ export default function LoginScreen() {
             <IconSymbol name="flame.fill" size={72} color="#FFFFFF" />
           </View>
 
-          <Text style={styles.title}>FitLife</Text>
+          <Text style={styles.title}>ActiveLife</Text>
           <Text style={styles.subtitle}>Your Daily Exercise Companion</Text>
 
           <View style={styles.features}>
