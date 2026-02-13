@@ -54,6 +54,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
+    // Wait for router to be ready and auth to finish loading
     if (isLoading) return;
 
     const inAuthGroup = segments[0] === "oauth" || segments[0] === "login";

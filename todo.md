@@ -46,3 +46,4 @@
 - [x] Make exercise reminders editable — users can set custom times for weekday and weekend reminders
 - [x] Fix bug: "End" button not working during workout session
 - [x] Add 5 more gym-style exercises (expand from 25 to 30 total exercises)
+- [x] Fix bug: app keeps loading and never opens

@@ -98,8 +98,34 @@ export function useAuth(options?: UseAuthOptions) {
       if (cachedUser) {
         console.log("[useAuth] Native: using cached user");
         setUser(cachedUser);
-      } else {
-        console.log("[useAuth] Native: no cached user");
+        setLoading(false);
+        return;
+      }
+
+      // No cached user but have token - validate with API
+      console.log("[useAuth] Native: no cached user, validating token with API...");
+      try {
+        const apiUser = await Api.getMe();
+        if (apiUser) {
+          const userInfo: Auth.User = {
+            id: apiUser.id,
+            openId: apiUser.openId,
+            name: apiUser.name,
+            email: apiUser.email,
+            loginMethod: apiUser.loginMethod,
+            lastSignedIn: new Date(apiUser.lastSignedIn),
+          };
+          setUser(userInfo);
+          await Auth.setUserInfo(userInfo);
+          console.log("[useAuth] Native: user set from API");
+        } else {
+          console.log("[useAuth] Native: API returned no user, clearing token");
+          await Auth.removeSessionToken();
+          setUser(null);
+        }
+      } catch (apiErr) {
+        console.warn("[useAuth] Native: API validation failed, clearing token:", apiErr);
+        await Auth.removeSessionToken();
         setUser(null);
       }
       setLoading(false);
