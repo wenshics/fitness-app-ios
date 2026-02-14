@@ -51,10 +51,10 @@ export default function PaywallScreen() {
   return (
     <ScreenContainer edges={["top", "bottom", "left", "right"]}>
       <LinearGradient
-        colors={[colors.primary, "#FF8C5A"]}
+        colors={["#0F766E", "#0D9488", "#14B8A6"]}
         style={styles.gradient}
         start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
+        end={{ x: 0.5, y: 1 }}
       >
         <ScrollView
           contentContainerStyle={styles.paywallContent}
@@ -95,7 +95,7 @@ export default function PaywallScreen() {
           <View style={styles.paywallFeatures}>
             <PaywallFeature
               icon="dumbbell.fill"
-              title="25 Expert Exercises"
+              title="30 Expert Exercises"
               desc="From stretching to gym workouts with animated demos"
             />
             <PaywallFeature
@@ -211,7 +211,7 @@ export default function PaywallScreen() {
           >
             {isProcessing ? (
               <View style={styles.processingRow}>
-                <ActivityIndicator size="small" color="#FF6B35" />
+                <ActivityIndicator size="small" color="#0D9488" />
                 <Text style={styles.subscribeBtnText}>Processing...</Text>
               </View>
             ) : (
@@ -474,7 +474,7 @@ const styles = StyleSheet.create({
   subscribeBtnText: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#FF6B35",
+    color: "#0D9488",
   },
   trialNote: {
     fontSize: 12,

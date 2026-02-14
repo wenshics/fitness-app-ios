@@ -361,8 +361,8 @@ function formatDuration(seconds: number): string {
 const styles = StyleSheet.create({
   headerContainer: { paddingHorizontal: 20, marginBottom: 12 },
   headerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" },
-  title: { fontSize: 28, fontWeight: "700" },
-  subtitle: { fontSize: 14, marginTop: 4 },
+  title: { fontSize: 28, fontWeight: "800", letterSpacing: -0.3 },
+  subtitle: { fontSize: 14, marginTop: 4, letterSpacing: 0.1 },
   editedBadge: {
     alignSelf: "flex-start",
     paddingHorizontal: 8,

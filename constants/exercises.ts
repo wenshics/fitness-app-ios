@@ -558,14 +558,14 @@ export const CATEGORIES: { id: Category; label: string; icon: string }[] = [
 ];
 
 export const DIFFICULTY_COLORS: Record<Difficulty, { bg: string; text: string }> = {
-  beginner: { bg: "#10B981", text: "#FFFFFF" },
-  intermediate: { bg: "#F59E0B", text: "#FFFFFF" },
-  advanced: { bg: "#EF4444", text: "#FFFFFF" },
+  beginner: { bg: "#059669", text: "#FFFFFF" },
+  intermediate: { bg: "#D97706", text: "#FFFFFF" },
+  advanced: { bg: "#DC2626", text: "#FFFFFF" },
 };
 
 export const CATEGORY_COLORS: Record<Category, { bg: string; text: string }> = {
-  outdoor: { bg: "#10B981", text: "#FFFFFF" },
-  home: { bg: "#2563EB", text: "#FFFFFF" },
+  outdoor: { bg: "#059669", text: "#FFFFFF" },
+  home: { bg: "#0D9488", text: "#FFFFFF" },
   gym: { bg: "#7C3AED", text: "#FFFFFF" },
 };
 

@@ -471,7 +471,7 @@ export default function ProfileScreen() {
 
 const styles = StyleSheet.create({
   headerContainer: { paddingHorizontal: 20, marginBottom: 20 },
-  title: { fontSize: 28, fontWeight: "700" },
+  title: { fontSize: 28, fontWeight: "800", letterSpacing: -0.3 },
   userCard: {
     flexDirection: "row",
     alignItems: "center",
@@ -491,7 +491,7 @@ const styles = StyleSheet.create({
   },
   avatarText: { fontSize: 24, fontWeight: "700", color: "#FFFFFF" },
   userInfo: { flex: 1 },
-  userName: { fontSize: 18, fontWeight: "600" },
+  userName: { fontSize: 18, fontWeight: "700", letterSpacing: 0.1 },
   userEmail: { fontSize: 14, marginTop: 2 },
   subscriptionBanner: {
     flexDirection: "row",
@@ -532,7 +532,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 12,
   },
-  sectionTitle: { fontSize: 20, fontWeight: "700", marginBottom: 12 },
+  sectionTitle: { fontSize: 20, fontWeight: "700", marginBottom: 12, letterSpacing: -0.2 },
   awardCount: { fontSize: 14, fontWeight: "600" },
   awardsGrid: {
     flexDirection: "row",

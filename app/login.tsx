@@ -28,50 +28,56 @@ export default function LoginScreen() {
   return (
     <ScreenContainer edges={["top", "bottom", "left", "right"]}>
       <LinearGradient
-        colors={[colors.primary, "#FF8C5A", "#FFB380"]}
+        colors={["#0F766E", "#0D9488", "#14B8A6"]}
         style={styles.gradient}
         start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
+        end={{ x: 0.5, y: 1 }}
       >
         <View style={styles.content}>
-          <View style={styles.iconContainer}>
-            <IconSymbol name="flame.fill" size={72} color="#FFFFFF" />
+          {/* Logo area */}
+          <View style={styles.logoArea}>
+            <View style={styles.iconContainer}>
+              <IconSymbol name="flame.fill" size={56} color="#FFFFFF" />
+            </View>
+            <Text style={styles.title}>ActiveLife</Text>
+            <Text style={styles.subtitle}>Your Daily Exercise Companion</Text>
           </View>
 
-          <Text style={styles.title}>ActiveLife</Text>
-          <Text style={styles.subtitle}>Your Daily Exercise Companion</Text>
-
+          {/* Features */}
           <View style={styles.features}>
-            <FeatureRow icon="dumbbell.fill" text="25 exercises across 6 categories" />
+            <FeatureRow icon="dumbbell.fill" text="30 exercises across 3 categories" />
             <FeatureRow icon="sparkles" text="AI-generated daily workout plans" />
             <FeatureRow icon="timer" text="Built-in timers for every workout" />
             <FeatureRow icon="trophy.fill" text="Awards, streaks & progress tracking" />
           </View>
 
-          <Pressable
-            onPress={handleGetStarted}
-            style={({ pressed }) => [
-              styles.button,
-              pressed && { transform: [{ scale: 0.97 }], opacity: 0.9 },
-              isLoading && { opacity: 0.7 },
-            ]}
-          >
-            {isLoading ? (
-              <View style={styles.loadingRow}>
-                <ActivityIndicator size="small" color="#FF6B35" />
-                <Text style={styles.buttonText}>Connecting...</Text>
-              </View>
-            ) : (
-              <>
-                <Text style={styles.buttonText}>Get Started</Text>
-                <IconSymbol name="arrow.right" size={20} color="#FF6B35" />
-              </>
-            )}
-          </Pressable>
+          {/* CTA */}
+          <View style={styles.ctaArea}>
+            <Pressable
+              onPress={handleGetStarted}
+              style={({ pressed }) => [
+                styles.button,
+                pressed && { transform: [{ scale: 0.97 }], opacity: 0.9 },
+                isLoading && { opacity: 0.7 },
+              ]}
+            >
+              {isLoading ? (
+                <View style={styles.loadingRow}>
+                  <ActivityIndicator size="small" color="#0D9488" />
+                  <Text style={styles.buttonText}>Connecting...</Text>
+                </View>
+              ) : (
+                <>
+                  <Text style={styles.buttonText}>Get Started</Text>
+                  <IconSymbol name="arrow.right" size={18} color="#0D9488" />
+                </>
+              )}
+            </Pressable>
 
-          <Text style={styles.disclaimer}>
-            Free to browse · Sign in to get started
-          </Text>
+            <Text style={styles.disclaimer}>
+              Free to browse · Sign in to get started
+            </Text>
+          </View>
         </View>
       </LinearGradient>
     </ScreenContainer>
@@ -81,7 +87,9 @@ export default function LoginScreen() {
 function FeatureRow({ icon, text }: { icon: any; text: string }) {
   return (
     <View style={styles.featureRow}>
-      <IconSymbol name={icon} size={20} color="rgba(255,255,255,0.9)" />
+      <View style={styles.featureIconBg}>
+        <IconSymbol name={icon} size={16} color="#FFFFFF" />
+      </View>
       <Text style={styles.featureText}>{text}</Text>
     </View>
   );
@@ -91,45 +99,64 @@ const styles = StyleSheet.create({
   gradient: { flex: 1 },
   content: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 32,
+    paddingTop: 80,
+    paddingBottom: 48,
+  },
+  logoArea: {
+    alignItems: "center",
   },
   iconContainer: {
-    width: 120,
-    height: 120,
-    borderRadius: 30,
-    backgroundColor: "rgba(255,255,255,0.2)",
+    width: 100,
+    height: 100,
+    borderRadius: 28,
+    backgroundColor: "rgba(255,255,255,0.15)",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 24,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.2)",
   },
   title: {
-    fontSize: 42,
+    fontSize: 38,
     fontWeight: "800",
     color: "#FFFFFF",
-    letterSpacing: -1,
+    letterSpacing: -0.5,
   },
   subtitle: {
-    fontSize: 18,
-    color: "rgba(255,255,255,0.85)",
-    marginTop: 8,
-    marginBottom: 40,
+    fontSize: 16,
+    color: "rgba(255,255,255,0.75)",
+    marginTop: 6,
+    fontWeight: "400",
+    letterSpacing: 0.2,
   },
   features: {
     width: "100%",
-    gap: 16,
-    marginBottom: 48,
+    gap: 14,
   },
   featureRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    gap: 14,
+  },
+  featureIconBg: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: "rgba(255,255,255,0.15)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   featureText: {
-    fontSize: 16,
+    fontSize: 15,
     color: "rgba(255,255,255,0.9)",
     flex: 1,
+    fontWeight: "500",
+    letterSpacing: 0.1,
+  },
+  ctaArea: {
+    alignItems: "center",
   },
   button: {
     flexDirection: "row",
@@ -138,14 +165,14 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     paddingVertical: 16,
     paddingHorizontal: 48,
-    borderRadius: 30,
-    gap: 8,
+    borderRadius: 14,
+    gap: 10,
     width: "100%",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+    elevation: 6,
   },
   loadingRow: {
     flexDirection: "row",
@@ -153,14 +180,16 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   buttonText: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: "700",
-    color: "#FF6B35",
+    color: "#0D9488",
+    letterSpacing: 0.2,
   },
   disclaimer: {
     fontSize: 13,
-    color: "rgba(255,255,255,0.6)",
+    color: "rgba(255,255,255,0.5)",
     marginTop: 16,
     textAlign: "center",
+    letterSpacing: 0.1,
   },
 });

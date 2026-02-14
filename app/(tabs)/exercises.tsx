@@ -162,8 +162,8 @@ export default function ExercisesScreen() {
 
 const styles = StyleSheet.create({
   headerContainer: { paddingHorizontal: 20, marginBottom: 12 },
-  title: { fontSize: 28, fontWeight: "700" },
-  subtitle: { fontSize: 14, marginTop: 4 },
+  title: { fontSize: 28, fontWeight: "800", letterSpacing: -0.3 },
+  subtitle: { fontSize: 14, marginTop: 4, letterSpacing: 0.1 },
   tabsWrapper: {
     // Fixed height container for tabs — prevents FlatList from overlapping
     zIndex: 1,
@@ -180,7 +180,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 1,
   },
-  tabText: { fontSize: 14, fontWeight: "600" },
+  tabText: { fontSize: 13, fontWeight: "600", letterSpacing: 0.1 },
   listWrapper: {
     flex: 1,
   },
@@ -195,7 +195,7 @@ const styles = StyleSheet.create({
   thumbnail: {
     width: 100,
     height: 110,
-    backgroundColor: "#E0E0E0",
+    backgroundColor: "#E4E4E7",
   },
   cardContent: {
     flex: 1,
@@ -208,7 +208,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     gap: 8,
   },
-  cardTitle: { fontSize: 16, fontWeight: "600", flex: 1 },
+  cardTitle: { fontSize: 16, fontWeight: "600", flex: 1, letterSpacing: 0.1 },
   difficultyBadge: {
     paddingHorizontal: 8,
     paddingVertical: 3,
