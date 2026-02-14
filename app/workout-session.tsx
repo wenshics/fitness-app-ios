@@ -8,6 +8,7 @@ import { useRouter } from "expo-router";
 import { useKeepAwake } from "expo-keep-awake";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Modal, Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import { Image } from "expo-image";
 import * as Haptics from "expo-haptics";
 
 type SessionPhase = "exercise" | "rest" | "complete" | "countdown";
@@ -258,14 +259,34 @@ export default function WorkoutSessionScreen() {
               <Text style={[styles.exerciseTitle, { color: colors.foreground }]}>
                 {currentExercise?.name}
               </Text>
+              {currentExercise?.demoImage && (
+                <View style={[styles.demoImageContainer, { borderColor: colors.border }]}>
+                  <Image
+                    source={{ uri: currentExercise.demoImage }}
+                    style={styles.demoImage}
+                    contentFit="cover"
+                  />
+                </View>
+              )}
             </>
           ) : phase === "rest" ? (
             <>
               <Text style={[styles.phaseLabel, { color: colors.success }]}>REST</Text>
               {nextExercise && (
-                <Text style={[styles.nextLabel, { color: colors.muted }]}>
-                  Next: {nextExercise.name}
-                </Text>
+                <>
+                  <Text style={[styles.nextLabel, { color: colors.muted }]}>
+                    Next: {nextExercise.name}
+                  </Text>
+                  {nextExercise.demoImage && (
+                    <View style={[styles.demoImageContainer, styles.demoImageSmall, { borderColor: colors.border }]}>
+                      <Image
+                        source={{ uri: nextExercise.demoImage }}
+                        style={styles.demoImage}
+                        contentFit="cover"
+                      />
+                    </View>
+                  )}
+                </>
               )}
             </>
           ) : (
@@ -274,6 +295,15 @@ export default function WorkoutSessionScreen() {
               <Text style={[styles.exerciseTitle, { color: colors.foreground }]}>
                 {currentExercise?.name}
               </Text>
+              {currentExercise?.demoImage && (
+                <View style={[styles.demoImageContainer, { borderColor: colors.border }]}>
+                  <Image
+                    source={{ uri: currentExercise.demoImage }}
+                    style={styles.demoImage}
+                    contentFit="cover"
+                  />
+                </View>
+              )}
               <Text style={[styles.muscleLabel, { color: colors.muted }]}>
                 {currentExercise?.muscleGroups.join(" · ")}
               </Text>
@@ -434,18 +464,41 @@ const styles = StyleSheet.create({
   sessionProgressFill: { height: 4, borderRadius: 2 },
   sessionMain: { flex: 1, justifyContent: "center", alignItems: "center" },
   phaseLabel: { fontSize: 16, fontWeight: "700", letterSpacing: 2, marginBottom: 8 },
-  exerciseTitle: { fontSize: 28, fontWeight: "700", textAlign: "center", marginBottom: 4 },
-  muscleLabel: { fontSize: 14, marginBottom: 8 },
-  nextLabel: { fontSize: 16, marginBottom: 16 },
+  exerciseTitle: { fontSize: 24, fontWeight: "700", textAlign: "center", marginBottom: 4 },
+  muscleLabel: { fontSize: 14, marginBottom: 4 },
+  nextLabel: { fontSize: 16, marginBottom: 12 },
+  demoImageContainer: {
+    width: 200,
+    height: 200,
+    borderRadius: 20,
+    overflow: "hidden",
+    marginVertical: 12,
+    borderWidth: 1,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  demoImageSmall: {
+    width: 140,
+    height: 140,
+    borderRadius: 16,
+    marginVertical: 8,
+  },
+  demoImage: {
+    width: "100%",
+    height: "100%",
+  },
   timerCircle: {
-    width: 180,
-    height: 180,
-    borderRadius: 90,
+    width: 140,
+    height: 140,
+    borderRadius: 70,
     justifyContent: "center",
     alignItems: "center",
-    marginVertical: 24,
+    marginVertical: 12,
   },
-  timerBig: { fontSize: 80, fontWeight: "800", lineHeight: 88 },
+  timerBig: { fontSize: 64, fontWeight: "800", lineHeight: 72 },
   timerBar: { width: "80%", height: 6, borderRadius: 3, overflow: "hidden" },
   timerBarFill: { height: 6, borderRadius: 3 },
   pausedLabel: { fontSize: 18, fontWeight: "700", marginTop: 16 },
