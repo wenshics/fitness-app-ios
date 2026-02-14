@@ -70,9 +70,9 @@ describe("Exercise Data", () => {
   });
 
   it("should have valid constants", () => {
-    expect(CATEGORIES.length).toBe(4);
+    expect(CATEGORIES.length).toBe(3);
     expect(Object.keys(DIFFICULTY_COLORS).length).toBe(3);
-    expect(Object.keys(CATEGORY_COLORS).length).toBe(4);
+    expect(Object.keys(CATEGORY_COLORS).length).toBe(3);
     expect(DEFAULT_REST_TIME).toBeGreaterThan(0);
   });
 });
