@@ -1,9 +1,19 @@
 import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { useAuth } from "@/hooks/use-auth";
 import { useColors } from "@/hooks/use-colors";
-import { AWARDS, useWorkout, DEFAULT_REMINDERS, type ReminderSettings } from "@/lib/workout-store";
-import { PLANS, type PlanType, useSubscription } from "@/lib/subscription-store";
+import { useAuth } from "@/hooks/use-auth";
+import { useWorkout } from "@/lib/workout-store";
+import { useSubscription } from "@/lib/subscription-store";
+import type { PlanType } from "@/lib/subscription-store";
+const PLANS = [
+  { id: "daily" as const, label: "Daily", price: "$0.99", period: "/day", perWeek: "$6.93/wk", savings: "Save 0%", popular: false },
+  { id: "weekly" as const, label: "Weekly", price: "$5.99", period: "/week", perWeek: "$5.99/wk", savings: "Save 14%", popular: false },
+  { id: "monthly" as const, label: "Monthly", price: "$19.99", period: "/month", perWeek: "$4.61/wk", savings: "Save 33%", popular: true },
+  { id: "yearly" as const, label: "Yearly", price: "$149.99", period: "/year", perWeek: "$2.88/wk", savings: "Save 58%", popular: false },
+]
+import * as Haptics from "expo-haptics";
+import { useRouter } from "expo-router";
+import { useCallback, useState } from "react";
 import {
   Alert,
   FlatList,
@@ -12,32 +22,9 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Switch,
   Text,
   View,
 } from "react-native";
-import * as Haptics from "expo-haptics";
-import { useRouter } from "expo-router";
-import { useCallback, useMemo, useState } from "react";
-
-// ===== TIME PICKER HELPERS =====
-function formatTime(hour: number, minute: number): string {
-  const h = hour % 12 || 12;
-  const ampm = hour < 12 ? "AM" : "PM";
-  const m = minute.toString().padStart(2, "0");
-  return `${h}:${m} ${ampm}`;
-}
-
-const HOURS = Array.from({ length: 24 }, (_, i) => i);
-const MINUTES = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55];
-
-type ReminderKey = "weekdayEvening" | "weekendMorning" | "weekendEvening";
-
-const REMINDER_LABELS: Record<ReminderKey, { label: string; icon: string; color: "primary" | "warning" }> = {
-  weekdayEvening: { label: "Weekday Evening", icon: "bell.fill", color: "primary" },
-  weekendMorning: { label: "Weekend Morning", icon: "bell.fill", color: "warning" },
-  weekendEvening: { label: "Weekend Evening", icon: "bell.fill", color: "primary" },
-};
 
 export default function ProfileScreen() {
   const colors = useColors();
@@ -45,19 +32,17 @@ export default function ProfileScreen() {
   const { state, updateSettings, getUnlockedAwards, getLockedAwards } = useWorkout();
   const { subscription, getCurrentPlan, isTrialActive, getDaysRemaining, changePlan, canUpgradeTo } = useSubscription();
   const router = useRouter();
-
   const [showUpgradePlan, setShowUpgradePlan] = useState(false);
   const [selectedUpgradePlan, setSelectedUpgradePlan] = useState<PlanType | null>(null);
   const [upgradingPlan, setUpgradingPlan] = useState(false);
-  const [editingReminder, setEditingReminder] = useState<ReminderKey | null>(null);
+
+  const [showSettings, setShowSettings] = useState(false);
+  const reminders = state.settings?.reminders || { weekdayEvening: { hour: 18, minute: 0 }, weekendMorning: { hour: 8, minute: 0 }, weekendEvening: { hour: 18, minute: 0 } };
+  const [localReminders, setLocalReminders] = useState(reminders);
+  const [editingReminder, setEditingReminder] = useState<string | null>(null);
   const [pickerHour, setPickerHour] = useState(0);
   const [pickerMinute, setPickerMinute] = useState(0);
 
-  const reminders = state.settings.reminders || DEFAULT_REMINDERS;
-
-  const totalWorkouts = state.history.length;
-  const totalMinutes = Math.round(state.history.reduce((s, h) => s + h.totalDuration, 0) / 60);
-  const totalExercises = state.history.reduce((s, h) => s + h.exerciseIds.length, 0);
   const unlockedAwards = getUnlockedAwards();
   const lockedAwards = getLockedAwards();
 
@@ -92,47 +77,61 @@ export default function ProfileScreen() {
     }
   };
 
-  const openTimePicker = useCallback((key: ReminderKey) => {
-    const current = reminders[key];
-    setPickerHour(current.hour);
-    setPickerMinute(current.minute);
+  const openTimePicker = useCallback((key: string) => {
+    const current = localReminders[key as keyof typeof localReminders];
+    if (current && typeof current === 'object' && 'hour' in current) {
+      setPickerHour(current.hour);
+      setPickerMinute(current.minute);
+    }
     setEditingReminder(key);
     if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }, [reminders]);
 
-  const saveTime = useCallback(() => {
-    if (!editingReminder) return;
-    const updatedReminders: ReminderSettings = {
-      ...reminders,
-      [editingReminder]: { hour: pickerHour, minute: pickerMinute },
-    };
-    updateSettings({ reminders: updatedReminders });
-    setEditingReminder(null);
-    if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  const saveReminder = useCallback(() => {
+    if (editingReminder) {
+      const updated = {
+        ...localReminders,
+        [editingReminder]: { hour: pickerHour, minute: pickerMinute },
+      };
+      setLocalReminders(updated);
+      updateSettings({ reminders: updated });
+      setEditingReminder(null);
+    }
   }, [editingReminder, pickerHour, pickerMinute, reminders, updateSettings]);
 
-  const toggleReminders = useCallback((enabled: boolean) => {
-    updateSettings({
-      reminders: { ...reminders, enabled },
+  const handleUpgradeConfirm = async () => {
+    if (!selectedUpgradePlan || selectedUpgradePlan === subscription.plan) {
+      setShowUpgradePlan(false);
+      return;
+    }
+
+    // Navigate to payment screen with selected plan
+    setShowUpgradePlan(false);
+    router.push({
+      pathname: "/payment-info",
+      params: { plan: selectedUpgradePlan },
     });
-    if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-  }, [reminders, updateSettings]);
-
-  const restTimeOptions = [10, 15, 20, 30];
-
-  const reminderKeys: ReminderKey[] = ["weekdayEvening", "weekendMorning", "weekendEvening"];
+  };
 
   return (
-    <ScreenContainer className="pt-2">
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
-        <View style={styles.headerContainer}>
+    <ScreenContainer className="p-0">
+      <ScrollView contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
+        {/* Header */}
+        <View style={[styles.headerContainer, { backgroundColor: colors.background }]}>
           <Text style={[styles.title, { color: colors.foreground }]}>Profile</Text>
         </View>
 
         {/* User Card */}
-        <View style={[styles.userCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
-            <Text style={styles.avatarText}>
+        <Pressable
+          onPress={() => setShowSettings(!showSettings)}
+          style={({ pressed }) => [
+            styles.userCard,
+            { backgroundColor: colors.surface, borderColor: colors.border },
+            pressed && { opacity: 0.8 },
+          ]}
+        >
+          <View style={[styles.userAvatar, { backgroundColor: colors.primary }]}>
+            <Text style={styles.userAvatarText}>
               {(user?.name || "A").charAt(0).toUpperCase()}
             </Text>
           </View>
@@ -144,7 +143,7 @@ export default function ProfileScreen() {
               {user?.email || "Fitness enthusiast"}
             </Text>
           </View>
-        </View>
+        </Pressable>
 
         {/* Subscription Banner */}
         <View style={[styles.subscriptionBanner, { backgroundColor: colors.primary }]}>
@@ -183,351 +182,106 @@ export default function ProfileScreen() {
 
         {/* Stats */}
         <View style={styles.statsGrid}>
-          <View style={[styles.statCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <IconSymbol name="flame.fill" size={24} color={colors.primary} />
-            <Text style={[styles.statValue, { color: colors.foreground }]}>{state.streak}</Text>
-            <Text style={[styles.statLabel, { color: colors.muted }]}>Day Streak</Text>
-          </View>
-          <View style={[styles.statCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <IconSymbol name="trophy.fill" size={24} color={colors.warning} />
-            <Text style={[styles.statValue, { color: colors.foreground }]}>{totalWorkouts}</Text>
+          <View style={[styles.statCard, { backgroundColor: colors.surface }]}>
+            <Text style={[styles.statValue, { color: colors.primary }]}>{state.history?.length || 0}</Text>
             <Text style={[styles.statLabel, { color: colors.muted }]}>Workouts</Text>
           </View>
-          <View style={[styles.statCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <IconSymbol name="clock.fill" size={24} color={colors.success} />
-            <Text style={[styles.statValue, { color: colors.foreground }]}>{totalMinutes}</Text>
-            <Text style={[styles.statLabel, { color: colors.muted }]}>Minutes</Text>
+          <View style={[styles.statCard, { backgroundColor: colors.surface }]}>
+            <Text style={[styles.statValue, { color: colors.primary }]}>{state.streak || 0}</Text>
+            <Text style={[styles.statLabel, { color: colors.muted }]}>Streak</Text>
           </View>
-          <View style={[styles.statCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <IconSymbol name="dumbbell.fill" size={24} color={colors.error} />
-            <Text style={[styles.statValue, { color: colors.foreground }]}>{totalExercises}</Text>
-            <Text style={[styles.statLabel, { color: colors.muted }]}>Exercises</Text>
+          <View style={[styles.statCard, { backgroundColor: colors.surface }]}>
+            <Text style={[styles.statValue, { color: colors.primary }]}>{Math.round((state.history?.reduce((s: number, h: any) => s + (h.totalDuration || 0), 0) || 0) / 60)}</Text>
+            <Text style={[styles.statLabel, { color: colors.muted }]}>Minutes</Text>
           </View>
         </View>
 
         {/* Awards */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Awards</Text>
-            <Text style={[styles.awardCount, { color: colors.muted }]}>
-              {unlockedAwards.length}/{AWARDS.length}
-            </Text>
+        <View style={styles.awardsSection}>
+          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Achievements</Text>
+          <View style={styles.awardsList}>
+            {unlockedAwards.map((award) => (
+              <View key={award.id} style={[styles.awardBadge, { backgroundColor: colors.primary + "20" }]}>
+                <Text style={styles.awardEmoji}>{award.icon}</Text>
+              </View>
+            ))}
+            {lockedAwards.slice(0, 3).map((award) => (
+              <View key={award.id} style={[styles.awardBadge, { backgroundColor: colors.border, opacity: 0.5 }]}>
+                <Text style={styles.awardEmoji}>{award.icon}</Text>
+              </View>
+            ))}
           </View>
+        </View>
 
-          {unlockedAwards.length > 0 && (
-            <View style={styles.awardsGrid}>
-              {unlockedAwards.map((award) => (
-                <View
-                  key={award.id}
-                  style={[styles.awardCard, { backgroundColor: colors.primary + "10", borderColor: colors.primary + "30" }]}
+        {/* Settings Section */}
+        {showSettings && (
+          <View style={[styles.settingsSection, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <Text style={[styles.settingTitle, { color: colors.foreground }]}>Reminder Times</Text>
+            <View style={styles.settingsList}>
+              {Object.entries(localReminders).map(([key, value]: [string, any]) => (
+                <Pressable
+                  key={key}
+                  onPress={() => openTimePicker(key)}
+                  style={({ pressed }) => [
+                    styles.settingRow,
+                    { borderBottomColor: colors.border },
+                    pressed && { opacity: 0.7 },
+                  ]}
                 >
-                  <View style={[styles.awardIcon, { backgroundColor: colors.primary + "20" }]}>
-                    <IconSymbol name={award.icon as any} size={24} color={colors.primary} />
-                  </View>
-                  <Text style={[styles.awardName, { color: colors.foreground }]} numberOfLines={1}>
-                    {award.name}
+                  <Text style={[styles.settingLabel, { color: colors.foreground }]}>
+                    {key.replace(/([A-Z])/g, " $1").trim()}
                   </Text>
-                  <Text style={[styles.awardDesc, { color: colors.muted }]} numberOfLines={2}>
-                    {award.description}
+                  <Text style={[styles.settingValue, { color: colors.primary }]}>
+                    {String(value.hour).padStart(2, "0")}:{String(value.minute).padStart(2, "0")}
                   </Text>
-                </View>
+                </Pressable>
               ))}
             </View>
-          )}
-
-          {lockedAwards.length > 0 && (
-            <>
-              <Text style={[styles.lockedTitle, { color: colors.muted }]}>Locked</Text>
-              <View style={styles.awardsGrid}>
-                {lockedAwards.map((award) => (
-                  <View
-                    key={award.id}
-                    style={[styles.awardCard, { backgroundColor: colors.surface, borderColor: colors.border, opacity: 0.6 }]}
-                  >
-                    <View style={[styles.awardIcon, { backgroundColor: colors.border }]}>
-                      <IconSymbol name="lock.fill" size={20} color={colors.muted} />
-                    </View>
-                    <Text style={[styles.awardName, { color: colors.muted }]} numberOfLines={1}>
-                      {award.name}
-                    </Text>
-                    <Text style={[styles.awardDesc, { color: colors.muted }]} numberOfLines={2}>
-                      {award.description}
-                    </Text>
-                  </View>
-                ))}
-              </View>
-            </>
-          )}
-        </View>
-
-        {/* Workout Reminders — Editable */}
-        <View style={styles.section}>
-          <View style={styles.reminderHeader}>
-            <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Workout Reminders</Text>
-            <Switch
-              value={reminders.enabled}
-              onValueChange={toggleReminders}
-              trackColor={{ false: colors.border, true: colors.primary + "60" }}
-              thumbColor={reminders.enabled ? colors.primary : colors.muted}
-            />
           </View>
+        )}
 
-          <View style={[styles.reminderCard, { backgroundColor: colors.surface, borderColor: colors.border, opacity: reminders.enabled ? 1 : 0.5 }]}>
-            {reminderKeys.map((key, index) => {
-              const info = REMINDER_LABELS[key];
-              const time = reminders[key];
-              const iconColor = info.color === "warning" ? colors.warning : colors.primary;
-              return (
-                <View key={key}>
-                  {index > 0 && <View style={[styles.reminderDivider, { backgroundColor: colors.border }]} />}
-                  <Pressable
-                    onPress={() => reminders.enabled && openTimePicker(key)}
-                    style={({ pressed }) => [
-                      styles.reminderRow,
-                      pressed && reminders.enabled && { opacity: 0.7 },
-                    ]}
-                    disabled={!reminders.enabled}
-                  >
-                    <View style={styles.reminderInfo}>
-                      <IconSymbol name={info.icon as any} size={18} color={iconColor} />
-                      <Text style={[styles.reminderLabel, { color: colors.foreground }]}>{info.label}</Text>
-                    </View>
-                    <View style={styles.reminderRight}>
-                      <Text style={[styles.reminderTime, { color: iconColor }]}>
-                        {formatTime(time.hour, time.minute)}
-                      </Text>
-                      <IconSymbol name="chevron.right" size={14} color={colors.muted} />
-                    </View>
-                  </Pressable>
-                </View>
-              );
-            })}
-          </View>
-          <Text style={[styles.reminderNote, { color: colors.muted }]}>
-            Tap a time to change it. Reminders are sent on weekdays (evening) and weekends (morning + evening).
-          </Text>
-        </View>
-
-        {/* Settings */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Settings</Text>
-
-          <View style={[styles.settingCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <View style={styles.settingRow}>
-              <View style={styles.settingInfo}>
-                <IconSymbol name="timer" size={20} color={colors.primary} />
-                <Text style={[styles.settingLabel, { color: colors.foreground }]}>Rest Time</Text>
-              </View>
-              <View style={styles.restOptions}>
-                {restTimeOptions.map((time) => (
-                  <Pressable
-                    key={time}
-                    onPress={() => {
-                      if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                      updateSettings({ restTime: time });
-                    }}
-                    style={({ pressed }) => [
-                      styles.restOption,
-                      {
-                        backgroundColor:
-                          state.settings.restTime === time ? colors.primary : colors.background,
-                        borderColor: state.settings.restTime === time ? colors.primary : colors.border,
-                      },
-                      pressed && { opacity: 0.7 },
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.restOptionText,
-                        {
-                          color: state.settings.restTime === time ? "#FFFFFF" : colors.foreground,
-                        },
-                      ]}
-                    >
-                      {time}s
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
-            </View>
-          </View>
-        </View>
-
-        {/* Logout */}
-        <View style={styles.section}>
-          <Pressable
-            onPress={handleLogout}
-            style={({ pressed }) => [
-              styles.logoutButton,
-              { backgroundColor: colors.error + "10", borderColor: colors.error + "30" },
-              pressed && { opacity: 0.7 },
-            ]}
-          >
-            <IconSymbol name="rectangle.portrait.and.arrow.right" size={20} color={colors.error} />
-            <Text style={[styles.logoutText, { color: colors.error }]}>Log Out</Text>
-          </Pressable>
-        </View>
+        {/* Logout Button */}
+        <Pressable
+          onPress={handleLogout}
+          style={({ pressed }) => [
+            styles.logoutBtn,
+            { backgroundColor: colors.error },
+            pressed && { opacity: 0.8 },
+          ]}
+        >
+          <Text style={styles.logoutText}>Log Out</Text>
+        </Pressable>
       </ScrollView>
 
-      {/* Time Picker Modal */}
-      <Modal
-        visible={editingReminder !== null}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setEditingReminder(null)}
-      >
-        <Pressable
-          style={styles.modalOverlay}
-          onPress={() => setEditingReminder(null)}
-        >
+      {/* Upgrade Plan Modal */}
+      <Modal visible={showUpgradePlan} transparent animationType="slide">
+        <Pressable style={styles.modalOverlay} onPress={() => setShowUpgradePlan(false)}>
           <Pressable
             style={[styles.modalContent, { backgroundColor: colors.background }]}
             onPress={(e) => e.stopPropagation()}
           >
             <View style={styles.modalHeader}>
-              <Pressable
-                onPress={() => setEditingReminder(null)}
-                style={({ pressed }) => [pressed && { opacity: 0.6 }]}
-              >
-                <Text style={[styles.modalCancel, { color: colors.muted }]}>Cancel</Text>
-              </Pressable>
-              <Text style={[styles.modalTitle, { color: colors.foreground }]}>
-                {editingReminder ? REMINDER_LABELS[editingReminder].label : "Set Time"}
-              </Text>
-              <Pressable
-                onPress={saveTime}
-                style={({ pressed }) => [pressed && { opacity: 0.6 }]}
-              >
-                <Text style={[styles.modalSave, { color: colors.primary }]}>Save</Text>
-              </Pressable>
-            </View>
-
-            {/* Current selected time display */}
-            <View style={[styles.timeDisplay, { backgroundColor: colors.surface }]}>
-              <Text style={[styles.timeDisplayText, { color: colors.primary }]}>
-                {formatTime(pickerHour, pickerMinute)}
-              </Text>
-            </View>
-
-            {/* Hour and Minute selectors */}
-            <View style={styles.pickerContainer}>
-              {/* Hour Column */}
-              <View style={styles.pickerColumn}>
-                <Text style={[styles.pickerLabel, { color: colors.muted }]}>Hour</Text>
-                <ScrollView
-                  style={[styles.pickerScroll, { borderColor: colors.border }]}
-                  showsVerticalScrollIndicator={false}
-                  contentContainerStyle={{ paddingVertical: 8 }}
-                >
-                  {HOURS.map((h) => {
-                    const isSelected = h === pickerHour;
-                    return (
-                      <Pressable
-                        key={h}
-                        onPress={() => {
-                          setPickerHour(h);
-                          if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                        }}
-                        style={({ pressed }) => [
-                          styles.pickerItem,
-                          isSelected && { backgroundColor: colors.primary + "15" },
-                          pressed && { opacity: 0.7 },
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            styles.pickerItemText,
-                            { color: isSelected ? colors.primary : colors.foreground },
-                            isSelected && { fontWeight: "700" },
-                          ]}
-                        >
-                          {(h % 12 || 12).toString()} {h < 12 ? "AM" : "PM"}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
-                </ScrollView>
-              </View>
-
-              {/* Minute Column */}
-              <View style={styles.pickerColumn}>
-                <Text style={[styles.pickerLabel, { color: colors.muted }]}>Minute</Text>
-                <ScrollView
-                  style={[styles.pickerScroll, { borderColor: colors.border }]}
-                  showsVerticalScrollIndicator={false}
-                  contentContainerStyle={{ paddingVertical: 8 }}
-                >
-                  {MINUTES.map((m) => {
-                    const isSelected = m === pickerMinute;
-                    return (
-                      <Pressable
-                        key={m}
-                        onPress={() => {
-                          setPickerMinute(m);
-                          if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                        }}
-                        style={({ pressed }) => [
-                          styles.pickerItem,
-                          isSelected && { backgroundColor: colors.primary + "15" },
-                          pressed && { opacity: 0.7 },
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            styles.pickerItemText,
-                            { color: isSelected ? colors.primary : colors.foreground },
-                            isSelected && { fontWeight: "700" },
-                          ]}
-                        >
-                          :{m.toString().padStart(2, "0")}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
-                </ScrollView>
-              </View>
-            </View>
-          </Pressable>
-        </Pressable>
-      </Modal>
-
-      {/* Change Plan Modal */}
-      <Modal visible={showUpgradePlan} transparent animationType="slide">
-        <Pressable style={styles.modalOverlay} onPress={() => setShowUpgradePlan(false)}>
-          <Pressable style={[styles.modalContent, { backgroundColor: colors.background }]} onPress={(e) => e.stopPropagation()}>
-            <View style={styles.modalHeader}>
               <Pressable onPress={() => setShowUpgradePlan(false)} style={({ pressed }) => [pressed && { opacity: 0.6 }]}>
                 <Text style={[styles.modalCancel, { color: colors.muted }]}>Cancel</Text>
               </Pressable>
-              <Text style={[styles.modalTitle, { color: colors.foreground }]}>Upgrade Plan</Text>
+              <Text style={[styles.modalTitle, { color: colors.foreground }]}>Choose Plan</Text>
               <Pressable
-                onPress={async () => {
-                  if (!selectedUpgradePlan || selectedUpgradePlan === subscription.plan) {
-                    setShowUpgradePlan(false);
-                    return;
-                  }
-                  setUpgradingPlan(true);
-                  const success = await changePlan(selectedUpgradePlan);
-                  setUpgradingPlan(false);
-                  if (success) {
-                    if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                  }
-                  setShowUpgradePlan(false);
-                }}
+                onPress={handleUpgradeConfirm}
+                disabled={!selectedUpgradePlan || selectedUpgradePlan === subscription.plan}
                 style={({ pressed }) => [pressed && { opacity: 0.6 }]}
               >
-                <Text style={[styles.modalSave, { color: colors.primary }]}>
-                  {upgradingPlan ? "Saving..." : "Confirm"}
+                <Text style={[styles.modalSave, { color: selectedUpgradePlan && selectedUpgradePlan !== subscription.plan ? colors.primary : colors.muted }]}>
+                  {upgradingPlan ? "Loading..." : "Next"}
                 </Text>
               </Pressable>
             </View>
 
             <Text style={[styles.changePlanNote, { color: colors.muted }]}>
-              Upgrade to a higher tier anytime. You can only upgrade, not downgrade your plan.
+              Select a plan to upgrade. You can only upgrade to higher tiers, not downgrade.
             </Text>
 
             <View style={styles.plansList}>
-              {PLANS.map((plan) => {
+              {PLANS.map((plan: any) => {
                 const isSelected = selectedUpgradePlan === plan.id;
                 const isCurrent = subscription.plan === plan.id;
                 const canUpgrade = canUpgradeTo(plan.id);
@@ -535,16 +289,14 @@ export default function ProfileScreen() {
                   <Pressable
                     key={plan.id}
                     onPress={() => {
-                      if (canUpgrade) {
-                        setSelectedUpgradePlan(plan.id);
-                        if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                      }
+                      setSelectedUpgradePlan(plan.id);
+                      if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                     }}
-                    disabled={!canUpgrade}
                     style={({ pressed }) => [
                       styles.planOption,
                       { borderColor: isSelected ? colors.primary : colors.border, backgroundColor: isSelected ? colors.primary + "08" : colors.surface },
                       pressed && { opacity: 0.8 },
+                      !canUpgrade && isCurrent && { opacity: 0.6 },
                     ]}
                   >
                     <View style={styles.planOptionLeft}>
@@ -565,10 +317,16 @@ export default function ProfileScreen() {
                             </View>
                           )}
                         </View>
-                        <Text style={[styles.planOptionPerWeek, { color: colors.muted }]}>{plan.perWeek}{plan.savings ? " · " + plan.savings : ""}</Text>
+                        <Text style={[styles.planOptionPerWeek, { color: colors.muted }]}>
+                          {plan.perWeek}
+                          {plan.savings ? " · " + plan.savings : ""}
+                        </Text>
                       </View>
                     </View>
-                    <Text style={[styles.planOptionPrice, { color: colors.foreground }]}>{plan.price}<Text style={{ fontSize: 13, color: colors.muted }}>{plan.period}</Text></Text>
+                    <Text style={[styles.planOptionPrice, { color: colors.foreground }]}>
+                      {plan.price}
+                      <Text style={{ fontSize: 13, color: colors.muted }}>{plan.period}</Text>
+                    </Text>
                   </Pressable>
                 );
               })}
@@ -581,7 +339,7 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  headerContainer: { paddingHorizontal: 20, marginBottom: 20 },
+  headerContainer: { paddingHorizontal: 20, marginBottom: 20, paddingTop: 20 },
   title: { fontSize: 28, fontWeight: "800", letterSpacing: -0.3 },
   userCard: {
     flexDirection: "row",
@@ -590,264 +348,84 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 16,
     borderWidth: 1,
-    gap: 14,
     marginBottom: 16,
   },
-  avatar: {
+  userAvatar: {
     width: 56,
     height: 56,
     borderRadius: 28,
     justifyContent: "center",
     alignItems: "center",
+    marginRight: 12,
   },
-  avatarText: { fontSize: 24, fontWeight: "700", color: "#FFFFFF" },
+  userAvatarText: {
+    fontSize: 24,
+    fontWeight: "700",
+    color: "#FFFFFF",
+  },
   userInfo: { flex: 1 },
-  userName: { fontSize: 18, fontWeight: "700", letterSpacing: 0.1 },
-  userEmail: { fontSize: 14, marginTop: 2 },
+  userName: { fontSize: 16, fontWeight: "600", marginBottom: 2 },
+  userEmail: { fontSize: 13 },
   subscriptionBanner: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
     marginHorizontal: 20,
+    marginBottom: 20,
+    borderRadius: 16,
     padding: 16,
-    borderRadius: 14,
-    marginBottom: 24,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
-  subLeft: { flexDirection: "row", alignItems: "center", gap: 10 },
+  subLeft: { flexDirection: "row", alignItems: "center", gap: 12, flex: 1 },
   subTitle: { fontSize: 16, fontWeight: "700", color: "#FFFFFF" },
-  subPrice: { fontSize: 13, color: "rgba(255,255,255,0.8)" },
-  subRightCol: { alignItems: "flex-end", gap: 6 },
-  subBadge: { paddingHorizontal: 12, paddingVertical: 4, borderRadius: 10 },
-  subBadgeText: { fontSize: 13, fontWeight: "600", color: "#FFFFFF" },
-  changePlanBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 10,
-    backgroundColor: "rgba(255,255,255,0.2)",
-  },
+  subPrice: { fontSize: 13, color: "rgba(255,255,255,0.8)", marginTop: 2 },
+  subRightCol: { alignItems: "flex-end", gap: 8 },
+  subBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6 },
+  subBadgeText: { fontSize: 12, fontWeight: "500", color: "#FFFFFF" },
+  changePlanBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6, backgroundColor: "rgba(255,255,255,0.2)" },
   changePlanText: { fontSize: 12, fontWeight: "600", color: "#FFFFFF" },
   statsGrid: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    paddingHorizontal: 20,
-    gap: 10,
-    marginBottom: 28,
-  },
-  statCard: {
-    width: "47%",
-    flexGrow: 1,
-    alignItems: "center",
-    padding: 16,
-    borderRadius: 14,
-    borderWidth: 1,
-    gap: 6,
-  },
-  statValue: { fontSize: 24, fontWeight: "700" },
-  statLabel: { fontSize: 13 },
-  section: { paddingHorizontal: 20, marginBottom: 20 },
-  sectionHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  sectionTitle: { fontSize: 20, fontWeight: "700", marginBottom: 12, letterSpacing: -0.2 },
-  awardCount: { fontSize: 14, fontWeight: "600" },
-  awardsGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 10,
-  },
-  awardCard: {
-    width: "47%",
-    flexGrow: 1,
-    alignItems: "center",
-    padding: 14,
-    borderRadius: 14,
-    borderWidth: 1,
-    gap: 6,
-  },
-  awardIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 4,
-  },
-  awardName: { fontSize: 14, fontWeight: "700", textAlign: "center" },
-  awardDesc: { fontSize: 11, textAlign: "center", lineHeight: 16 },
-  lockedTitle: { fontSize: 14, fontWeight: "600", marginTop: 16, marginBottom: 10 },
-  reminderHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  reminderCard: {
-    borderRadius: 14,
-    borderWidth: 1,
-    padding: 16,
-  },
-  reminderRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 6,
-  },
-  reminderInfo: { flexDirection: "row", alignItems: "center", gap: 10 },
-  reminderLabel: { fontSize: 15, fontWeight: "500" },
-  reminderRight: { flexDirection: "row", alignItems: "center", gap: 6 },
-  reminderTime: { fontSize: 15, fontWeight: "700" },
-  reminderDivider: { height: 1, marginVertical: 10 },
-  reminderNote: { fontSize: 12, marginTop: 8, lineHeight: 18 },
-  settingCard: {
-    borderRadius: 14,
-    borderWidth: 1,
-    padding: 16,
-  },
-  settingRow: { gap: 12 },
-  settingInfo: { flexDirection: "row", alignItems: "center", gap: 10 },
-  settingLabel: { fontSize: 16, fontWeight: "600" },
-  restOptions: { flexDirection: "row", gap: 8 },
-  restOption: {
-    flex: 1,
-    alignItems: "center",
-    paddingVertical: 8,
-    borderRadius: 10,
-    borderWidth: 1,
-  },
-  restOptionText: { fontSize: 14, fontWeight: "600" },
-  logoutButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    padding: 16,
-    borderRadius: 14,
-    borderWidth: 1,
-  },
-  logoutText: { fontSize: 16, fontWeight: "600" },
-  // Modal styles
-  modalOverlay: {
-    flex: 1,
-    justifyContent: "flex-end",
-    backgroundColor: "rgba(0,0,0,0.4)",
-  },
-  modalContent: {
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingBottom: 40,
-    paddingTop: 16,
-    paddingHorizontal: 20,
-  },
-  modalHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    marginHorizontal: 20,
     marginBottom: 20,
-  },
-  modalCancel: { fontSize: 16, fontWeight: "500" },
-  modalTitle: { fontSize: 17, fontWeight: "700" },
-  modalSave: { fontSize: 16, fontWeight: "700" },
-  timeDisplay: {
-    alignItems: "center",
-    paddingVertical: 16,
-    borderRadius: 14,
-    marginBottom: 20,
-  },
-  timeDisplayText: { fontSize: 36, fontWeight: "800" },
-  pickerContainer: {
-    flexDirection: "row",
-    gap: 16,
-    height: 220,
-  },
-  pickerColumn: {
-    flex: 1,
-  },
-  pickerLabel: {
-    fontSize: 13,
-    fontWeight: "600",
-    textAlign: "center",
-    marginBottom: 8,
-    textTransform: "uppercase",
-    letterSpacing: 1,
-  },
-  pickerScroll: {
-    flex: 1,
-    borderRadius: 12,
-    borderWidth: 1,
-  },
-  pickerItem: {
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    alignItems: "center",
-    borderRadius: 8,
-    marginHorizontal: 4,
-    marginVertical: 1,
-  },
-  pickerItemText: {
-    fontSize: 16,
-    fontWeight: "500",
-  },
-  changePlanNote: {
-    fontSize: 13,
-    lineHeight: 18,
-    marginBottom: 16,
-  },
-  plansList: {
-    gap: 10,
-  },
-  planOption: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: 16,
-    borderRadius: 14,
-    borderWidth: 1.5,
-  },
-  planOptionLeft: {
-    flexDirection: "row",
-    alignItems: "center",
     gap: 12,
   },
-  planRadio: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    borderWidth: 2,
-    justifyContent: "center",
+  statCard: {
+    flex: 1,
+    borderRadius: 12,
+    padding: 12,
     alignItems: "center",
   },
-  planRadioInner: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-  },
-  planLabelRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  planOptionLabel: {
-    fontSize: 16,
-    fontWeight: "700",
-  },
-  planOptionPerWeek: {
-    fontSize: 13,
-    marginTop: 2,
-  },
-  planOptionPrice: {
-    fontSize: 17,
-    fontWeight: "700",
-  },
-  currentBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 6,
-  },
-  currentBadgeText: {
-    fontSize: 11,
-    fontWeight: "700",
-  },
+  statValue: { fontSize: 20, fontWeight: "700", marginBottom: 4 },
+  statLabel: { fontSize: 12 },
+  awardsSection: { marginHorizontal: 20, marginBottom: 20 },
+  sectionTitle: { fontSize: 16, fontWeight: "700", marginBottom: 12 },
+  awardsList: { flexDirection: "row", gap: 12, flexWrap: "wrap" },
+  awardBadge: { width: 56, height: 56, borderRadius: 12, justifyContent: "center", alignItems: "center" },
+  awardEmoji: { fontSize: 28 },
+  settingsSection: { marginHorizontal: 20, marginBottom: 20, borderRadius: 12, borderWidth: 1, overflow: "hidden" },
+  settingTitle: { fontSize: 14, fontWeight: "700", paddingHorizontal: 16, paddingTop: 12 },
+  settingsList: { marginTop: 8 },
+  settingRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1 },
+  settingLabel: { fontSize: 13, fontWeight: "500" },
+  settingValue: { fontSize: 13, fontWeight: "600" },
+  logoutBtn: { marginHorizontal: 20, marginBottom: 20, borderRadius: 12, paddingVertical: 14, alignItems: "center" },
+  logoutText: { fontSize: 16, fontWeight: "600", color: "#FFFFFF" },
+  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
+  modalContent: { borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingTop: 16, paddingBottom: 32, maxHeight: "80%" },
+  modalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 20, marginBottom: 16 },
+  modalCancel: { fontSize: 16, fontWeight: "500" },
+  modalTitle: { fontSize: 18, fontWeight: "700" },
+  modalSave: { fontSize: 16, fontWeight: "600" },
+  changePlanNote: { fontSize: 13, paddingHorizontal: 20, marginBottom: 16 },
+  plansList: { paddingHorizontal: 20, gap: 12 },
+  planOption: { borderWidth: 1.5, borderRadius: 12, padding: 12, flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  planOptionLeft: { flexDirection: "row", alignItems: "center", gap: 12, flex: 1 },
+  planRadio: { width: 20, height: 20, borderRadius: 10, borderWidth: 2, justifyContent: "center", alignItems: "center" },
+  planRadioInner: { width: 10, height: 10, borderRadius: 5 },
+  planLabelRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 2 },
+  planOptionLabel: { fontSize: 14, fontWeight: "600" },
+  planOptionPerWeek: { fontSize: 12, marginTop: 2 },
+  planOptionPrice: { fontSize: 16, fontWeight: "700" },
+  currentBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 4 },
+  currentBadgeText: { fontSize: 11, fontWeight: "600" },
 });

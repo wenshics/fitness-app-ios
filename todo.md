@@ -90,3 +90,5 @@
 - [ ] Add email/password login flow (alternative to OAuth) - requires backend support
 - [x] Bug fix: Subscription plan changes not working (now shows Upgrade button for all non-yearly plans)
 - [x] Bug fix: Logout should go to app start (logout redirects to /login which is the app start)
+- [x] Bug fix: Subscription plan buttons are not tappable in upgrade modal
+- [x] Add payment flow navigation after selecting a subscription plan
