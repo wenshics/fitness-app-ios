@@ -85,3 +85,4 @@
 - [x] Fix bug: logout button is not working
 - [x] Implement subscription upgrade system (daily→weekly→monthly→yearly, no downgrades)
 - [x] Add upgrade button to Profile subscription banner
+- [x] Update logout flow to redirect to account creation instead of login
