@@ -73,6 +73,7 @@ function getStorageKey(userId: string | number | null): string {
 interface SubscriptionContextType {
   subscription: SubscriptionState;
   subscribe: (plan: PlanType) => Promise<void>;
+  changePlan: (newPlan: PlanType) => Promise<boolean>;
   cancelSubscription: () => Promise<void>;
   isTrialActive: () => boolean;
   getDaysRemaining: () => number;
@@ -176,6 +177,44 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     await persist(newState);
   }, [persist]);
 
+  const changePlan = useCallback(async (newPlan: PlanType): Promise<boolean> => {
+    // Only allow plan changes during the free trial period
+    if (!subscription.trialEndsAt || !subscription.subscribedAt) return false;
+    const now = new Date();
+    if (now >= new Date(subscription.trialEndsAt)) return false; // trial expired
+
+    // Recalculate expiry based on new plan, keeping the same trial end date
+    const trialEnd = new Date(subscription.trialEndsAt);
+    const expiry = new Date(trialEnd);
+    switch (newPlan) {
+      case "daily":
+        expiry.setDate(expiry.getDate() + 1);
+        break;
+      case "weekly":
+        expiry.setDate(expiry.getDate() + 7);
+        break;
+      case "monthly":
+        expiry.setMonth(expiry.getMonth() + 1);
+        break;
+      case "yearly":
+        expiry.setFullYear(expiry.getFullYear() + 1);
+        break;
+    }
+
+    const newState: SubscriptionState = {
+      isSubscribed: true,
+      plan: newPlan,
+      subscribedAt: subscription.subscribedAt,
+      expiresAt: expiry.toISOString(),
+      trialEndsAt: subscription.trialEndsAt,
+      loaded: true,
+    };
+
+    setSubscription(newState);
+    await persist(newState);
+    return true;
+  }, [subscription.trialEndsAt, subscription.subscribedAt, persist]);
+
   const cancelSubscription = useCallback(async () => {
     const newState: SubscriptionState = {
       ...initialState,
@@ -204,6 +243,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   const value: SubscriptionContextType = {
     subscription,
     subscribe,
+    changePlan,
     cancelSubscription,
     isTrialActive,
     getDaysRemaining,

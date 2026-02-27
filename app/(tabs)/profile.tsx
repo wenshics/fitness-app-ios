@@ -3,7 +3,7 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useAuth } from "@/hooks/use-auth";
 import { useColors } from "@/hooks/use-colors";
 import { AWARDS, useWorkout, DEFAULT_REMINDERS, type ReminderSettings } from "@/lib/workout-store";
-import { useSubscription } from "@/lib/subscription-store";
+import { PLANS, type PlanType, useSubscription } from "@/lib/subscription-store";
 import {
   Alert,
   FlatList,
@@ -43,9 +43,12 @@ export default function ProfileScreen() {
   const colors = useColors();
   const { user, logout } = useAuth();
   const { state, updateSettings, getUnlockedAwards, getLockedAwards } = useWorkout();
-  const { subscription, getCurrentPlan, isTrialActive, getDaysRemaining } = useSubscription();
+  const { subscription, getCurrentPlan, isTrialActive, getDaysRemaining, changePlan } = useSubscription();
   const router = useRouter();
 
+  const [showChangePlan, setShowChangePlan] = useState(false);
+  const [selectedNewPlan, setSelectedNewPlan] = useState<PlanType | null>(null);
+  const [changingPlan, setChangingPlan] = useState(false);
   const [editingReminder, setEditingReminder] = useState<ReminderKey | null>(null);
   const [pickerHour, setPickerHour] = useState(0);
   const [pickerMinute, setPickerMinute] = useState(0);
@@ -143,16 +146,33 @@ export default function ProfileScreen() {
           <View style={styles.subLeft}>
             <IconSymbol name="crown.fill" size={20} color="#FFD700" />
             <View>
-              <Text style={styles.subTitle}>ActiveLife Pro</Text>
+              <Text style={styles.subTitle}>FitLife Pro</Text>
               <Text style={styles.subPrice}>
                 {getCurrentPlan()?.price ?? "$19.99"}{getCurrentPlan()?.period ?? "/month"}
               </Text>
             </View>
           </View>
-          <View style={[styles.subBadge, { backgroundColor: isTrialActive() ? "rgba(255,215,0,0.3)" : "rgba(255,255,255,0.2)" }]}>
-            <Text style={styles.subBadgeText}>
-              {isTrialActive() ? "Trial" : "Active"} · {getDaysRemaining()}d left
-            </Text>
+          <View style={styles.subRightCol}>
+            <View style={[styles.subBadge, { backgroundColor: isTrialActive() ? "rgba(255,215,0,0.3)" : "rgba(255,255,255,0.2)" }]}>
+              <Text style={styles.subBadgeText}>
+                {isTrialActive() ? "Trial" : "Active"} · {getDaysRemaining()}d left
+              </Text>
+            </View>
+            {isTrialActive() && (
+              <Pressable
+                onPress={() => {
+                  if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setSelectedNewPlan(subscription.plan as PlanType);
+                  setShowChangePlan(true);
+                }}
+                style={({ pressed }) => [
+                  styles.changePlanBtn,
+                  pressed && { opacity: 0.7 },
+                ]}
+              >
+                <Text style={styles.changePlanText}>Change Plan</Text>
+              </Pressable>
+            )}
           </View>
         </View>
 
@@ -465,6 +485,88 @@ export default function ProfileScreen() {
           </Pressable>
         </Pressable>
       </Modal>
+
+      {/* Change Plan Modal */}
+      <Modal visible={showChangePlan} transparent animationType="slide">
+        <Pressable style={styles.modalOverlay} onPress={() => setShowChangePlan(false)}>
+          <Pressable style={[styles.modalContent, { backgroundColor: colors.background }]} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.modalHeader}>
+              <Pressable onPress={() => setShowChangePlan(false)} style={({ pressed }) => [pressed && { opacity: 0.6 }]}>
+                <Text style={[styles.modalCancel, { color: colors.muted }]}>Cancel</Text>
+              </Pressable>
+              <Text style={[styles.modalTitle, { color: colors.foreground }]}>Change Plan</Text>
+              <Pressable
+                onPress={async () => {
+                  if (!selectedNewPlan || selectedNewPlan === subscription.plan) {
+                    setShowChangePlan(false);
+                    return;
+                  }
+                  setChangingPlan(true);
+                  const success = await changePlan(selectedNewPlan);
+                  setChangingPlan(false);
+                  if (success) {
+                    if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                  }
+                  setShowChangePlan(false);
+                }}
+                style={({ pressed }) => [pressed && { opacity: 0.6 }]}
+              >
+                <Text style={[styles.modalSave, { color: colors.primary }]}>
+                  {changingPlan ? "Saving..." : "Confirm"}
+                </Text>
+              </Pressable>
+            </View>
+
+            <Text style={[styles.changePlanNote, { color: colors.muted }]}>
+              You can change your plan for free during your trial period. Your new plan will take effect after the trial ends.
+            </Text>
+
+            <View style={styles.plansList}>
+              {PLANS.map((plan) => {
+                const isSelected = selectedNewPlan === plan.id;
+                const isCurrent = subscription.plan === plan.id;
+                return (
+                  <Pressable
+                    key={plan.id}
+                    onPress={() => {
+                      setSelectedNewPlan(plan.id);
+                      if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    }}
+                    style={({ pressed }) => [
+                      styles.planOption,
+                      { borderColor: isSelected ? colors.primary : colors.border, backgroundColor: isSelected ? colors.primary + "08" : colors.surface },
+                      pressed && { opacity: 0.8 },
+                    ]}
+                  >
+                    <View style={styles.planOptionLeft}>
+                      <View style={[styles.planRadio, { borderColor: isSelected ? colors.primary : colors.border }]}>
+                        {isSelected && <View style={[styles.planRadioInner, { backgroundColor: colors.primary }]} />}
+                      </View>
+                      <View>
+                        <View style={styles.planLabelRow}>
+                          <Text style={[styles.planOptionLabel, { color: colors.foreground }]}>{plan.label}</Text>
+                          {isCurrent && (
+                            <View style={[styles.currentBadge, { backgroundColor: colors.primary + "20" }]}>
+                              <Text style={[styles.currentBadgeText, { color: colors.primary }]}>Current</Text>
+                            </View>
+                          )}
+                          {plan.popular && !isCurrent && (
+                            <View style={[styles.currentBadge, { backgroundColor: colors.warning + "20" }]}>
+                              <Text style={[styles.currentBadgeText, { color: colors.warning }]}>Popular</Text>
+                            </View>
+                          )}
+                        </View>
+                        <Text style={[styles.planOptionPerWeek, { color: colors.muted }]}>{plan.perWeek}{plan.savings ? " · " + plan.savings : ""}</Text>
+                      </View>
+                    </View>
+                    <Text style={[styles.planOptionPrice, { color: colors.foreground }]}>{plan.price}<Text style={{ fontSize: 13, color: colors.muted }}>{plan.period}</Text></Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </ScreenContainer>
   );
 }
@@ -505,8 +607,16 @@ const styles = StyleSheet.create({
   subLeft: { flexDirection: "row", alignItems: "center", gap: 10 },
   subTitle: { fontSize: 16, fontWeight: "700", color: "#FFFFFF" },
   subPrice: { fontSize: 13, color: "rgba(255,255,255,0.8)" },
+  subRightCol: { alignItems: "flex-end", gap: 6 },
   subBadge: { paddingHorizontal: 12, paddingVertical: 4, borderRadius: 10 },
   subBadgeText: { fontSize: 13, fontWeight: "600", color: "#FFFFFF" },
+  changePlanBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 10,
+    backgroundColor: "rgba(255,255,255,0.2)",
+  },
+  changePlanText: { fontSize: 12, fontWeight: "600", color: "#FFFFFF" },
   statsGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -670,5 +780,65 @@ const styles = StyleSheet.create({
   pickerItemText: {
     fontSize: 16,
     fontWeight: "500",
+  },
+  changePlanNote: {
+    fontSize: 13,
+    lineHeight: 18,
+    marginBottom: 16,
+  },
+  plansList: {
+    gap: 10,
+  },
+  planOption: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 16,
+    borderRadius: 14,
+    borderWidth: 1.5,
+  },
+  planOptionLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  planRadio: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 2,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  planRadioInner: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+  },
+  planLabelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  planOptionLabel: {
+    fontSize: 16,
+    fontWeight: "700",
+  },
+  planOptionPerWeek: {
+    fontSize: 13,
+    marginTop: 2,
+  },
+  planOptionPrice: {
+    fontSize: 17,
+    fontWeight: "700",
+  },
+  currentBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  currentBadgeText: {
+    fontSize: 11,
+    fontWeight: "700",
   },
 });
