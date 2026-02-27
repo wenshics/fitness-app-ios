@@ -94,3 +94,4 @@
 - [x] Add payment flow navigation after selecting a subscription plan
 - [x] Bug fix: Expiration date input field is not working on payment screen
 - [x] Add credit card validation with error messages for invalid input
+- [x] Bug fix: Users can't navigate back from payment screen when canceling subscription

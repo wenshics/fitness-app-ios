@@ -346,6 +346,19 @@ export default function PaymentInfoScreen() {
           )}
         </Pressable>
 
+        {/* Cancel Button */}
+        <Pressable
+          onPress={() => router.back()}
+          disabled={isProcessing}
+          style={({ pressed }) => [
+            styles.cancelButton,
+            { borderColor: colors.border },
+            pressed && { opacity: 0.6 },
+          ]}
+        >
+          <Text style={[styles.cancelButtonText, { color: colors.foreground }]}>Cancel</Text>
+        </Pressable>
+
         {/* Terms */}
         <Text style={[styles.termsText, { color: colors.muted }]}>
           By confirming, you agree to our Terms of Service and Privacy Policy. Your subscription will automatically renew after the free trial ends.
@@ -499,5 +512,19 @@ const styles = StyleSheet.create({
   backButtonText: {
     fontSize: 16,
     fontWeight: "600",
+  },
+  cancelButton: {
+    marginHorizontal: 20,
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1.5,
+    marginBottom: 16,
+  },
+  cancelButtonText: {
+    fontSize: 16,
+    fontWeight: "600",
+    letterSpacing: 0.2,
   },
 });
