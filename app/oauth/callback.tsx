@@ -1,6 +1,7 @@
 import { ThemedView } from "@/components/themed-view";
 import * as Api from "@/lib/_core/api";
 import * as Auth from "@/lib/_core/auth";
+import { notifyAuthChanged } from "@/hooks/use-auth";
 import * as Linking from "expo-linking";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
@@ -60,10 +61,13 @@ export default function OAuthCallback() {
           }
 
           setStatus("success");
-          console.log("[OAuth] Web authentication successful, redirecting to home...");
+          console.log("[OAuth] Web authentication successful, notifying auth and redirecting...");
+          // Notify useAuth that credentials have been stored so it picks up the user immediately
+          notifyAuthChanged();
+          // Short delay to let the auth state propagate before navigating
           setTimeout(() => {
             router.replace("/(tabs)");
-          }, 1000);
+          }, 300);
           return;
         }
 
@@ -158,9 +162,10 @@ export default function OAuthCallback() {
           // No need to fetch from API
           setStatus("success");
           console.log("[OAuth] Redirecting to home...");
+          notifyAuthChanged();
           setTimeout(() => {
             router.replace("/(tabs)");
-          }, 1000);
+          }, 300);
           return;
         }
 
@@ -211,12 +216,13 @@ export default function OAuthCallback() {
 
           setStatus("success");
           console.log("[OAuth] Authentication successful, redirecting to home...");
-
+          // Notify useAuth that credentials have been stored
+          notifyAuthChanged();
           // Redirect to home after a short delay
           setTimeout(() => {
             console.log("[OAuth] Executing redirect...");
             router.replace("/(tabs)");
-          }, 1000);
+          }, 300);
         } else {
           console.error("[OAuth] No session token in result:", result);
           setStatus("error");

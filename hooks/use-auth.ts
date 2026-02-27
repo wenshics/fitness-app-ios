@@ -7,6 +7,26 @@ type UseAuthOptions = {
   autoFetch?: boolean;
 };
 
+/**
+ * Custom event name used to signal that auth state has changed
+ * (e.g., after OAuth callback stores user info in localStorage).
+ * This allows useAuth to reactively pick up the new user without
+ * requiring a page reload or second login attempt.
+ */
+const AUTH_CHANGED_EVENT = "auth-state-changed";
+
+/**
+ * Dispatch a custom event to notify all useAuth instances that
+ * credentials have been updated. Call this after storing user info
+ * in the OAuth callback.
+ */
+export function notifyAuthChanged(): void {
+  if (Platform.OS === "web" && typeof window !== "undefined") {
+    console.log("[useAuth] Dispatching auth-state-changed event");
+    window.dispatchEvent(new CustomEvent(AUTH_CHANGED_EVENT));
+  }
+}
+
 export function useAuth(options?: UseAuthOptions) {
   const { autoFetch = true } = options ?? {};
   const [user, setUser] = useState<Auth.User | null>(null);
@@ -153,6 +173,7 @@ export function useAuth(options?: UseAuthOptions) {
 
   const isAuthenticated = useMemo(() => Boolean(user), [user]);
 
+  // Initial auth check on mount
   useEffect(() => {
     if (!autoFetch) {
       setLoading(false);
@@ -165,6 +186,22 @@ export function useAuth(options?: UseAuthOptions) {
     console.log("[useAuth] Initial auth check, platform:", Platform.OS);
     fetchUser();
   }, [autoFetch, fetchUser]);
+
+  // Listen for auth-state-changed events (fired by OAuth callback after storing user)
+  // This ensures useAuth picks up the new user immediately without needing a second login
+  useEffect(() => {
+    if (Platform.OS !== "web" || typeof window === "undefined") return;
+
+    const handleAuthChanged = () => {
+      console.log("[useAuth] Received auth-state-changed event, re-fetching user...");
+      fetchUser();
+    };
+
+    window.addEventListener(AUTH_CHANGED_EVENT, handleAuthChanged);
+    return () => {
+      window.removeEventListener(AUTH_CHANGED_EVENT, handleAuthChanged);
+    };
+  }, [fetchUser]);
 
   return {
     user,

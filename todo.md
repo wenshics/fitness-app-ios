@@ -74,3 +74,4 @@
 - [x] Update tab bar, cards, buttons, and typography for cohesive design
 - [x] Ensure dark mode maintains professional appearance
 - [x] Show exercise demo image on workout session screen while user is performing the exercise
+- [x] Fix bug: users sometimes have to log in twice before being authenticated
