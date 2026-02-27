@@ -82,3 +82,6 @@
 - [x] Verify free trial is exactly 7 days
 - [x] Verify users can change subscription plan during free trial
 - [x] Add payment info collection flow when selecting a subscription plan
+- [x] Fix bug: logout button is not working
+- [x] Implement subscription upgrade system (daily→weekly→monthly→yearly, no downgrades)
+- [x] Add upgrade button to Profile subscription banner

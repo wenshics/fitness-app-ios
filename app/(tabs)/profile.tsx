@@ -43,12 +43,12 @@ export default function ProfileScreen() {
   const colors = useColors();
   const { user, logout } = useAuth();
   const { state, updateSettings, getUnlockedAwards, getLockedAwards } = useWorkout();
-  const { subscription, getCurrentPlan, isTrialActive, getDaysRemaining, changePlan } = useSubscription();
+  const { subscription, getCurrentPlan, isTrialActive, getDaysRemaining, changePlan, canUpgradeTo } = useSubscription();
   const router = useRouter();
 
-  const [showChangePlan, setShowChangePlan] = useState(false);
-  const [selectedNewPlan, setSelectedNewPlan] = useState<PlanType | null>(null);
-  const [changingPlan, setChangingPlan] = useState(false);
+  const [showUpgradePlan, setShowUpgradePlan] = useState(false);
+  const [selectedUpgradePlan, setSelectedUpgradePlan] = useState<PlanType | null>(null);
+  const [upgradingPlan, setUpgradingPlan] = useState(false);
   const [editingReminder, setEditingReminder] = useState<ReminderKey | null>(null);
   const [pickerHour, setPickerHour] = useState(0);
   const [pickerMinute, setPickerMinute] = useState(0);
@@ -162,8 +162,8 @@ export default function ProfileScreen() {
               <Pressable
                 onPress={() => {
                   if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  setSelectedNewPlan(subscription.plan as PlanType);
-                  setShowChangePlan(true);
+                  setSelectedUpgradePlan(subscription.plan as PlanType);
+                  setShowUpgradePlan(true);
                 }}
                 style={({ pressed }) => [
                   styles.changePlanBtn,
@@ -487,51 +487,55 @@ export default function ProfileScreen() {
       </Modal>
 
       {/* Change Plan Modal */}
-      <Modal visible={showChangePlan} transparent animationType="slide">
-        <Pressable style={styles.modalOverlay} onPress={() => setShowChangePlan(false)}>
+      <Modal visible={showUpgradePlan} transparent animationType="slide">
+        <Pressable style={styles.modalOverlay} onPress={() => setShowUpgradePlan(false)}>
           <Pressable style={[styles.modalContent, { backgroundColor: colors.background }]} onPress={(e) => e.stopPropagation()}>
             <View style={styles.modalHeader}>
-              <Pressable onPress={() => setShowChangePlan(false)} style={({ pressed }) => [pressed && { opacity: 0.6 }]}>
+              <Pressable onPress={() => setShowUpgradePlan(false)} style={({ pressed }) => [pressed && { opacity: 0.6 }]}>
                 <Text style={[styles.modalCancel, { color: colors.muted }]}>Cancel</Text>
               </Pressable>
-              <Text style={[styles.modalTitle, { color: colors.foreground }]}>Change Plan</Text>
+              <Text style={[styles.modalTitle, { color: colors.foreground }]}>Upgrade Plan</Text>
               <Pressable
                 onPress={async () => {
-                  if (!selectedNewPlan || selectedNewPlan === subscription.plan) {
-                    setShowChangePlan(false);
+                  if (!selectedUpgradePlan || selectedUpgradePlan === subscription.plan) {
+                    setShowUpgradePlan(false);
                     return;
                   }
-                  setChangingPlan(true);
-                  const success = await changePlan(selectedNewPlan);
-                  setChangingPlan(false);
+                  setUpgradingPlan(true);
+                  const success = await changePlan(selectedUpgradePlan);
+                  setUpgradingPlan(false);
                   if (success) {
                     if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
                   }
-                  setShowChangePlan(false);
+                  setShowUpgradePlan(false);
                 }}
                 style={({ pressed }) => [pressed && { opacity: 0.6 }]}
               >
                 <Text style={[styles.modalSave, { color: colors.primary }]}>
-                  {changingPlan ? "Saving..." : "Confirm"}
+                  {upgradingPlan ? "Saving..." : "Confirm"}
                 </Text>
               </Pressable>
             </View>
 
             <Text style={[styles.changePlanNote, { color: colors.muted }]}>
-              You can change your plan for free during your trial period. Your new plan will take effect after the trial ends.
+              Upgrade to a higher tier anytime. You can only upgrade, not downgrade your plan.
             </Text>
 
             <View style={styles.plansList}>
               {PLANS.map((plan) => {
-                const isSelected = selectedNewPlan === plan.id;
+                const isSelected = selectedUpgradePlan === plan.id;
                 const isCurrent = subscription.plan === plan.id;
+                const canUpgrade = canUpgradeTo(plan.id);
                 return (
                   <Pressable
                     key={plan.id}
                     onPress={() => {
-                      setSelectedNewPlan(plan.id);
-                      if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      if (canUpgrade) {
+                        setSelectedUpgradePlan(plan.id);
+                        if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      }
                     }}
+                    disabled={!canUpgrade}
                     style={({ pressed }) => [
                       styles.planOption,
                       { borderColor: isSelected ? colors.primary : colors.border, backgroundColor: isSelected ? colors.primary + "08" : colors.surface },

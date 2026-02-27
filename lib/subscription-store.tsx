@@ -79,6 +79,7 @@ interface SubscriptionContextType {
   getDaysRemaining: () => number;
   getCurrentPlan: () => PricePlan | null;
   setUserId: (userId: string | number | null) => void;
+  canUpgradeTo: (newPlan: PlanType) => boolean;
 }
 
 const SubscriptionContext = createContext<SubscriptionContextType | null>(null);
@@ -177,15 +178,40 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     await persist(newState);
   }, [persist]);
 
-  const changePlan = useCallback(async (newPlan: PlanType): Promise<boolean> => {
-    // Only allow plan changes during the free trial period
-    if (!subscription.trialEndsAt || !subscription.subscribedAt) return false;
-    const now = new Date();
-    if (now >= new Date(subscription.trialEndsAt)) return false; // trial expired
+  // Plan upgrade hierarchy: daily < weekly < monthly < yearly
+  const planHierarchy: Record<PlanType, number> = {
+    daily: 0,
+    weekly: 1,
+    monthly: 2,
+    yearly: 3,
+  };
 
-    // Recalculate expiry based on new plan, keeping the same trial end date
-    const trialEnd = new Date(subscription.trialEndsAt);
-    const expiry = new Date(trialEnd);
+  const canUpgradeTo = useCallback((newPlan: PlanType): boolean => {
+    if (!subscription.isSubscribed || !subscription.plan) return false;
+    const currentTier = planHierarchy[subscription.plan];
+    const newTier = planHierarchy[newPlan];
+    return newTier > currentTier;
+  }, [subscription.isSubscribed, subscription.plan]);
+
+  const changePlan = useCallback(async (newPlan: PlanType): Promise<boolean> => {
+    // Check if user is subscribed
+    if (!subscription.isSubscribed || !subscription.plan) {
+      console.log("[Subscription] Cannot change plan: not subscribed");
+      return false;
+    }
+
+    // Check if new plan is an upgrade (higher tier)
+    const currentTier = planHierarchy[subscription.plan];
+    const newTier = planHierarchy[newPlan];
+    if (newTier <= currentTier) {
+      console.log("[Subscription] Cannot downgrade from", subscription.plan, "to", newPlan);
+      return false; // No downgrades allowed
+    }
+
+    // Allow upgrades anytime (not just during trial)
+    // Recalculate expiry based on new plan
+    const now = new Date();
+    const expiry = new Date(now);
     switch (newPlan) {
       case "daily":
         expiry.setDate(expiry.getDate() + 1);
@@ -212,8 +238,9 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
 
     setSubscription(newState);
     await persist(newState);
+    console.log("[Subscription] Upgraded from", subscription.plan, "to", newPlan);
     return true;
-  }, [subscription.trialEndsAt, subscription.subscribedAt, persist]);
+  }, [subscription.isSubscribed, subscription.plan, subscription.subscribedAt, subscription.trialEndsAt, persist]);
 
   const cancelSubscription = useCallback(async () => {
     const newState: SubscriptionState = {
@@ -249,6 +276,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     getDaysRemaining,
     getCurrentPlan,
     setUserId,
+    canUpgradeTo,
   };
 
   return (

@@ -118,9 +118,16 @@ export async function exchangeOAuthCode(
 
 // Logout
 export async function logout(): Promise<void> {
-  await apiCall<void>("/api/auth/logout", {
-    method: "POST",
-  });
+  console.log("[API] logout: calling /api/auth/logout");
+  try {
+    await apiCall<void>("/api/auth/logout", {
+      method: "POST",
+    });
+    console.log("[API] logout: success");
+  } catch (err) {
+    console.error("[API] logout: failed", err);
+    throw err;
+  }
 }
 
 // Get current authenticated user (web uses cookie-based auth)
