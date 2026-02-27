@@ -4,40 +4,50 @@ import { describe, it, expect } from "vitest";
 describe("Subscription Plans", () => {
   const PLANS = [
     {
+      id: "daily" as const,
+      label: "Daily",
+      price: "$0.99",
+      priceValue: 99,
+      period: "/day",
+      perWeek: "$6.93/wk",
+    },
+    {
       id: "weekly" as const,
       label: "Weekly",
-      price: "$1.99",
-      priceValue: 199,
+      price: "$5.99",
+      priceValue: 599,
       period: "/week",
-      perWeek: "$1.99/wk",
+      perWeek: "$5.99/wk",
+      savings: "Save 14%",
     },
     {
       id: "monthly" as const,
       label: "Monthly",
-      price: "$5.99",
-      priceValue: 599,
+      price: "$19.99",
+      priceValue: 1999,
       period: "/month",
-      perWeek: "$1.50/wk",
-      savings: "Save 25%",
+      perWeek: "$4.62/wk",
+      savings: "Save 33%",
       popular: true,
     },
     {
       id: "yearly" as const,
       label: "Yearly",
-      price: "$39.99",
-      priceValue: 3999,
+      price: "$99.99",
+      priceValue: 9999,
       period: "/year",
-      perWeek: "$0.77/wk",
-      savings: "Save 61%",
+      perWeek: "$1.92/wk",
+      savings: "Save 72%",
     },
   ];
 
-  it("should have 3 subscription plans", () => {
-    expect(PLANS).toHaveLength(3);
+  it("should have 4 subscription plans", () => {
+    expect(PLANS).toHaveLength(4);
   });
 
-  it("should have weekly, monthly, and yearly plans", () => {
+  it("should have daily, weekly, monthly, and yearly plans", () => {
     const ids = PLANS.map((p) => p.id);
+    expect(ids).toContain("daily");
     expect(ids).toContain("weekly");
     expect(ids).toContain("monthly");
     expect(ids).toContain("yearly");
@@ -49,14 +59,37 @@ describe("Subscription Plans", () => {
   });
 
   it("yearly plan should have the best per-week rate", () => {
-    // $0.77/wk for yearly vs $1.50/wk for monthly vs $1.99/wk for weekly
     const yearly = PLANS.find((p) => p.id === "yearly");
-    expect(yearly?.perWeek).toBe("$0.77/wk");
+    expect(yearly?.perWeek).toBe("$1.92/wk");
   });
 
-  it("yearly plan should save 61%", () => {
+  it("yearly plan should save 72%", () => {
     const yearly = PLANS.find((p) => p.id === "yearly");
-    expect(yearly?.savings).toBe("Save 61%");
+    expect(yearly?.savings).toBe("Save 72%");
+  });
+
+  it("daily plan should be $0.99/day", () => {
+    const daily = PLANS.find((p) => p.id === "daily");
+    expect(daily?.price).toBe("$0.99");
+    expect(daily?.period).toBe("/day");
+  });
+
+  it("weekly plan should be $5.99/week", () => {
+    const weekly = PLANS.find((p) => p.id === "weekly");
+    expect(weekly?.price).toBe("$5.99");
+    expect(weekly?.period).toBe("/week");
+  });
+
+  it("monthly plan should be $19.99/month", () => {
+    const monthly = PLANS.find((p) => p.id === "monthly");
+    expect(monthly?.price).toBe("$19.99");
+    expect(monthly?.period).toBe("/month");
+  });
+
+  it("yearly plan should be $99.99/year", () => {
+    const yearly = PLANS.find((p) => p.id === "yearly");
+    expect(yearly?.price).toBe("$99.99");
+    expect(yearly?.period).toBe("/year");
   });
 
   it("all plans should have valid price values in cents", () => {
@@ -74,6 +107,14 @@ describe("Subscription State Logic", () => {
     trialEnd.setDate(trialEnd.getDate() + 7);
 
     expect(trialEnd.toISOString()).toBe("2026-02-18T10:00:00.000Z");
+  });
+
+  it("should calculate daily expiry as 1 day after trial", () => {
+    const trialEnd = new Date("2026-02-18T10:00:00Z");
+    const expiry = new Date(trialEnd);
+    expiry.setDate(expiry.getDate() + 1);
+
+    expect(expiry.toISOString()).toBe("2026-02-19T10:00:00.000Z");
   });
 
   it("should calculate weekly expiry as 7 days after trial", () => {

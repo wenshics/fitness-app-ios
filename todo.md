@@ -75,3 +75,4 @@
 - [x] Ensure dark mode maintains professional appearance
 - [x] Show exercise demo image on workout session screen while user is performing the exercise
 - [x] Fix bug: users sometimes have to log in twice before being authenticated
+- [x] Update subscription plans: $0.99/day, $5.99/week, $19.99/month, $99.99/year

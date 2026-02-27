@@ -145,7 +145,7 @@ export default function ProfileScreen() {
             <View>
               <Text style={styles.subTitle}>ActiveLife Pro</Text>
               <Text style={styles.subPrice}>
-                {getCurrentPlan()?.price ?? "$1.99"}{getCurrentPlan()?.period ?? "/week"}
+                {getCurrentPlan()?.price ?? "$19.99"}{getCurrentPlan()?.period ?? "/month"}
               </Text>
             </View>
           </View>

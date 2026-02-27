@@ -2,7 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 
 // ===== SUBSCRIPTION PLANS =====
-export type PlanType = "weekly" | "monthly" | "yearly";
+export type PlanType = "daily" | "weekly" | "monthly" | "yearly";
 
 export interface PricePlan {
   id: PlanType;
@@ -17,31 +17,40 @@ export interface PricePlan {
 
 export const PLANS: PricePlan[] = [
   {
+    id: "daily",
+    label: "Daily",
+    price: "$0.99",
+    priceValue: 99,
+    period: "/day",
+    perWeek: "$6.93/wk",
+  },
+  {
     id: "weekly",
     label: "Weekly",
-    price: "$1.99",
-    priceValue: 199,
+    price: "$5.99",
+    priceValue: 599,
     period: "/week",
-    perWeek: "$1.99/wk",
+    perWeek: "$5.99/wk",
+    savings: "Save 14%",
   },
   {
     id: "monthly",
     label: "Monthly",
-    price: "$5.99",
-    priceValue: 599,
+    price: "$19.99",
+    priceValue: 1999,
     period: "/month",
-    perWeek: "$1.50/wk",
-    savings: "Save 25%",
+    perWeek: "$4.62/wk",
+    savings: "Save 33%",
     popular: true,
   },
   {
     id: "yearly",
     label: "Yearly",
-    price: "$39.99",
-    priceValue: 3999,
+    price: "$99.99",
+    priceValue: 9999,
     period: "/year",
-    perWeek: "$0.77/wk",
-    savings: "Save 61%",
+    perWeek: "$1.92/wk",
+    savings: "Save 72%",
   },
 ];
 
@@ -140,6 +149,9 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     // Calculate expiry based on plan
     const expiry = new Date(trialEnd); // starts after trial
     switch (plan) {
+      case "daily":
+        expiry.setDate(expiry.getDate() + 1);
+        break;
       case "weekly":
         expiry.setDate(expiry.getDate() + 7);
         break;
