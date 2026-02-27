@@ -25,10 +25,10 @@ export default function PaymentInfoScreen() {
 
   const [cardNumber, setCardNumber] = useState("");
   const [cardName, setCardName] = useState("");
-  const [expiryMonth, setExpiryMonth] = useState("");
-  const [expiryYear, setExpiryYear] = useState("");
+  const [expiry, setExpiry] = useState("");
   const [cvv, setCvv] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const selectedPlan = PLANS.find((p) => p.id === planId);
 
@@ -52,33 +52,108 @@ export default function PaymentInfoScreen() {
     const cleaned = text.replace(/\D/g, "").slice(0, 16);
     const formatted = cleaned.replace(/(\d{4})/g, "$1 ").trim();
     setCardNumber(formatted);
+    
+    // Clear error when user starts typing
+    if (errors.cardNumber) {
+      setErrors((prev) => ({ ...prev, cardNumber: "" }));
+    }
   };
 
   const formatExpiry = (text: string) => {
     const cleaned = text.replace(/\D/g, "").slice(0, 4);
+    let formatted = cleaned;
+    
     if (cleaned.length >= 2) {
-      const formatted = `${cleaned.slice(0, 2)}/${cleaned.slice(2, 4)}`;
-      setExpiryMonth(cleaned.slice(0, 2));
-      setExpiryYear(cleaned.slice(2, 4));
+      formatted = `${cleaned.slice(0, 2)}/${cleaned.slice(2, 4)}`;
+    }
+    
+    setExpiry(formatted);
+    
+    // Clear error when user starts typing
+    if (errors.expiry) {
+      setErrors((prev) => ({ ...prev, expiry: "" }));
     }
   };
 
-  const handleConfirm = async () => {
-    // Validate inputs
-    if (!cardNumber.replace(/\s/g, "") || cardNumber.replace(/\s/g, "").length !== 16) {
-      Alert.alert("Invalid Card", "Please enter a valid 16-digit card number");
-      return;
+  const formatCvv = (text: string) => {
+    const cleaned = text.replace(/\D/g, "").slice(0, 4);
+    setCvv(cleaned);
+    
+    // Clear error when user starts typing
+    if (errors.cvv) {
+      setErrors((prev) => ({ ...prev, cvv: "" }));
     }
+  };
+
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+
+    // Validate card number
+    const cardNumberClean = cardNumber.replace(/\s/g, "");
+    if (!cardNumberClean) {
+      newErrors.cardNumber = "Card number is required";
+    } else if (cardNumberClean.length !== 16) {
+      newErrors.cardNumber = "Card number must be 16 digits";
+    } else if (!luhnCheck(cardNumberClean)) {
+      newErrors.cardNumber = "Invalid card number";
+    }
+
+    // Validate cardholder name
     if (!cardName.trim()) {
-      Alert.alert("Invalid Name", "Please enter the cardholder name");
-      return;
+      newErrors.cardName = "Cardholder name is required";
     }
-    if (!expiryMonth || !expiryYear || expiryMonth.length !== 2 || expiryYear.length !== 2) {
-      Alert.alert("Invalid Expiry", "Please enter a valid expiry date (MM/YY)");
-      return;
+
+    // Validate expiry
+    const expiryClean = expiry.replace(/\D/g, "");
+    if (!expiryClean) {
+      newErrors.expiry = "Expiry date is required";
+    } else if (expiryClean.length !== 4) {
+      newErrors.expiry = "Expiry must be MM/YY format";
+    } else {
+      const month = parseInt(expiryClean.slice(0, 2), 10);
+      if (month < 1 || month > 12) {
+        newErrors.expiry = "Invalid month (01-12)";
+      }
     }
-    if (!cvv || cvv.length < 3 || cvv.length > 4) {
-      Alert.alert("Invalid CVV", "Please enter a valid CVV (3-4 digits)");
+
+    // Validate CVV
+    if (!cvv) {
+      newErrors.cvv = "CVV is required";
+    } else if (cvv.length < 3 || cvv.length > 4) {
+      newErrors.cvv = "CVV must be 3-4 digits";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  // Luhn algorithm for card validation
+  const luhnCheck = (num: string) => {
+    let sum = 0;
+    let isEven = false;
+
+    for (let i = num.length - 1; i >= 0; i--) {
+      let digit = parseInt(num[i], 10);
+
+      if (isEven) {
+        digit *= 2;
+        if (digit > 9) {
+          digit -= 9;
+        }
+      }
+
+      sum += digit;
+      isEven = !isEven;
+    }
+
+    return sum % 10 === 0;
+  };
+
+  const handleConfirm = async () => {
+    if (!validateForm()) {
+      if (Platform.OS !== "web") {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      }
       return;
     }
 
@@ -150,55 +225,95 @@ export default function PaymentInfoScreen() {
 
         {/* Payment Form */}
         <View style={styles.formSection}>
-          <Text style={[styles.formLabel, { color: colors.foreground }]}>Cardholder Name</Text>
-          <TextInput
-            style={[styles.input, { borderColor: colors.border, color: colors.foreground }]}
-            placeholder="John Doe"
-            placeholderTextColor={colors.muted}
-            value={cardName}
-            onChangeText={setCardName}
-            editable={!isProcessing}
-          />
+          {/* Cardholder Name */}
+          <View>
+            <Text style={[styles.formLabel, { color: colors.foreground }]}>Cardholder Name</Text>
+            <TextInput
+              style={[
+                styles.input,
+                {
+                  borderColor: errors.cardName ? colors.error : colors.border,
+                  color: colors.foreground,
+                },
+              ]}
+              placeholder="John Doe"
+              placeholderTextColor={colors.muted}
+              value={cardName}
+              onChangeText={(text) => {
+                setCardName(text);
+                if (errors.cardName) {
+                  setErrors((prev) => ({ ...prev, cardName: "" }));
+                }
+              }}
+              editable={!isProcessing}
+            />
+            {errors.cardName && <Text style={[styles.errorMessage, { color: colors.error }]}>{errors.cardName}</Text>}
+          </View>
 
-          <Text style={[styles.formLabel, { color: colors.foreground, marginTop: 16 }]}>Card Number</Text>
-          <TextInput
-            style={[styles.input, { borderColor: colors.border, color: colors.foreground }]}
-            placeholder="1234 5678 9012 3456"
-            placeholderTextColor={colors.muted}
-            value={cardNumber}
-            onChangeText={formatCardNumber}
-            keyboardType="numeric"
-            maxLength={19}
-            editable={!isProcessing}
-          />
+          {/* Card Number */}
+          <View style={{ marginTop: 16 }}>
+            <Text style={[styles.formLabel, { color: colors.foreground }]}>Card Number</Text>
+            <TextInput
+              style={[
+                styles.input,
+                {
+                  borderColor: errors.cardNumber ? colors.error : colors.border,
+                  color: colors.foreground,
+                },
+              ]}
+              placeholder="1234 5678 9012 3456"
+              placeholderTextColor={colors.muted}
+              value={cardNumber}
+              onChangeText={formatCardNumber}
+              keyboardType="numeric"
+              maxLength={19}
+              editable={!isProcessing}
+            />
+            {errors.cardNumber && <Text style={[styles.errorMessage, { color: colors.error }]}>{errors.cardNumber}</Text>}
+          </View>
 
+          {/* Expiry and CVV */}
           <View style={styles.rowInputs}>
             <View style={{ flex: 1 }}>
               <Text style={[styles.formLabel, { color: colors.foreground }]}>Expiry (MM/YY)</Text>
               <TextInput
-                style={[styles.input, { borderColor: colors.border, color: colors.foreground }]}
+                style={[
+                  styles.input,
+                  {
+                    borderColor: errors.expiry ? colors.error : colors.border,
+                    color: colors.foreground,
+                  },
+                ]}
                 placeholder="12/25"
                 placeholderTextColor={colors.muted}
-                value={`${expiryMonth}${expiryMonth && expiryYear ? "/" : ""}${expiryYear}`}
+                value={expiry}
                 onChangeText={formatExpiry}
                 keyboardType="numeric"
                 maxLength={5}
                 editable={!isProcessing}
               />
+              {errors.expiry && <Text style={[styles.errorMessage, { color: colors.error }]}>{errors.expiry}</Text>}
             </View>
             <View style={{ flex: 1, marginLeft: 12 }}>
               <Text style={[styles.formLabel, { color: colors.foreground }]}>CVV</Text>
               <TextInput
-                style={[styles.input, { borderColor: colors.border, color: colors.foreground }]}
+                style={[
+                  styles.input,
+                  {
+                    borderColor: errors.cvv ? colors.error : colors.border,
+                    color: colors.foreground,
+                  },
+                ]}
                 placeholder="123"
                 placeholderTextColor={colors.muted}
                 value={cvv}
-                onChangeText={(text) => setCvv(text.replace(/\D/g, "").slice(0, 4))}
+                onChangeText={formatCvv}
                 keyboardType="numeric"
                 maxLength={4}
                 secureTextEntry
                 editable={!isProcessing}
               />
+              {errors.cvv && <Text style={[styles.errorMessage, { color: colors.error }]}>{errors.cvv}</Text>}
             </View>
           </View>
         </View>
@@ -321,6 +436,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 16,
+  },
+  errorMessage: {
+    fontSize: 12,
+    marginTop: 6,
+    fontWeight: "500",
   },
   rowInputs: {
     flexDirection: "row",
