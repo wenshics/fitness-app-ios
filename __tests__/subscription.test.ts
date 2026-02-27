@@ -33,11 +33,11 @@ describe("Subscription Plans", () => {
     {
       id: "yearly" as const,
       label: "Yearly",
-      price: "$99.99",
-      priceValue: 9999,
+      price: "$149.99",
+      priceValue: 14999,
       period: "/year",
-      perWeek: "$1.92/wk",
-      savings: "Save 72%",
+      perWeek: "$2.88/wk",
+      savings: "Save 58%",
     },
   ];
 
@@ -60,12 +60,12 @@ describe("Subscription Plans", () => {
 
   it("yearly plan should have the best per-week rate", () => {
     const yearly = PLANS.find((p) => p.id === "yearly");
-    expect(yearly?.perWeek).toBe("$1.92/wk");
+    expect(yearly?.perWeek).toBe("$2.88/wk");
   });
 
   it("yearly plan should save 72%", () => {
     const yearly = PLANS.find((p) => p.id === "yearly");
-    expect(yearly?.savings).toBe("Save 72%");
+    expect(yearly?.savings).toBe("Save 58%");
   });
 
   it("daily plan should be $0.99/day", () => {
@@ -88,7 +88,7 @@ describe("Subscription Plans", () => {
 
   it("yearly plan should be $99.99/year", () => {
     const yearly = PLANS.find((p) => p.id === "yearly");
-    expect(yearly?.price).toBe("$99.99");
+    expect(yearly?.price).toBe("$149.99");
     expect(yearly?.period).toBe("/year");
   });
 

@@ -78,3 +78,4 @@
 - [x] Update subscription plans: $0.99/day, $5.99/week, $19.99/month, $99.99/year
 - [x] Rename app from ActiveLife to FitLife across all references
 - [x] Allow users to change subscription plan during free trial period
+- [x] Update annual subscription plan from $99.99 to $149.99

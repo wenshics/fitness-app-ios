@@ -46,11 +46,11 @@ export const PLANS: PricePlan[] = [
   {
     id: "yearly",
     label: "Yearly",
-    price: "$99.99",
-    priceValue: 9999,
+    price: "$149.99",
+    priceValue: 14999,
     period: "/year",
-    perWeek: "$1.92/wk",
-    savings: "Save 72%",
+    perWeek: "$2.88/wk",
+    savings: "Save 58%",
   },
 ];
 
