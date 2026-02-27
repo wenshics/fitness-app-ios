@@ -66,11 +66,16 @@ export default function ProfileScreen() {
 
     const doLogout = async () => {
       try {
+        console.log("[Profile] Starting logout...");
         await logout();
+        console.log("[Profile] Logout complete");
       } catch (err) {
         console.error("[Profile] Logout error:", err);
       }
-      router.replace("/login" as any);
+      setTimeout(() => {
+        console.log("[Profile] Redirecting to login");
+        router.replace("/login" as any);
+      }, 100);
     };
 
     if (Platform.OS === "web") {
@@ -158,7 +163,7 @@ export default function ProfileScreen() {
                 {isTrialActive() ? "Trial" : "Active"} · {getDaysRemaining()}d left
               </Text>
             </View>
-            {isTrialActive() && (
+            {subscription.plan !== "yearly" && (
               <Pressable
                 onPress={() => {
                   if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -170,7 +175,7 @@ export default function ProfileScreen() {
                   pressed && { opacity: 0.7 },
                 ]}
               >
-                <Text style={styles.changePlanText}>Change Plan</Text>
+                <Text style={styles.changePlanText}>{isTrialActive() ? "Change" : "Upgrade"} Plan</Text>
               </Pressable>
             )}
           </View>

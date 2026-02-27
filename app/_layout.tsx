@@ -2,7 +2,7 @@ import "@/global.css";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "react-native-reanimated";
 import { Platform } from "react-native";
@@ -52,19 +52,43 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, loading: isLoading } = useAuth();
   const segments = useSegments();
   const router = useRouter();
+  const redirectedRef = useRef(false);
 
   useEffect(() => {
     // Wait for router to be ready and auth to finish loading
-    if (isLoading) return;
+    if (isLoading) {
+      console.log("[AuthGuard] Still loading, waiting...");
+      return;
+    }
 
     const inAuthGroup = segments[0] === "oauth" || segments[0] === "login";
+    const currentPath = segments.join("/");
+
+    console.log("[AuthGuard] Auth state check:", {
+      isAuthenticated,
+      inAuthGroup,
+      currentPath,
+      redirectedRef: redirectedRef.current,
+    });
+
+    // Prevent double redirects
+    if (redirectedRef.current) {
+      console.log("[AuthGuard] Already redirected, skipping");
+      return;
+    }
 
     if (!isAuthenticated && !inAuthGroup) {
-      // Not logged in → go to login
+      // Not logged in and not on auth page → go to login
+      console.log("[AuthGuard] Redirecting to login");
+      redirectedRef.current = true;
       router.replace("/login");
     } else if (isAuthenticated && inAuthGroup) {
       // Logged in but on auth page → go to app
+      console.log("[AuthGuard] Redirecting to app");
+      redirectedRef.current = true;
       router.replace("/(tabs)");
+    } else {
+      console.log("[AuthGuard] No redirect needed");
     }
   }, [isAuthenticated, isLoading, segments, router]);
 

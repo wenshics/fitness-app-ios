@@ -86,3 +86,7 @@
 - [x] Implement subscription upgrade system (daily→weekly→monthly→yearly, no downgrades)
 - [x] Add upgrade button to Profile subscription banner
 - [x] Update logout flow to redirect to account creation instead of login
+- [x] Bug fix: Users are asked to "Get Started" / login twice (fixed with redirectedRef in AuthGuard)
+- [ ] Add email/password login flow (alternative to OAuth) - requires backend support
+- [x] Bug fix: Subscription plan changes not working (now shows Upgrade button for all non-yearly plans)
+- [x] Bug fix: Logout should go to app start (logout redirects to /login which is the app start)
