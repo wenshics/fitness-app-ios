@@ -30,20 +30,14 @@ export default function PaywallScreen() {
     setIsProcessing(true);
 
     if (Platform.OS !== "web") {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
 
     try {
-      // Simulate payment processing delay
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-
-      // Save subscription state
-      await subscribe(selectedPlan);
-
-      // Navigate to main app
-      router.replace("/(tabs)" as any);
+      // Navigate to payment info screen to collect card details
+      router.push(`/payment-info?plan=${selectedPlan}`);
     } catch (err) {
-      console.error("[Paywall] Subscription failed:", err);
+      console.error("[Paywall] Navigation failed:", err);
       setIsProcessing(false);
     }
   };

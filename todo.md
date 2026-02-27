@@ -79,3 +79,6 @@
 - [x] Rename app from ActiveLife to FitLife across all references
 - [x] Allow users to change subscription plan during free trial period
 - [x] Update annual subscription plan from $99.99 to $149.99
+- [x] Verify free trial is exactly 7 days
+- [x] Verify users can change subscription plan during free trial
+- [x] Add payment info collection flow when selecting a subscription plan
