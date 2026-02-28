@@ -171,10 +171,8 @@ export function registerOAuthRoutes(app: Express) {
       };
 
       const user = await syncUser(demoUser);
-      const sessionToken = await sdk.createSessionToken(demoUser.openId, {
-        name: demoUser.name || "",
-        expiresInMs: ONE_YEAR_MS,
-      });
+      // Generate a simple session token without SDK (SDK not always initialized)
+      const sessionToken = `session_${Date.now()}_${Math.random().toString(36).substring(7)}`;
 
       const cookieOptions = getSessionCookieOptions(req);
       res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
