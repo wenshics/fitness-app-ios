@@ -31,9 +31,11 @@ export default function PaymentSuccessScreen() {
     }
   }, [selectedPlan]);
 
-  const handleContinue = async () => {
+  const handleConfirm = async () => {
     setIsNavigating(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    // Navigate back twice: first from payment-success to payment-info, then from payment-info to previous screen
+    router.back();
     router.back();
   };
 
@@ -171,9 +173,9 @@ export default function PaymentSuccessScreen() {
           ))}
         </View>
 
-        {/* Continue Button */}
+        {/* Confirm Button */}
         <Pressable
-          onPress={handleContinue}
+          onPress={handleConfirm}
           disabled={isNavigating}
           style={({ pressed }) => [
             styles.continueButton,
@@ -186,7 +188,7 @@ export default function PaymentSuccessScreen() {
             <ActivityIndicator color={colors.background} size="small" />
           ) : (
             <Text style={[styles.continueButtonText, { color: colors.background }]}>
-              Continue to App
+              Confirm
             </Text>
           )}
         </Pressable>
