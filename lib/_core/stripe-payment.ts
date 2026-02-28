@@ -3,6 +3,8 @@
  * This uses a server-side payment API for processing
  */
 
+import { getApiBaseUrl } from "@/constants/oauth";
+
 /**
  * Initialize payment system (no-op since we use server-side processing)
  */
@@ -28,7 +30,9 @@ export async function processSubscriptionPayment(
     // For now, we'll send directly to the server
 
     // Send to server for processing
-    const response = await fetch("/api/payments/subscribe", {
+    const apiUrl = getApiBaseUrl();
+    const endpoint = apiUrl ? `${apiUrl}/api/payments/subscribe` : "/api/payments/subscribe";
+    const response = await fetch(endpoint, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
