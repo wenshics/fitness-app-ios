@@ -42,6 +42,8 @@ export default function ProfileScreen() {
   const [showSettings, setShowSettings] = useState(false);
   const defaultReminders = { weekdayEvening: { hour: 18, minute: 0 }, weekendMorning: { hour: 8, minute: 0 }, weekendEvening: { hour: 18, minute: 0 } };
   const reminders = state.settings?.reminders || defaultReminders;
+  const [remindersEnabled, setRemindersEnabled] = useState((reminders as any)?.enabled !== false);
+  
   const validReminders = Object.entries(reminders).reduce((acc: any, [key, value]: [string, any]) => {
     acc[key] = {
       hour: typeof value?.hour === 'number' ? value.hour : 18,
@@ -234,27 +236,54 @@ export default function ProfileScreen() {
         {/* Settings Section */}
         {showSettings && (
           <View style={[styles.settingsSection, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <Text style={[styles.settingTitle, { color: colors.foreground }]}>Reminder Times</Text>
-            <View style={styles.settingsList}>
-              {Object.entries(localReminders).map(([key, value]: [string, any]) => (
-                <Pressable
-                  key={key}
-                  onPress={() => openTimePicker(key)}
-                  style={({ pressed }) => [
-                    styles.settingRow,
-                    { borderBottomColor: colors.border },
-                    pressed && { opacity: 0.7 },
-                  ]}
-                >
-                  <Text style={[styles.settingLabel, { color: colors.foreground }]}>
-                    {key.replace(/([A-Z])/g, " $1").trim()}
-                  </Text>
-                  <Text style={[styles.settingValue, { color: colors.primary }]}>
-                    {String(value?.hour ?? 18).padStart(2, "0")}:{String(value?.minute ?? 0).padStart(2, "0")}
-                  </Text>
-                </Pressable>
-              ))}
+            {/* Reminders Enabled Toggle */}
+            <View style={[styles.settingRow, { borderBottomColor: colors.border, paddingHorizontal: 16, paddingVertical: 12 }]}>
+              <Text style={[styles.settingLabel, { color: colors.foreground }]}>Reminders Enabled</Text>
+              <Pressable
+                onPress={() => {
+                  const newState = !remindersEnabled;
+                  setRemindersEnabled(newState);
+                  updateSettings({ reminders: { ...localReminders, enabled: newState } });
+                }}
+                style={({ pressed }) => [{
+                  paddingHorizontal: 12,
+                  paddingVertical: 8,
+                  borderRadius: 6,
+                  backgroundColor: remindersEnabled ? colors.primary : colors.border,
+                }, pressed && { opacity: 0.8 }]}
+              >
+                <Text style={{ color: colors.background, fontWeight: '600', fontSize: 12 }}>
+                  {remindersEnabled ? 'ON' : 'OFF'}
+                </Text>
+              </Pressable>
             </View>
+
+            {/* Reminder Times (only show if enabled) */}
+            {remindersEnabled && (
+              <>
+                <Text style={[styles.settingTitle, { color: colors.foreground }]}>Reminder Times</Text>
+                <View style={styles.settingsList}>
+                  {Object.entries(localReminders).map(([key, value]: [string, any]) => (
+                    <Pressable
+                      key={key}
+                      onPress={() => openTimePicker(key)}
+                      style={({ pressed }) => [
+                        styles.settingRow,
+                        { borderBottomColor: colors.border },
+                        pressed && { opacity: 0.7 },
+                      ]}
+                    >
+                      <Text style={[styles.settingLabel, { color: colors.foreground }]}>
+                        {key.replace(/([A-Z])/g, " $1").trim()}
+                      </Text>
+                      <Text style={[styles.settingValue, { color: colors.primary }]}>
+                        {String(value?.hour ?? 18).padStart(2, "0")}:{String(value?.minute ?? 0).padStart(2, "0")}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </>
+            )}
           </View>
         )}
 
