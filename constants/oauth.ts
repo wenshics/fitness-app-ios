@@ -45,15 +45,9 @@ export function getApiBaseUrl(): string {
     }
   }
 
-  // On mobile, try to use localhost with port 3000 for development
-  // In production, this should be set via EXPO_PUBLIC_API_BASE_URL
-  if (ReactNative.Platform.OS !== "web") {
-    // For development: use localhost:3000
-    // For production: this must be set via environment variable
-    return "http://localhost:3000";
-  }
-
-  // Fallback to empty (will use relative URL)
+  // On mobile, return empty string to use relative URLs
+  // This allows the app to use the same domain as the Metro bundler
+  // The fetch will be made to the same host that served the app
   return "";
 }
 
@@ -129,7 +123,7 @@ export async function startOAuthLogin(): Promise<string | null> {
     console.error("[OAuth] Login URL is empty, using demo login for development");
     // Demo login for development - create a test user
     const apiUrl = getApiBaseUrl();
-    const demoUrl = `${apiUrl}/api/oauth/demo-login`;
+    const demoUrl = apiUrl ? `${apiUrl}/api/oauth/demo-login` : "/api/oauth/demo-login";
     console.log("[OAuth] Redirecting to demo login:", demoUrl);
     
     if (ReactNative.Platform.OS === "web" && typeof window !== "undefined") {
