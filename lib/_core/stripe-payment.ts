@@ -1,5 +1,19 @@
-import { initStripe, createPaymentMethod, CardFieldInput } from "@stripe/stripe-react-native";
+import { Platform } from "react-native";
 import type { PaymentMethod } from "@stripe/stripe-react-native";
+
+// Only import Stripe on native platforms (not web)
+let initStripe: any = null;
+let createPaymentMethod: any = null;
+
+if (Platform.OS !== "web") {
+  try {
+    const stripeModule = require("@stripe/stripe-react-native");
+    initStripe = stripeModule.initStripe;
+    createPaymentMethod = stripeModule.createPaymentMethod;
+  } catch (error) {
+    console.warn("[Stripe] Failed to load native module:", error);
+  }
+}
 
 const STRIPE_PUBLISHABLE_KEY = process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY || "";
 
@@ -7,10 +21,23 @@ const STRIPE_PUBLISHABLE_KEY = process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY ||
  * Initialize Stripe with the publishable key
  */
 export async function initializeStripe() {
-  if (!STRIPE_PUBLISHABLE_KEY) {
-    throw new Error("Stripe publishable key not configured");
+  // Skip on web platform
+  if (Platform.OS === "web") {
+    console.log("[Stripe] Skipped on web platform");
+    return;
   }
-  
+
+  // Skip initialization if key is not configured (optional feature)
+  if (!STRIPE_PUBLISHABLE_KEY) {
+    console.warn("[Stripe] Publishable key not configured, skipping initialization");
+    return;
+  }
+
+  if (!initStripe) {
+    console.warn("[Stripe] Native module not available");
+    return;
+  }
+
   try {
     await initStripe({
       publishableKey: STRIPE_PUBLISHABLE_KEY,
@@ -19,7 +46,7 @@ export async function initializeStripe() {
     console.log("[Stripe] Initialized successfully");
   } catch (error) {
     console.error("[Stripe] Initialization failed:", error);
-    throw error;
+    // Don't throw - allow app to continue even if Stripe fails
   }
 }
 
@@ -34,6 +61,10 @@ export async function createPaymentMethodFromCard(
   expiryYear: number,
   cvc: string
 ) {
+  if (!createPaymentMethod) {
+    throw new Error("Stripe not available on this platform");
+  }
+
   try {
     // For production, you should use CardField component which handles PCI compliance
     // This is a simplified approach for testing
@@ -78,7 +109,7 @@ export async function processSubscriptionPayment(
   try {
     // In production, validate card details on the backend
     // For now, we'll send directly to the server
-    
+
     // Send to server for processing
     const response = await fetch("/api/payments/subscribe", {
       method: "POST",

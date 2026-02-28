@@ -1,5 +1,6 @@
 import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
+import { Platform } from "react-native";
 
 const SchedulableTriggerInputTypes = Notifications.SchedulableTriggerInputTypes;
 
@@ -7,6 +8,12 @@ const SchedulableTriggerInputTypes = Notifications.SchedulableTriggerInputTypes;
  * Request notification permissions from the user
  */
 export async function requestNotificationPermissions() {
+  // Skip on web platform
+  if (Platform.OS === "web") {
+    console.warn("[Notifications] Skipped on web platform");
+    return false;
+  }
+
   if (!Device.isDevice) {
     console.warn("[Notifications] Running on simulator, notifications may not work");
     return false;
@@ -30,6 +37,7 @@ export async function requestNotificationPermissions() {
     return true;
   } catch (error) {
     console.error("[Notifications] Permission request failed:", error);
+    // Return false but don't block app initialization
     return false;
   }
 }
@@ -42,6 +50,11 @@ export async function scheduleWorkoutReminder(
   body: string,
   scheduledTime: Date
 ) {
+  if (Platform.OS === "web") {
+    console.warn("[Notifications] Not available on web");
+    return "";
+  }
+
   try {
     const notificationId = await Notifications.scheduleNotificationAsync({
       content: {
@@ -59,32 +72,74 @@ export async function scheduleWorkoutReminder(
     console.log("[Notifications] Scheduled reminder:", notificationId);
     return notificationId;
   } catch (error) {
-    console.error("[Notifications] Schedule failed:", error);
+    console.error("[Notifications] Error scheduling reminder:", error);
     throw error;
   }
 }
 
 /**
- * Cancel a scheduled notification
+ * Schedule multiple workout reminders based on a schedule
  */
-export async function cancelNotification(notificationId: string) {
-  try {
-    await Notifications.cancelScheduledNotificationAsync(notificationId);
-    console.log("[Notifications] Cancelled:", notificationId);
-  } catch (error) {
-    console.error("[Notifications] Cancel failed:", error);
+export async function scheduleWorkoutReminders(reminders: Array<{ day: string; time: string }>) {
+  if (Platform.OS === "web") {
+    console.warn("[Notifications] Not available on web");
+    return [];
   }
+
+  const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const notificationIds: string[] = [];
+
+  for (const reminder of reminders) {
+    try {
+      const dayIndex = days.indexOf(reminder.day);
+      if (dayIndex === -1) {
+        console.warn("[Notifications] Invalid day:", reminder.day);
+        continue;
+      }
+
+      const [hours, minutes] = reminder.time.split(":").map(Number);
+      const now = new Date();
+      const scheduledDate = new Date();
+
+      // Calculate days until the target day
+      let daysUntil = dayIndex - now.getDay();
+      if (daysUntil <= 0) {
+        daysUntil += 7;
+      }
+
+      scheduledDate.setDate(scheduledDate.getDate() + daysUntil);
+      scheduledDate.setHours(hours, minutes, 0, 0);
+
+      const notificationId = await scheduleWorkoutReminder(
+        "Time to workout!",
+        `Don't forget your ${reminder.day} workout at ${reminder.time}`,
+        scheduledDate
+      );
+
+      notificationIds.push(notificationId);
+    } catch (error) {
+      console.error("[Notifications] Error scheduling reminder for", reminder.day, ":", error);
+    }
+  }
+
+  return notificationIds;
 }
 
 /**
  * Cancel all scheduled notifications
  */
 export async function cancelAllNotifications() {
+  if (Platform.OS === "web") {
+    console.warn("[Notifications] Not available on web");
+    return;
+  }
+
   try {
     await Notifications.cancelAllScheduledNotificationsAsync();
-    console.log("[Notifications] Cancelled all notifications");
+    console.log("[Notifications] Canceled all scheduled notifications");
   } catch (error) {
-    console.error("[Notifications] Cancel all failed:", error);
+    console.error("[Notifications] Error canceling notifications:", error);
+    throw error;
   }
 }
 
@@ -92,19 +147,29 @@ export async function cancelAllNotifications() {
  * Get all scheduled notifications
  */
 export async function getScheduledNotifications() {
+  if (Platform.OS === "web") {
+    return [];
+  }
+
   try {
     const notifications = await Notifications.getAllScheduledNotificationsAsync();
     return notifications;
   } catch (error) {
-    console.error("[Notifications] Get scheduled failed:", error);
+    console.error("[Notifications] Error getting scheduled notifications:", error);
     return [];
   }
 }
 
 /**
- * Set up notification handler for when app is in foreground
+ * Set up the notification handler for foreground notifications
  */
 export function setupNotificationHandler() {
+  if (Platform.OS === "web") {
+    console.warn("[Notifications] Handler not available on web");
+    return;
+  }
+
+  // Set notification handler
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
       shouldShowAlert: true,
@@ -115,54 +180,5 @@ export function setupNotificationHandler() {
     }),
   });
 
-  // Handle notification when user taps it
-  const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
-    console.log("[Notifications] User tapped notification:", response.notification.request.content.title);
-    // Could navigate to specific screen here
-  });
-
-  return subscription;
-}
-
-/**
- * Schedule daily workout reminders based on user preferences
- * Format: reminders = [{ day: "Monday", time: "07:00" }, { day: "Wednesday", time: "18:30" }]
- */
-export async function scheduleWorkoutReminders(reminders: Array<{ day: string; time: string }>) {
-  try {
-    // Cancel existing reminders
-    await cancelAllNotifications();
-
-    const now = new Date();
-    const scheduledIds: string[] = [];
-
-    for (const reminder of reminders) {
-      const [hours, minutes] = reminder.time.split(":").map(Number);
-      const reminderDate = new Date();
-      reminderDate.setHours(hours, minutes, 0, 0);
-
-      // If time has passed today, schedule for tomorrow
-      if (reminderDate < now) {
-        reminderDate.setDate(reminderDate.getDate() + 1);
-      }
-
-      try {
-        const notificationId = await scheduleWorkoutReminder(
-          "Time to workout!",
-          `It's time for your daily exercise routine. Let's get started!`,
-          reminderDate
-        );
-
-        scheduledIds.push(notificationId);
-      } catch (error) {
-        console.error(`[Notifications] Failed to schedule reminder for ${reminder.day} at ${reminder.time}:`, error);
-      }
-    }
-
-    console.log("[Notifications] Scheduled", scheduledIds.length, "reminders");
-    return scheduledIds;
-  } catch (error) {
-    console.error("[Notifications] Schedule reminders failed:", error);
-    throw error;
-  }
+  console.log("[Notifications] Handler set up");
 }

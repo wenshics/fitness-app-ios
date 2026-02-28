@@ -109,27 +109,34 @@ export default function RootLayout() {
     initManusRuntime();
   }, []);
 
-  // Initialize notifications and Stripe
+  // Initialize notifications and Stripe (non-blocking)
   useEffect(() => {
     const initializeServices = async () => {
       try {
-        // Set up notification handler for foreground notifications
         setupNotificationHandler();
-        
-        // Request notification permissions
+        console.log("[RootLayout] Notification handler set up");
+      } catch (error) {
+        console.error("[RootLayout] Error setting up notifications:", error);
+      }
+      
+      try {
         const hasPermission = await requestNotificationPermissions();
-        console.log("[RootLayout] Notification permission granted:", hasPermission);
-        
-        // Initialize Stripe for payment processing
+        console.log("[RootLayout] Notification permission:", hasPermission);
+      } catch (error) {
+        console.error("[RootLayout] Error requesting permission:", error);
+      }
+      
+      try {
         await initializeStripe();
         console.log("[RootLayout] Stripe initialized");
       } catch (error) {
-        console.error("[RootLayout] Error initializing services:", error);
+        console.error("[RootLayout] Error initializing Stripe:", error);
       }
     };
     
     initializeServices();
   }, []);
+
 
   const handleSafeAreaUpdate = useCallback((metrics: Metrics) => {
     setInsets(metrics.insets);
