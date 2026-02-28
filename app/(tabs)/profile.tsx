@@ -140,7 +140,7 @@ export default function ProfileScreen() {
           </View>
           <View style={styles.userInfo}>
             <Text style={[styles.userName, { color: colors.foreground }]}>
-              {user?.name || "Athlete"}
+              {user?.name || "User"}
             </Text>
             <Text style={[styles.userEmail, { color: colors.muted }]}>
               {user?.email || "Fitness enthusiast"}

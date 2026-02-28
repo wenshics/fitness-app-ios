@@ -225,9 +225,11 @@ export default function PaymentInfoScreen() {
       }
 
       // Navigate to success screen
-      console.log("[PaymentInfo] Navigating to success screen");
       setIsProcessing(false);
-      router.push({
+      console.log("[PaymentInfo] Navigating to success screen with transactionId:", paymentResult.transactionId);
+      
+      // Use replace to prevent back navigation issues
+      router.replace({
         pathname: "/payment-success",
         params: {
           plan: planId,

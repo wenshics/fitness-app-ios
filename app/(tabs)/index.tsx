@@ -22,7 +22,7 @@ export default function HomeScreen() {
   const planCount = state.dailyPlan.length;
   const progress = planCount > 0 ? completedCount / planCount : 0;
 
-  const firstName = user?.name?.split(" ")[0] || "Athlete";
+  const firstName = user?.name?.split(" ")[0] || "";
   const greeting = getGreeting();
 
   const handleStartWorkout = () => {
