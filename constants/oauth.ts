@@ -120,11 +120,19 @@ export async function startOAuthLogin(): Promise<string | null> {
   if (!loginUrl) {
     console.error("[OAuth] Login URL is empty, using demo login for development");
     // Demo login for development - create a test user
+    const apiUrl = getApiBaseUrl();
+    const demoUrl = `${apiUrl}/api/oauth/demo-login`;
+    console.log("[OAuth] Redirecting to demo login:", demoUrl);
+    
     if (ReactNative.Platform.OS === "web" && typeof window !== "undefined") {
-      const apiUrl = getApiBaseUrl();
-      const demoUrl = `${apiUrl}/api/oauth/demo-login`;
-      console.log("[OAuth] Redirecting to demo login:", demoUrl);
       window.location.href = demoUrl;
+    } else {
+      // For native platforms, open in browser
+      try {
+        await Linking.openURL(demoUrl);
+      } catch (error) {
+        console.error("[OAuth] Failed to open demo login:", error);
+      }
     }
     return null;
   }

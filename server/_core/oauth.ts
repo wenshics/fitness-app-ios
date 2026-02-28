@@ -1,4 +1,3 @@
-import { COOKIE_NAME, ONE_YEAR_MS } from "../../shared/const.js";
 import type { Express, Request, Response } from "express";
 import { getUserByOpenId, upsertUser } from "../db";
 import { getSessionCookieOptions } from "./cookies";
@@ -60,6 +59,9 @@ function buildUserResponse(
     lastSignedIn: (user?.lastSignedIn ?? new Date()).toISOString(),
   };
 }
+
+const ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
+const COOKIE_NAME = "app_session_id";
 
 export function registerOAuthRoutes(app: Express) {
   app.get("/api/oauth/callback", async (req: Request, res: Response) => {
@@ -165,7 +167,7 @@ export function registerOAuthRoutes(app: Express) {
         name: "Demo User",
         email: "demo@fitlife.app",
         loginMethod: "demo",
-        platform: "web",
+        platform: "mobile",
       };
 
       const user = await syncUser(demoUser);
@@ -177,21 +179,35 @@ export function registerOAuthRoutes(app: Express) {
       const cookieOptions = getSessionCookieOptions(req);
       res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
 
-      // Redirect to the frontend
-      const frontendUrl =
-        process.env.EXPO_WEB_PREVIEW_URL ||
-        process.env.EXPO_PACKAGER_PROXY_URL ||
-        "http://localhost:8081";
+      // Check if this is a mobile request (User-Agent contains mobile indicators)
+      const userAgent = req.headers["user-agent"] || "";
+      const isMobile = /mobile|android|iphone|ipad/i.test(userAgent);
 
-      const userResponse = buildUserResponse(user);
-      const userBase64 = Buffer.from(JSON.stringify(userResponse)).toString("base64");
+      if (isMobile) {
+        // For mobile, return JSON with session token and user info
+        const userResponse = buildUserResponse(user);
+        res.json({
+          success: true,
+          sessionToken,
+          user: userResponse,
+        });
+      } else {
+        // For web, redirect to the frontend
+        const frontendUrl =
+          process.env.EXPO_WEB_PREVIEW_URL ||
+          process.env.EXPO_PACKAGER_PROXY_URL ||
+          "http://localhost:8081";
 
-      const redirectUrl = new URL(frontendUrl);
-      redirectUrl.pathname = "/oauth/callback";
-      redirectUrl.searchParams.set("sessionToken", sessionToken);
-      redirectUrl.searchParams.set("user", userBase64);
+        const userResponse = buildUserResponse(user);
+        const userBase64 = Buffer.from(JSON.stringify(userResponse)).toString("base64");
 
-      res.redirect(302, redirectUrl.toString());
+        const redirectUrl = new URL(frontendUrl);
+        redirectUrl.pathname = "/oauth/callback";
+        redirectUrl.searchParams.set("sessionToken", sessionToken);
+        redirectUrl.searchParams.set("user", userBase64);
+
+        res.redirect(302, redirectUrl.toString());
+      }
     } catch (error) {
       console.error("[OAuth] Demo login failed", error);
       res.status(500).json({ error: "Demo login failed" });
