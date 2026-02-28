@@ -2,8 +2,9 @@ import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useColors } from "@/hooks/use-colors";
 import { PLANS, type PlanType, useSubscription } from "@/lib/subscription-store";
+import { processSubscriptionPayment } from "@/lib/_core/stripe-payment";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -163,8 +164,23 @@ export default function PaymentInfoScreen() {
     }
 
     try {
-      // Simulate payment processing (in production, this would call a payment API)
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      // Parse expiry date
+      const expiryClean = expiry.replace(/\D/g, "");
+      const expiryMonth = parseInt(expiryClean.slice(0, 2), 10);
+      const expiryYear = parseInt(expiryClean.slice(2, 4), 10);
+
+      // Process payment with Stripe
+      const cardNumberClean = cardNumber.replace(/\s/g, "");
+      const paymentResult = await processSubscriptionPayment(
+        planId,
+        cardNumberClean,
+        expiryMonth,
+        expiryYear,
+        cvv,
+        cardName
+      );
+
+      console.log("[PaymentInfo] Payment processed:", paymentResult);
 
       // Subscribe to the selected plan
       await subscribe(planId);
@@ -180,7 +196,8 @@ export default function PaymentInfoScreen() {
       if (Platform.OS !== "web") {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       }
-      Alert.alert("Payment Failed", "There was an error processing your payment. Please try again.");
+      const errorMessage = err instanceof Error ? err.message : "There was an error processing your payment. Please try again.";
+      Alert.alert("Payment Failed", errorMessage);
       setIsProcessing(false);
     }
   };

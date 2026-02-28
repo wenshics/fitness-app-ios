@@ -96,3 +96,5 @@
 - [x] Add credit card validation with error messages for invalid input
 - [x] Bug fix: Users can't navigate back from payment screen when canceling subscription
 - [x] Bug fix: Achievement/badge icons not displaying properly on Profile screen
+- [ ] Implement real in-app purchase integration for subscription plans
+- [ ] Wire up push notifications for workout reminders

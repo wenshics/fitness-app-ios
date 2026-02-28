@@ -21,6 +21,8 @@ import { initManusRuntime, subscribeSafeAreaInsets } from "@/lib/_core/manus-run
 import { useAuth } from "@/hooks/use-auth";
 import { WorkoutProvider, useWorkout } from "@/lib/workout-store";
 import { SubscriptionProvider, useSubscription } from "@/lib/subscription-store";
+import { setupNotificationHandler, requestNotificationPermissions } from "@/lib/_core/notifications";
+import { initializeStripe } from "@/lib/_core/stripe-payment";
 
 const DEFAULT_WEB_INSETS: EdgeInsets = { top: 0, right: 0, bottom: 0, left: 0 };
 const DEFAULT_WEB_FRAME: Rect = { x: 0, y: 0, width: 0, height: 0 };
@@ -107,6 +109,28 @@ export default function RootLayout() {
     initManusRuntime();
   }, []);
 
+  // Initialize notifications and Stripe
+  useEffect(() => {
+    const initializeServices = async () => {
+      try {
+        // Set up notification handler for foreground notifications
+        setupNotificationHandler();
+        
+        // Request notification permissions
+        const hasPermission = await requestNotificationPermissions();
+        console.log("[RootLayout] Notification permission granted:", hasPermission);
+        
+        // Initialize Stripe for payment processing
+        await initializeStripe();
+        console.log("[RootLayout] Stripe initialized");
+      } catch (error) {
+        console.error("[RootLayout] Error initializing services:", error);
+      }
+    };
+    
+    initializeServices();
+  }, []);
+
   const handleSafeAreaUpdate = useCallback((metrics: Metrics) => {
     setInsets(metrics.insets);
     setFrame(metrics.frame);
@@ -157,6 +181,7 @@ export default function RootLayout() {
                     <Stack.Screen name="(tabs)" />
                     <Stack.Screen name="login" options={{ presentation: "fullScreenModal" }} />
                     <Stack.Screen name="paywall" options={{ presentation: "fullScreenModal", gestureEnabled: true }} />
+                    <Stack.Screen name="payment-info" options={{ presentation: "fullScreenModal", gestureEnabled: true }} />
                     <Stack.Screen name="oauth/callback" />
                     <Stack.Screen
                       name="exercise/[id]"
