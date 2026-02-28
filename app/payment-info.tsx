@@ -3,7 +3,7 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useColors } from "@/hooks/use-colors";
 import { PLANS, type PlanType, useSubscription } from "@/lib/subscription-store";
 import { processSubscriptionPayment } from "@/lib/_core/stripe-payment";
-import { saveCard } from "@/lib/_core/card-storage";
+import { saveCard, getSavedCards, type SavedCard } from "@/lib/_core/card-storage";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
@@ -32,8 +32,22 @@ export default function PaymentInfoScreen() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saveCardForFuture, setSaveCardForFuture] = useState(false);
+  const [savedCards, setSavedCards] = useState<SavedCard[]>([]);
+  const [selectedSavedCardId, setSelectedSavedCardId] = useState<string | null>(null);
+  const [showSavedCards, setShowSavedCards] = useState(false);
 
   const selectedPlan = PLANS.find((p) => p.id === planId);
+
+  // Load saved cards on mount
+  useEffect(() => {
+    const loadCards = async () => {
+      if (Platform.OS !== "web") {
+        const cards = await getSavedCards();
+        setSavedCards(cards);
+      }
+    };
+    loadCards();
+  }, []);
 
   if (!selectedPlan) {
     return (
@@ -269,7 +283,56 @@ export default function PaymentInfoScreen() {
           </View>
         </View>
 
+        {/* Saved Cards Section */}
+        {savedCards.length > 0 && (
+          <View style={styles.formSection}>
+            <Text style={[styles.formLabel, { color: colors.foreground }]}>Use Saved Card</Text>
+            <Pressable
+              onPress={() => setShowSavedCards(!showSavedCards)}
+              style={[styles.savedCardsToggle, { backgroundColor: colors.surface, borderColor: colors.border }]}
+            >
+              <Text style={[styles.savedCardsToggleText, { color: colors.foreground }]}>
+                {selectedSavedCardId ? `•••• ${savedCards.find(c => c.id === selectedSavedCardId)?.lastFour}` : "Select a saved card"}
+              </Text>
+              <IconSymbol name="chevron.down" size={20} color={colors.muted} />
+            </Pressable>
+            {showSavedCards && (
+              <View style={[styles.savedCardsList, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                <Pressable
+                  onPress={() => {
+                    setSelectedSavedCardId(null);
+                    setShowSavedCards(false);
+                  }}
+                  style={styles.savedCardOption}
+                >
+                  <Text style={[styles.savedCardOptionText, { color: colors.foreground }]}>Enter New Card</Text>
+                </Pressable>
+                {savedCards.map((card) => (
+                  <Pressable
+                    key={card.id}
+                    onPress={() => {
+                      setSelectedSavedCardId(card.id);
+                      setShowSavedCards(false);
+                    }}
+                    style={styles.savedCardOption}
+                  >
+                    <View style={styles.savedCardInfo}>
+                      <Text style={[styles.savedCardOptionText, { color: colors.foreground }]}>
+                        {card.brand.toUpperCase()} •••• {card.lastFour}
+                      </Text>
+                      <Text style={[styles.savedCardExpiry, { color: colors.muted }]}>
+                        {card.expiryMonth}/{card.expiryYear}
+                      </Text>
+                    </View>
+                  </Pressable>
+                ))}
+              </View>
+            )}
+          </View>
+        )}
+
         {/* Payment Form */}
+        {!selectedSavedCardId && (
         <View style={styles.formSection}>
           {/* Cardholder Name */}
           <View>
@@ -363,6 +426,7 @@ export default function PaymentInfoScreen() {
             </View>
           </View>
         </View>
+        )}
 
         {/* Security Note */}
         <View style={styles.securityNote}>
@@ -619,5 +683,40 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "500",
     flex: 1,
+  },
+  savedCardsToggle: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    marginBottom: 12,
+  },
+  savedCardsToggleText: {
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  savedCardsList: {
+    borderRadius: 8,
+    borderWidth: 1,
+    marginBottom: 12,
+    overflow: "hidden",
+  },
+  savedCardOption: {
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+  },
+  savedCardInfo: {
+    gap: 4,
+  },
+  savedCardOptionText: {
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  savedCardExpiry: {
+    fontSize: 12,
   },
 });

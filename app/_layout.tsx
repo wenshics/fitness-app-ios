@@ -189,6 +189,7 @@ export default function RootLayout() {
                     <Stack.Screen name="login" options={{ presentation: "fullScreenModal" }} />
                     <Stack.Screen name="paywall" options={{ presentation: "fullScreenModal", gestureEnabled: true }} />
                     <Stack.Screen name="payment-info" options={{ presentation: "fullScreenModal", gestureEnabled: true }} />
+                    <Stack.Screen name="payment-success" options={{ presentation: "fullScreenModal", gestureEnabled: false }} />
                     <Stack.Screen name="oauth/callback" />
                     <Stack.Screen
                       name="exercise/[id]"
