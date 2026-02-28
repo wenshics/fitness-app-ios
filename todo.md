@@ -98,3 +98,6 @@
 - [x] Bug fix: Achievement/badge icons not displaying properly on Profile screen
 - [ ] Implement real in-app purchase integration for subscription plans
 - [ ] Wire up push notifications for workout reminders
+- [x] Add payment confirmation screen with transaction ID and plan details
+- [x] Implement card saving with secure device storage (expo-secure-store)
+- [x] Add subscription cancellation feature with confirmation dialog

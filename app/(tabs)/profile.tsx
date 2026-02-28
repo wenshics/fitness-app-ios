@@ -15,6 +15,7 @@ import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   FlatList,
   Modal,
@@ -30,11 +31,13 @@ export default function ProfileScreen() {
   const colors = useColors();
   const { user, logout } = useAuth();
   const { state, updateSettings, getUnlockedAwards, getLockedAwards } = useWorkout();
-  const { subscription, getCurrentPlan, isTrialActive, getDaysRemaining, changePlan, canUpgradeTo } = useSubscription();
+  const { subscription, getCurrentPlan, isTrialActive, getDaysRemaining, changePlan, canUpgradeTo, cancelSubscription } = useSubscription();
   const router = useRouter();
   const [showUpgradePlan, setShowUpgradePlan] = useState(false);
   const [selectedUpgradePlan, setSelectedUpgradePlan] = useState<PlanType | null>(null);
   const [upgradingPlan, setUpgradingPlan] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [isCanceling, setIsCanceling] = useState(false);
 
   const [showSettings, setShowSettings] = useState(false);
   const reminders = state.settings?.reminders || { weekdayEvening: { hour: 18, minute: 0 }, weekendMorning: { hour: 8, minute: 0 }, weekendEvening: { hour: 18, minute: 0 } };
@@ -177,10 +180,17 @@ export default function ProfileScreen() {
                 <Text style={styles.changePlanText}>{isTrialActive() ? "Change" : "Upgrade"} Plan</Text>
               </Pressable>
             )}
+            <Pressable
+              onPress={() => setShowCancelConfirm(true)}
+              style={({ pressed }) => [
+                styles.cancelSubBtn,
+                pressed && { opacity: 0.7 },
+              ]}
+            >
+              <Text style={styles.cancelSubText}>Cancel</Text>
+            </Pressable>
           </View>
-        </View>
-
-        {/* Stats */}
+        </View>     {/* Stats */}
         <View style={styles.statsGrid}>
           <View style={[styles.statCard, { backgroundColor: colors.surface }]}>
             <Text style={[styles.statValue, { color: colors.primary }]}>{state.history?.length || 0}</Text>
@@ -334,6 +344,60 @@ export default function ProfileScreen() {
           </Pressable>
         </Pressable>
       </Modal>
+
+      {/* Cancel Subscription Confirmation Modal */}
+      <Modal visible={showCancelConfirm} transparent animationType="fade">
+        <View style={[styles.modalOverlay, { backgroundColor: "rgba(0,0,0,0.5)" }]}>
+          <View style={[styles.confirmDialog, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <View style={styles.confirmHeader}>
+              <IconSymbol name="exclamationmark.circle.fill" size={40} color={colors.error} />
+            </View>
+            <Text style={[styles.confirmTitle, { color: colors.foreground }]}>Cancel Subscription?</Text>
+            <Text style={[styles.confirmMessage, { color: colors.muted }]}>
+              You'll lose access to all premium features. Your subscription can be reactivated anytime.
+            </Text>
+            <View style={styles.confirmButtonsRow}>
+              <Pressable
+                onPress={() => setShowCancelConfirm(false)}
+                disabled={isCanceling}
+                style={({ pressed }) => [
+                  styles.confirmCancelBtn,
+                  { borderColor: colors.border },
+                  pressed && { opacity: 0.6 },
+                ]}
+              >
+                <Text style={[styles.confirmCancelText, { color: colors.foreground }]}>Keep Subscription</Text>
+              </Pressable>
+              <Pressable
+                onPress={async () => {
+                  setIsCanceling(true);
+                  if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+                  try {
+                    await cancelSubscription();
+                    setShowCancelConfirm(false);
+                    Alert.alert("Subscription Canceled", "Your subscription has been canceled. You can reactivate it anytime from your profile.");
+                  } catch (error) {
+                    Alert.alert("Error", "Failed to cancel subscription. Please try again.");
+                  } finally {
+                    setIsCanceling(false);
+                  }
+                }}
+                disabled={isCanceling}
+                style={({ pressed }) => [
+                  styles.confirmDeleteBtn,
+                  pressed && { opacity: 0.8 },
+                ]}
+              >
+                {isCanceling ? (
+                  <ActivityIndicator color="white" size="small" />
+                ) : (
+                  <Text style={styles.confirmDeleteText}>Cancel Subscription</Text>
+                )}
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ScreenContainer>
   );
 }
@@ -427,5 +491,16 @@ const styles = StyleSheet.create({
   planOptionPerWeek: { fontSize: 12, marginTop: 2 },
   planOptionPrice: { fontSize: 16, fontWeight: "700" },
   currentBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 4 },
+  confirmDialog: { borderRadius: 16, padding: 24, margin: 20, borderWidth: 1, alignItems: "center" },
+  confirmHeader: { marginBottom: 16 },
+  confirmTitle: { fontSize: 18, fontWeight: "700", marginBottom: 8, textAlign: "center" },
+  confirmMessage: { fontSize: 14, textAlign: "center", marginBottom: 24, lineHeight: 20 },
+  confirmButtonsRow: { flexDirection: "row", gap: 12, width: "100%" },
+  confirmCancelBtn: { flex: 1, paddingVertical: 12, borderRadius: 8, borderWidth: 1.5, alignItems: "center" },
+  confirmCancelText: { fontSize: 14, fontWeight: "600" },
+  confirmDeleteBtn: { flex: 1, paddingVertical: 12, borderRadius: 8, backgroundColor: "#DC2626", alignItems: "center" },
+  confirmDeleteText: { fontSize: 14, fontWeight: "600", color: "#FFFFFF" },
   currentBadgeText: { fontSize: 11, fontWeight: "600" },
+  cancelSubBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6, backgroundColor: "rgba(220,38,38,0.2)" },
+  cancelSubText: { fontSize: 12, fontWeight: "600", color: "#DC2626" },
 });

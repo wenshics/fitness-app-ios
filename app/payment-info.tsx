@@ -3,6 +3,7 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useColors } from "@/hooks/use-colors";
 import { PLANS, type PlanType, useSubscription } from "@/lib/subscription-store";
 import { processSubscriptionPayment } from "@/lib/_core/stripe-payment";
+import { saveCard } from "@/lib/_core/card-storage";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
@@ -30,6 +31,7 @@ export default function PaymentInfoScreen() {
   const [cvv, setCvv] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [saveCardForFuture, setSaveCardForFuture] = useState(false);
 
   const selectedPlan = PLANS.find((p) => p.id === planId);
 
@@ -188,6 +190,17 @@ export default function PaymentInfoScreen() {
         throw new Error(paymentResult.message || "Payment failed");
       }
 
+      // Save card if user opted in
+      if (saveCardForFuture && Platform.OS !== "web") {
+        try {
+          await saveCard(cardNumberClean, expiryMonth, expiryYear, cvv, cardName);
+          console.log("[PaymentInfo] Card saved successfully");
+        } catch (error) {
+          console.warn("[PaymentInfo] Failed to save card:", error);
+          // Don't fail the payment if card saving fails
+        }
+      }
+
       // Subscribe to the selected plan
       console.log("[PaymentInfo] Subscribing to plan:", planId);
       await subscribe(planId);
@@ -197,10 +210,16 @@ export default function PaymentInfoScreen() {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
 
-      // Navigate back to previous page
-      console.log("[PaymentInfo] Navigating back");
+      // Navigate to success screen
+      console.log("[PaymentInfo] Navigating to success screen");
       setIsProcessing(false);
-      router.back();
+      router.push({
+        pathname: "/payment-success",
+        params: {
+          plan: planId,
+          transactionId: paymentResult.transactionId || "",
+        },
+      });
     } catch (err) {
       console.error("[PaymentInfo] Error:", err);
       if (Platform.OS !== "web") {
@@ -352,6 +371,33 @@ export default function PaymentInfoScreen() {
             Your payment information is encrypted and secure
           </Text>
         </View>
+
+        {/* Save Card Checkbox */}
+        <Pressable
+          onPress={() => setSaveCardForFuture(!saveCardForFuture)}
+          disabled={isProcessing}
+          style={({ pressed }) => [
+            styles.checkboxRow,
+            pressed && { opacity: 0.6 },
+          ]}
+        >
+          <View
+            style={[
+              styles.checkbox,
+              {
+                borderColor: colors.primary,
+                backgroundColor: saveCardForFuture ? colors.primary : "transparent",
+              },
+            ]}
+          >
+            {saveCardForFuture && (
+              <IconSymbol name="checkmark" size={16} color={colors.background} />
+            )}
+          </View>
+          <Text style={[styles.checkboxLabel, { color: colors.foreground }]}>
+            Save card for future payments
+          </Text>
+        </Pressable>
 
         {/* Confirm Button */}
         <Pressable
@@ -553,5 +599,25 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     letterSpacing: 0.2,
+  },
+  checkboxRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    marginBottom: 20,
+    gap: 12,
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    borderWidth: 2,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  checkboxLabel: {
+    fontSize: 14,
+    fontWeight: "500",
+    flex: 1,
   },
 });
