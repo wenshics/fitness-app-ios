@@ -40,8 +40,16 @@ export default function ProfileScreen() {
   const [isCanceling, setIsCanceling] = useState(false);
 
   const [showSettings, setShowSettings] = useState(false);
-  const reminders = state.settings?.reminders || { weekdayEvening: { hour: 18, minute: 0 }, weekendMorning: { hour: 8, minute: 0 }, weekendEvening: { hour: 18, minute: 0 } };
-  const [localReminders, setLocalReminders] = useState(reminders);
+  const defaultReminders = { weekdayEvening: { hour: 18, minute: 0 }, weekendMorning: { hour: 8, minute: 0 }, weekendEvening: { hour: 18, minute: 0 } };
+  const reminders = state.settings?.reminders || defaultReminders;
+  const validReminders = Object.entries(reminders).reduce((acc: any, [key, value]: [string, any]) => {
+    acc[key] = {
+      hour: typeof value?.hour === 'number' ? value.hour : 18,
+      minute: typeof value?.minute === 'number' ? value.minute : 0,
+    };
+    return acc;
+  }, {});
+  const [localReminders, setLocalReminders] = useState(validReminders);
   const [editingReminder, setEditingReminder] = useState<string | null>(null);
   const [pickerHour, setPickerHour] = useState(0);
   const [pickerMinute, setPickerMinute] = useState(0);
@@ -242,7 +250,7 @@ export default function ProfileScreen() {
                     {key.replace(/([A-Z])/g, " $1").trim()}
                   </Text>
                   <Text style={[styles.settingValue, { color: colors.primary }]}>
-                    {String(value.hour).padStart(2, "0")}:{String(value.minute).padStart(2, "0")}
+                    {String(value?.hour ?? 18).padStart(2, "0")}:{String(value?.minute ?? 0).padStart(2, "0")}
                   </Text>
                 </Pressable>
               ))}
