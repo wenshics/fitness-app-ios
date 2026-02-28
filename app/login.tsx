@@ -1,7 +1,9 @@
 import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useColors } from "@/hooks/use-colors";
-import { startOAuthLogin } from "@/constants/oauth";
+import { startOAuthLogin, getApiBaseUrl } from "@/constants/oauth";
+import * as Auth from "@/lib/_core/auth";
+import { notifyAuthChanged } from "@/hooks/use-auth";
 import { LinearGradient } from "expo-linear-gradient";
 import { useState } from "react";
 import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View } from "react-native";
@@ -18,9 +20,46 @@ export default function LoginScreen() {
     }
     setIsLoading(true);
     try {
-      await startOAuthLogin();
+      // On mobile, use direct login API
+      if (Platform.OS !== "web") {
+        const apiUrl = getApiBaseUrl();
+        console.log("[Login] Mobile login to:", apiUrl);
+        const response = await fetch(`${apiUrl}/api/auth/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+        });
+
+        if (!response.ok) {
+          throw new Error(`Login failed: ${response.status}`);
+        }
+
+        const data = await response.json();
+        console.log("[Login] Login response:", data);
+        
+        if (data.sessionToken) {
+          await Auth.setSessionToken(data.sessionToken);
+          if (data.user) {
+            const userInfo: Auth.User = {
+              id: data.user.id,
+              openId: data.user.openId,
+              name: data.user.name,
+              email: data.user.email,
+              loginMethod: data.user.loginMethod,
+              lastSignedIn: new Date(data.user.lastSignedIn || Date.now()),
+            };
+            await Auth.setUserInfo(userInfo);
+          }
+          notifyAuthChanged();
+          // Navigation will happen automatically via useAuth hook
+        } else {
+          throw new Error("No session token in response");
+        }
+      } else {
+        // On web, use OAuth flow
+        await startOAuthLogin();
+      }
     } catch (err) {
-      console.error("[Login] Failed to start OAuth:", err);
+      console.error("[Login] Failed to login:", err);
       setIsLoading(false);
     }
   };
@@ -84,11 +123,11 @@ export default function LoginScreen() {
   );
 }
 
-function FeatureRow({ icon, text }: { icon: any; text: string }) {
+function FeatureRow({ icon, text }: { icon: string; text: string }) {
   return (
     <View style={styles.featureRow}>
-      <View style={styles.featureIconBg}>
-        <IconSymbol name={icon} size={16} color="#FFFFFF" />
+      <View style={styles.featureIcon}>
+        <IconSymbol name={icon as any} size={20} color="#FFFFFF" />
       </View>
       <Text style={styles.featureText}>{text}</Text>
     </View>
@@ -96,100 +135,88 @@ function FeatureRow({ icon, text }: { icon: any; text: string }) {
 }
 
 const styles = StyleSheet.create({
-  gradient: { flex: 1 },
+  gradient: {
+    flex: 1,
+  },
   content: {
     flex: 1,
     justifyContent: "space-between",
-    paddingHorizontal: 32,
-    paddingTop: 80,
-    paddingBottom: 48,
+    paddingHorizontal: 24,
+    paddingVertical: 40,
   },
   logoArea: {
     alignItems: "center",
+    marginTop: 20,
   },
   iconContainer: {
     width: 100,
     height: 100,
-    borderRadius: 28,
-    backgroundColor: "rgba(255,255,255,0.15)",
+    borderRadius: 24,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.2)",
+    marginBottom: 16,
   },
   title: {
-    fontSize: 38,
-    fontWeight: "800",
+    fontSize: 36,
+    fontWeight: "700",
     color: "#FFFFFF",
-    letterSpacing: -0.5,
+    marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: "rgba(255,255,255,0.75)",
-    marginTop: 6,
-    fontWeight: "400",
-    letterSpacing: 0.2,
+    color: "rgba(255, 255, 255, 0.9)",
+    textAlign: "center",
   },
   features: {
-    width: "100%",
-    gap: 14,
+    gap: 16,
   },
   featureRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 14,
+    gap: 12,
   },
-  featureIconBg: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
-    backgroundColor: "rgba(255,255,255,0.15)",
+  featureIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
     justifyContent: "center",
     alignItems: "center",
+    flexShrink: 0,
   },
   featureText: {
-    fontSize: 15,
-    color: "rgba(255,255,255,0.9)",
+    fontSize: 14,
+    color: "#FFFFFF",
     flex: 1,
-    fontWeight: "500",
-    letterSpacing: 0.1,
   },
   ctaArea: {
-    alignItems: "center",
+    gap: 12,
+    marginBottom: 20,
   },
   button: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
     backgroundColor: "#FFFFFF",
+    borderRadius: 12,
     paddingVertical: 16,
-    paddingHorizontal: 48,
-    borderRadius: 14,
-    gap: 10,
-    width: "100%",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.12,
-    shadowRadius: 16,
-    elevation: 6,
+    paddingHorizontal: 24,
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 8,
+  },
+  buttonText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#0D9488",
   },
   loadingRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
   },
-  buttonText: {
-    fontSize: 17,
-    fontWeight: "700",
-    color: "#0D9488",
-    letterSpacing: 0.2,
-  },
   disclaimer: {
     fontSize: 13,
-    color: "rgba(255,255,255,0.5)",
-    marginTop: 16,
+    color: "rgba(255, 255, 255, 0.7)",
     textAlign: "center",
-    letterSpacing: 0.1,
   },
 });
