@@ -202,12 +202,12 @@ export default function ProfileScreen() {
           <View style={styles.awardsList}>
             {unlockedAwards.map((award) => (
               <View key={award.id} style={[styles.awardBadge, { backgroundColor: colors.primary + "20" }]}>
-                <Text style={styles.awardEmoji}>{award.icon}</Text>
+                <IconSymbol name={award.icon as any} size={28} color={colors.primary} />
               </View>
             ))}
             {lockedAwards.slice(0, 3).map((award) => (
               <View key={award.id} style={[styles.awardBadge, { backgroundColor: colors.border, opacity: 0.5 }]}>
-                <Text style={styles.awardEmoji}>{award.icon}</Text>
+                <IconSymbol name={award.icon as any} size={28} color={colors.muted} />
               </View>
             ))}
           </View>
