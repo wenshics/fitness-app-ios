@@ -169,8 +169,10 @@ export default function PaymentInfoScreen() {
       const expiryMonth = parseInt(expiryClean.slice(0, 2), 10);
       const expiryYear = parseInt(expiryClean.slice(2, 4), 10);
 
-      // Process payment with Stripe
+      // Process payment
       const cardNumberClean = cardNumber.replace(/\s/g, "");
+      console.log("[PaymentInfo] Processing payment for plan:", planId);
+      
       const paymentResult = await processSubscriptionPayment(
         planId,
         cardNumberClean,
@@ -182,15 +184,23 @@ export default function PaymentInfoScreen() {
 
       console.log("[PaymentInfo] Payment processed:", paymentResult);
 
+      if (!paymentResult.success) {
+        throw new Error(paymentResult.message || "Payment failed");
+      }
+
       // Subscribe to the selected plan
+      console.log("[PaymentInfo] Subscribing to plan:", planId);
       await subscribe(planId);
+      console.log("[PaymentInfo] Subscription successful");
 
       if (Platform.OS !== "web") {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
 
-      // Navigate to home
-      router.replace("/(tabs)");
+      // Navigate back to previous page
+      console.log("[PaymentInfo] Navigating back");
+      setIsProcessing(false);
+      router.back();
     } catch (err) {
       console.error("[PaymentInfo] Error:", err);
       if (Platform.OS !== "web") {
