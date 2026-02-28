@@ -5,7 +5,19 @@ import Stripe from "stripe";
  * Payment API routes for real Stripe integration
  */
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "");
+// Lazy-load Stripe to avoid initialization errors if key is missing
+let stripe: Stripe | null = null;
+
+function getStripe(): Stripe {
+  if (!stripe) {
+    const key = process.env.STRIPE_SECRET_KEY;
+    if (!key) {
+      throw new Error("STRIPE_SECRET_KEY environment variable is not set");
+    }
+    stripe = new Stripe(key);
+  }
+  return stripe;
+}
 
 interface PaymentRequest {
   planId: string;
@@ -72,7 +84,7 @@ async function processStripePayment(req: PaymentRequest): Promise<PaymentRespons
 
   try {
     // Create a payment method with the card details
-    const paymentMethod = await stripe.paymentMethods.create({
+    const paymentMethod = await getStripe().paymentMethods.create({
       type: "card",
       card: {
         number: cardNumber,
@@ -88,7 +100,7 @@ async function processStripePayment(req: PaymentRequest): Promise<PaymentRespons
     console.log("[Stripe] Created payment method:", paymentMethod.id);
 
     // Create a payment intent
-    const paymentIntent = await stripe.paymentIntents.create({
+    const paymentIntent = await getStripe().paymentIntents.create({
       amount: planConfig.amount,
       currency: planConfig.currency,
       payment_method: paymentMethod.id,
@@ -169,7 +181,7 @@ export function registerPaymentRoutes(app: Express) {
       }
 
       // Verify payment with Stripe
-      const paymentIntent = await stripe.paymentIntents.retrieve(transactionId);
+      const paymentIntent = await getStripe().paymentIntents.retrieve(transactionId);
 
       res.json({
         success: paymentIntent.status === "succeeded",
