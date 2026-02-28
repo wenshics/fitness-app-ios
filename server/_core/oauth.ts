@@ -156,6 +156,48 @@ export function registerOAuthRoutes(app: Express) {
     }
   });
 
+  // Demo login endpoint for development (when OAuth is not configured)
+  app.get("/api/oauth/demo-login", async (req: Request, res: Response) => {
+    try {
+      // Create a demo user
+      const demoUser = {
+        openId: `demo-${Date.now()}`,
+        name: "Demo User",
+        email: "demo@fitlife.app",
+        loginMethod: "demo",
+        platform: "web",
+      };
+
+      const user = await syncUser(demoUser);
+      const sessionToken = await sdk.createSessionToken(demoUser.openId, {
+        name: demoUser.name || "",
+        expiresInMs: ONE_YEAR_MS,
+      });
+
+      const cookieOptions = getSessionCookieOptions(req);
+      res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
+
+      // Redirect to the frontend
+      const frontendUrl =
+        process.env.EXPO_WEB_PREVIEW_URL ||
+        process.env.EXPO_PACKAGER_PROXY_URL ||
+        "http://localhost:8081";
+
+      const userResponse = buildUserResponse(user);
+      const userBase64 = Buffer.from(JSON.stringify(userResponse)).toString("base64");
+
+      const redirectUrl = new URL(frontendUrl);
+      redirectUrl.pathname = "/oauth/callback";
+      redirectUrl.searchParams.set("sessionToken", sessionToken);
+      redirectUrl.searchParams.set("user", userBase64);
+
+      res.redirect(302, redirectUrl.toString());
+    } catch (error) {
+      console.error("[OAuth] Demo login failed", error);
+      res.status(500).json({ error: "Demo login failed" });
+    }
+  });
+
   // Establish session cookie from Bearer token
   // Used by iframe preview: frontend receives token via postMessage, then calls this endpoint
   // to get a proper Set-Cookie response from the backend (3000-xxx domain)

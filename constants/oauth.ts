@@ -118,9 +118,13 @@ export async function startOAuthLogin(): Promise<string | null> {
   const loginUrl = getLoginUrl();
 
   if (!loginUrl) {
-    console.error("[OAuth] Login URL is empty, cannot start OAuth flow");
+    console.error("[OAuth] Login URL is empty, using demo login for development");
+    // Demo login for development - create a test user
     if (ReactNative.Platform.OS === "web" && typeof window !== "undefined") {
-      ReactNative.Alert.alert("Login Error", "Unable to connect to authentication service. Please try again.");
+      const apiUrl = getApiBaseUrl();
+      const demoUrl = `${apiUrl}/api/oauth/demo-login`;
+      console.log("[OAuth] Redirecting to demo login:", demoUrl);
+      window.location.href = demoUrl;
     }
     return null;
   }
