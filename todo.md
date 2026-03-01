@@ -196,3 +196,9 @@
 - [x] Wire up: signup → email verification screen
 - [x] Wire up: login screen → forgot password link
 - [x] Comprehensive tests for all email auth flows
+
+## BUG - FORGOT PASSWORD EMAIL NOT DELIVERED
+
+- [x] BUG: Forgot password email not received by user despite "sent" confirmation - FIXED
+- [x] Debug Gmail SMTP connection and check server logs for errors - FIXED (SMTP works, issue was wrong APP_URL)
+- [x] Fix email sending and verify delivery end-to-end - FIXED (APP_URL now set to public dev URL)
