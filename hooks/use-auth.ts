@@ -33,10 +33,18 @@ export function useAuth(options?: UseAuthOptions) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const initialCheckDone = useRef(false);
+  const isLoggedOutRef = useRef(false); // Track if user explicitly logged out
 
   // Core function: try to get user from API (background refresh)
   const refreshFromApi = useCallback(async () => {
     if (Platform.OS !== "web") return;
+    
+    // Don't restore user if they explicitly logged out
+    if (isLoggedOutRef.current) {
+      console.log("[useAuth] Skipping refresh - user logged out");
+      return;
+    }
+    
     try {
       const apiUser = await Api.getMe();
       if (apiUser) {
@@ -51,12 +59,16 @@ export function useAuth(options?: UseAuthOptions) {
         setUser(userInfo);
         await Auth.setUserInfo(userInfo);
         console.log("[useAuth] Refreshed user from API");
+      } else {
+        // API returned null - user is not authenticated
+        console.log("[useAuth] API returned no user - clearing cached user");
+        setUser(null);
+        await Auth.clearUserInfo();
       }
-      // If API returns null but we have a cached user, do NOT clear - the cookie might just be invalid
-      // The user will be cleared only on explicit logout
     } catch (err) {
-      console.warn("[useAuth] API refresh failed (keeping cached user if any):", err);
-      // Don't clear user on API failure - keep cached state
+      console.warn("[useAuth] API refresh failed:", err);
+      // On API failure, clear the user to be safe
+      setUser(null);
     }
   }, []);
 
@@ -72,7 +84,7 @@ export function useAuth(options?: UseAuthOptions) {
           console.log("[useAuth] Web: found cached user in localStorage");
           setUser(cachedUser);
           setLoading(false);
-          // Step 2: Refresh from API in background (non-blocking, won't clear user on failure)
+          // Step 2: Refresh from API in background (non-blocking)
           refreshFromApi();
           return;
         }
@@ -161,6 +173,9 @@ export function useAuth(options?: UseAuthOptions) {
   const logout = useCallback(async () => {
     console.log("[useAuth] logout called");
     
+    // Mark that user explicitly logged out - prevents background refresh from restoring them
+    isLoggedOutRef.current = true;
+    
     // Clear local state IMMEDIATELY - this triggers AuthGuard to redirect
     setUser(null);
     setError(null);
@@ -203,6 +218,8 @@ export function useAuth(options?: UseAuthOptions) {
 
     const handleAuthChanged = () => {
       console.log("[useAuth] Received auth-state-changed event, re-fetching user...");
+      // Reset logout flag when user logs back in
+      isLoggedOutRef.current = false;
       fetchUser();
     };
 
