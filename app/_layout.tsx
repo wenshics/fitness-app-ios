@@ -65,7 +65,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    const inAuthGroup = segments[0] === "oauth" || segments[0] === "login";
+    const inAuthGroup = segments[0] === "oauth" || segments[0] === "login" || segments[0] === "auth";
     const currentPath = segments.join("/");
 
     console.log("[AuthGuard] Auth state check:", {
@@ -183,6 +183,7 @@ export default function RootLayout() {
                   <Stack screenOptions={{ headerShown: false }}>
                     <Stack.Screen name="(tabs)" />
                     <Stack.Screen name="login" options={{ presentation: "fullScreenModal" }} />
+                    <Stack.Screen name="auth" options={{ presentation: "fullScreenModal" }} />
                     <Stack.Screen name="paywall" options={{ presentation: "fullScreenModal", gestureEnabled: true }} />
                     <Stack.Screen name="payment-info" options={{ presentation: "fullScreenModal", gestureEnabled: true }} />
                     <Stack.Screen name="payment-success" options={{ presentation: "fullScreenModal", gestureEnabled: false }} />

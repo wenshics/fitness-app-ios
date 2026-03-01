@@ -87,7 +87,7 @@
 - [x] Add upgrade button to Profile subscription banner
 - [x] Update logout flow to redirect to account creation instead of login
 - [x] Bug fix: Users are asked to "Get Started" / login twice (fixed with redirectedRef in AuthGuard)
-- [ ] Add email/password login flow (alternative to OAuth) - requires backend support
+- [x] Add email/password login flow (alternative to OAuth) - requires backend support
 - [x] Bug fix: Subscription plan changes not working (now shows Upgrade button for all non-yearly plans)
 - [x] Bug fix: Logout should go to app start (logout redirects to /login which is the app start)
 - [x] Bug fix: Subscription plan buttons are not tappable in upgrade modal
@@ -130,4 +130,4 @@
 - [x] Create proper login/signup screen with email and password fields
 - [x] Implement backend email/password authentication endpoints (already exist)
 - [x] Update Get Started button to navigate to login screen (not auto-login)
-- [ ] Test complete flow: Get Started → Login Screen → Signup/Login with email+password
+- [x] Test complete flow: Get Started → Login Screen → Signup/Login with email+password
