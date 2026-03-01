@@ -2,6 +2,7 @@ import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { CATEGORY_COLORS, DIFFICULTY_COLORS, EXERCISES } from "@/constants/exercises";
 import { useColors } from "@/hooks/use-colors";
+import { useAuth } from "@/hooks/use-auth";
 import { useWorkout } from "@/lib/workout-store";
 import { useSubscription } from "@/lib/subscription-store";
 import { Image } from "expo-image";
@@ -14,6 +15,7 @@ export default function ExerciseDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const colors = useColors();
   const router = useRouter();
+  const { user } = useAuth();
   const { state, addToPlan, removeFromPlan } = useWorkout();
   const { subscription } = useSubscription();
 
@@ -57,7 +59,13 @@ export default function ExerciseDetailScreen() {
 
   const toggleTimer = useCallback(() => {
     if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    // Check subscription before starting exercise
+    // Check authentication first
+    if (!user && !isRunning) {
+      console.log('[ExerciseDetail] User not authenticated, redirecting to login');
+      router.push("/login" as any);
+      return;
+    }
+    // Then check subscription
     if (!subscription.isSubscribed && !isRunning) {
       router.push("/paywall" as any);
       return;

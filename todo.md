@@ -106,3 +106,5 @@
 - [x] Add authentication check before allowing workout start
 - [x] Add authentication check before allowing subscription access
 - [x] Redirect unauthenticated users to login when accessing protected features
+- [x] Bug fix: Login button not working after logout (fixed AuthGuard redirect logic)
+- [x] Bug fix: Exercise start not redirecting to login for unauthenticated users (added auth check before subscription check)

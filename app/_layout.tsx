@@ -55,8 +55,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, loading: isLoading } = useAuth();
   const segments = useSegments();
   const router = useRouter();
-  const redirectedRef = useRef(false);
-  const prevAuthRef = useRef<boolean | null>(null);
+
 
   useEffect(() => {
     // Wait for router to be ready and auth to finish loading
@@ -72,26 +71,16 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
       isAuthenticated,
       inAuthGroup,
       currentPath,
-      redirectedRef: redirectedRef.current,
-      prevAuth: prevAuthRef.current,
     });
 
-    // Track auth state changes - if user just logged out, reset the flag
-    if (prevAuthRef.current === true && isAuthenticated === false) {
-      console.log("[AuthGuard] User logged out - resetting redirect flag");
-      redirectedRef.current = false;
-    }
-    prevAuthRef.current = isAuthenticated;
-
+    // Always redirect based on current auth state
     if (!isAuthenticated && !inAuthGroup) {
-      // Not logged in and not on auth page → go to login
+      // Not logged in and not on auth page - go to login
       console.log("[AuthGuard] Redirecting to login");
-      redirectedRef.current = true;
       router.replace("/login");
     } else if (isAuthenticated && inAuthGroup) {
-      // Logged in but on auth page → go to app
+      // Logged in but on auth page - go to app
       console.log("[AuthGuard] Redirecting to app");
-      redirectedRef.current = true;
       router.replace("/(tabs)");
     } else {
       console.log("[AuthGuard] No redirect needed");
