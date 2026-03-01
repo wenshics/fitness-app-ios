@@ -26,6 +26,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from "react-native";
 
@@ -76,32 +77,7 @@ export default function ProfileScreen() {
     init();
   }, []);
 
-  const handleLogout = () => {
-    if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-
-    const doLogout = async () => {
-      try {
-        console.log("[Profile] Starting logout...");
-        await logout();
-        console.log("[Profile] Logout complete - AuthGuard will handle navigation");
-      } catch (err) {
-        console.error("[Profile] Logout error:", err);
-      }
-    };
-
-    if (Platform.OS === "web") {
-      doLogout();
-    } else {
-      Alert.alert(
-        "Log Out",
-        "Are you sure you want to log out?",
-        [
-          { text: "Cancel", style: "cancel" },
-          { text: "Log Out", style: "destructive", onPress: doLogout },
-        ],
-      );
-    }
-  };
+  // Logout is now handled directly in the button onPress
 
   const openTimePicker = useCallback((key: string) => {
     const current = localReminders[key as keyof typeof localReminders];
@@ -147,6 +123,7 @@ export default function ProfileScreen() {
 
   return (
     <ScreenContainer className="p-0">
+      <View style={{ flex: 1, flexDirection: 'column' }}>
       <ScrollView contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={[styles.headerContainer, { backgroundColor: colors.background }]}>
@@ -348,18 +325,28 @@ export default function ProfileScreen() {
           </View>
         )}
 
-        {/* Logout Button */}
-        <Pressable
-          onPress={handleLogout}
-          style={({ pressed }) => [
-            styles.logoutBtn,
-            { backgroundColor: colors.error },
-            pressed && { opacity: 0.8 },
-          ]}
-        >
-          <Text style={styles.logoutText}>Log Out</Text>
-        </Pressable>
       </ScrollView>
+      
+      {/* Logout Button - Outside ScrollView */}
+      <View style={{ padding: 20, backgroundColor: colors.background }}>
+        <TouchableOpacity
+          onPress={async () => {
+            console.log('[Profile] Logout button tapped');
+            try {
+              await logout();
+              console.log('[Profile] Logout successful');
+            } catch (error) {
+              console.error('[Profile] Logout error:', error);
+              Alert.alert('Error', 'Failed to logout');
+            }
+          }}
+          activeOpacity={0.7}
+          style={[{ backgroundColor: colors.error, padding: 16, borderRadius: 12, alignItems: 'center' }]}
+        >
+          <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>Log Out</Text>
+        </TouchableOpacity>
+      </View>
+      </View>
 
       {/* Upgrade Plan Modal */}
       <Modal visible={showUpgradePlan} transparent animationType="slide">

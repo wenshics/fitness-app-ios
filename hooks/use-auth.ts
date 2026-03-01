@@ -175,13 +175,17 @@ export function useAuth(options?: UseAuthOptions) {
     
     // Mark that user explicitly logged out - prevents background refresh from restoring them
     isLoggedOutRef.current = true;
+    console.log("[useAuth] Set isLoggedOutRef to true");
     
     // Clear local state IMMEDIATELY - this triggers AuthGuard to redirect
+    console.log("[useAuth] Clearing user state");
     setUser(null);
     setError(null);
+    
+    // Clear storage
     await Auth.removeSessionToken();
     await Auth.clearUserInfo();
-    console.log("[useAuth] Local state cleared immediately");
+    console.log("[useAuth] Local state and storage cleared");
     
     // Then notify server (best effort)
     try {
