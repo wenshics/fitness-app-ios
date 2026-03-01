@@ -228,12 +228,16 @@ export function registerAuthRoutes(app: Express) {
         req.headers.authorization?.replace("Bearer ", "") ||
         req.cookies[COOKIE_NAME];
 
+      console.log("[Auth] /api/auth/me called", { hasToken: !!token, hasAuthHeader: !!req.headers.authorization, hasCookie: !!req.cookies[COOKIE_NAME], sessionCount: sessions.size });
+
       if (!token || !sessions.has(token)) {
+        console.log("[Auth] /api/auth/me: not authenticated", { hasToken: !!token, tokenInSessions: sessions.has(token) });
         res.status(401).json({ error: "Not authenticated", user: null });
         return;
       }
 
       const session = sessions.get(token);
+      console.log("[Auth] /api/auth/me: returning user", { userId: session?.userId, email: session?.email });
       res.json({
         user: {
           id: session?.userId,
@@ -257,16 +261,22 @@ export function registerAuthRoutes(app: Express) {
         req.headers.authorization?.replace("Bearer ", "") ||
         req.body.token;
 
+      console.log("[Auth] /api/auth/session called", { hasToken: !!token, sessionCount: sessions.size });
+
       if (!token || !sessions.has(token)) {
+        console.log("[Auth] /api/auth/session: token not found in sessions", { hasToken: !!token, tokenExists: sessions.has(token) });
         res.status(401).json({ error: "Invalid token" });
         return;
       }
 
       const session = sessions.get(token);
       if (!session) {
+        console.log("[Auth] /api/auth/session: session is null");
         res.status(401).json({ error: "Invalid session" });
         return;
       }
+
+      console.log("[Auth] /api/auth/session: setting cookie", { userId: session.userId, email: session.email });
 
       // Set cookie for web
       const cookieOptions = {
@@ -276,6 +286,7 @@ export function registerAuthRoutes(app: Express) {
         maxAge: ONE_YEAR_MS,
       };
       res.cookie(COOKIE_NAME, token, cookieOptions);
+      console.log("[Auth] /api/auth/session: cookie set", { cookieName: COOKIE_NAME });
 
       res.json({
         success: true,
