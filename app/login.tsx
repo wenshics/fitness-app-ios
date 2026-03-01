@@ -22,8 +22,9 @@ export default function LoginScreen() {
     try {
       // Use demo login for all platforms - simple and reliable
       const apiUrl = getApiBaseUrl();
-      console.log("[Login] Demo login to:", apiUrl);
-      const response = await fetch(`${apiUrl}/api/oauth/demo-login`, {
+      const demoUrl = apiUrl ? `${apiUrl}/api/oauth/demo-login` : "/api/oauth/demo-login";
+      console.log("[Login] Demo login to:", demoUrl);
+      const response = await fetch(demoUrl, {
         method: "GET",
         headers: { "Content-Type": "application/json" },
       });

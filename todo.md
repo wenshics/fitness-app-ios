@@ -126,3 +126,4 @@
 - [x] URGENT: Remove email/password auth modal - causing infinite loop (FIXED: Removed AuthModal from Home and Exercise screens)
 - [x] URGENT: Revert to simple demo login that was working (FIXED: Login screen now uses /api/oauth/demo-login)
 - [x] URGENT: Ensure "Get Started" page only shows once for new users (FIXED: AuthGuard prevents redirect loop)
+- [x] CRITICAL: Login button not working - Get Started tap does nothing, no navigation (FIXED: Use relative URL when API base URL is empty)
