@@ -146,6 +146,9 @@ export default function SignupScreen() {
         };
         await Auth.setUserInfo(userInfo);
 
+        // Mark onboarding as completed so user never sees Get Started again
+        await Auth.markOnboardingCompleted();
+
         console.log("[Signup] Account created successfully");
         notifyAuthChanged();
 

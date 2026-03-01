@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import * as React from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "react-native-reanimated";
 import { Platform } from "react-native";
@@ -25,6 +26,7 @@ import { UserProvider } from "@/lib/user-store";
 import { AuthModalProvider } from "@/lib/auth-modal-context";
 import { setupNotificationHandler, requestNotificationPermissions } from "@/lib/_core/notifications";
 import { initializeStripe } from "@/lib/_core/stripe-payment";
+import * as Auth from "@/lib/_core/auth";
 
 const DEFAULT_WEB_INSETS: EdgeInsets = { top: 0, right: 0, bottom: 0, left: 0 };
 const DEFAULT_WEB_FRAME: Rect = { x: 0, y: 0, width: 0, height: 0 };
@@ -56,11 +58,21 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, loading: isLoading } = useAuth();
   const segments = useSegments();
   const router = useRouter();
+  const [onboardingCompleted, setOnboardingCompleted] = React.useState<boolean | null>(null);
 
+  // Check onboarding status on mount
+  useEffect(() => {
+    const checkOnboarding = async () => {
+      const completed = await Auth.hasCompletedOnboarding();
+      setOnboardingCompleted(completed);
+      console.log("[AuthGuard] Onboarding completed:", completed);
+    };
+    checkOnboarding();
+  }, []);
 
   useEffect(() => {
-    // Wait for router to be ready and auth to finish loading
-    if (isLoading) {
+    // Wait for router to be ready, auth to finish loading, and onboarding check to complete
+    if (isLoading || onboardingCompleted === null) {
       console.log("[AuthGuard] Still loading, waiting...");
       return;
     }
@@ -71,14 +83,22 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     console.log("[AuthGuard] Auth state check:", {
       isAuthenticated,
       inAuthGroup,
+      onboardingCompleted,
       currentPath,
     });
 
     // Always redirect based on current auth state
     if (!isAuthenticated && !inAuthGroup) {
-      // Not logged in and not on auth page - go to login
-      console.log("[AuthGuard] Redirecting to login");
-      router.replace("/login");
+      // Not logged in and not on auth page
+      if (onboardingCompleted) {
+        // User has seen Get Started before - go to login screen
+        console.log("[AuthGuard] Redirecting to login-screen (onboarding completed)");
+        router.replace("/login-screen");
+      } else {
+        // First time user - show Get Started
+        console.log("[AuthGuard] Redirecting to login (Get Started)");
+        router.replace("/login");
+      }
     } else if (isAuthenticated && inAuthGroup) {
       // Logged in but on auth page - go to app
       console.log("[AuthGuard] Redirecting to app");
@@ -86,7 +106,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     } else {
       console.log("[AuthGuard] No redirect needed");
     }
-  }, [isAuthenticated, isLoading, segments, router]);
+  }, [isAuthenticated, isLoading, segments, router, onboardingCompleted]);
 
   return <>{children}</>;
 }

@@ -1,6 +1,6 @@
 import * as SecureStore from "expo-secure-store";
 import { Platform } from "react-native";
-import { SESSION_TOKEN_KEY, USER_INFO_KEY } from "@/constants/oauth";
+import { SESSION_TOKEN_KEY, USER_INFO_KEY, ONBOARDING_COMPLETED_KEY } from "@/constants/oauth";
 
 export type User = {
   id: number;
@@ -125,5 +125,58 @@ export async function clearUserInfo(): Promise<void> {
     await SecureStore.deleteItemAsync(USER_INFO_KEY);
   } catch (error) {
     console.error("[Auth] Failed to clear user info:", error);
+  }
+}
+
+
+export async function hasCompletedOnboarding(): Promise<boolean> {
+  try {
+    console.log("[Auth] Checking if onboarding completed...");
+    let completed: string | null = null;
+    
+    if (Platform.OS === "web") {
+      completed = window.localStorage.getItem(ONBOARDING_COMPLETED_KEY);
+    } else {
+      completed = await SecureStore.getItemAsync(ONBOARDING_COMPLETED_KEY);
+    }
+    
+    const result = completed === "true";
+    console.log("[Auth] Onboarding completed:", result);
+    return result;
+  } catch (error) {
+    console.error("[Auth] Failed to check onboarding status:", error);
+    return false;
+  }
+}
+
+export async function markOnboardingCompleted(): Promise<void> {
+  try {
+    console.log("[Auth] Marking onboarding as completed...");
+    
+    if (Platform.OS === "web") {
+      window.localStorage.setItem(ONBOARDING_COMPLETED_KEY, "true");
+    } else {
+      await SecureStore.setItemAsync(ONBOARDING_COMPLETED_KEY, "true");
+    }
+    
+    console.log("[Auth] Onboarding marked as completed");
+  } catch (error) {
+    console.error("[Auth] Failed to mark onboarding completed:", error);
+  }
+}
+
+export async function clearOnboardingFlag(): Promise<void> {
+  try {
+    console.log("[Auth] Clearing onboarding flag...");
+    
+    if (Platform.OS === "web") {
+      window.localStorage.removeItem(ONBOARDING_COMPLETED_KEY);
+    } else {
+      await SecureStore.deleteItemAsync(ONBOARDING_COMPLETED_KEY);
+    }
+    
+    console.log("[Auth] Onboarding flag cleared");
+  } catch (error) {
+    console.error("[Auth] Failed to clear onboarding flag:", error);
   }
 }

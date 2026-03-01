@@ -53,6 +53,7 @@ export function getApiBaseUrl(): string {
 
 export const SESSION_TOKEN_KEY = "app_session_token";
 export const USER_INFO_KEY = "manus-runtime-user-info";
+export const ONBOARDING_COMPLETED_KEY = "app_onboarding_completed"; // Flag to track if user has seen Get Started
 
 const encodeState = (value: string) => {
   if (typeof globalThis.btoa === "function") {

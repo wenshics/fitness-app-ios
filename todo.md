@@ -137,3 +137,12 @@
 - [x] Implement email verification for new account creation (READY: Backend supports, frontend ready for integration)
 - [x] Auto-navigate to home page after successful login/signup (FIXED: Both screens use router.replace("/(tabs)"))
 - [x] Comprehensive testing of all auth flows (login, signup, email verification) (FIXED: 354 tests passing, including 14 new e2e tests)
+
+## CRITICAL BUG - INFINITE LOOP
+
+- [x] BUG: After signup, app returns to Get Started screen instead of home (infinite loop) - FIXED
+- [x] Get Started should only show ONCE on first app launch - FIXED
+- [x] After signup/login, should navigate to home and NEVER return to Get Started - FIXED
+- [x] Returning users should skip Get Started entirely - FIXED
+- [x] Implement onboarding flag in localStorage to track if user has seen Get Started - IMPLEMENTED
+- [x] Fix AuthGuard/navigation logic to handle first-time vs returning users - FIXED
