@@ -10,7 +10,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import * as Haptics from "expo-haptics";
-import { useAuthModal } from "@/lib/auth-modal-context";
+
 
 export default function ExerciseDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -58,14 +58,12 @@ export default function ExerciseDetailScreen() {
     };
   }, [isRunning, timeLeft]);
 
-  const { showAuthModal } = useAuthModal();
-
   const toggleTimer = useCallback(() => {
     if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     // Check authentication first
     if (!user && !isRunning) {
-      console.log('[ExerciseDetail] User not authenticated, showing login modal');
-      showAuthModal();
+      console.log('[ExerciseDetail] User not authenticated, redirecting to login');
+      router.replace("/login" as any);
       return;
     }
     // Then check subscription
@@ -79,7 +77,7 @@ export default function ExerciseDetailScreen() {
     } else {
       setIsRunning((prev) => !prev);
     }
-  }, [timeLeft, timerDuration, subscription.isSubscribed, isRunning, router, user, showAuthModal]);
+  }, [timeLeft, timerDuration, subscription.isSubscribed, isRunning, router, user]);
 
   const resetTimer = useCallback(() => {
     setIsRunning(false);

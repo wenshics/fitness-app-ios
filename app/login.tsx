@@ -20,43 +20,38 @@ export default function LoginScreen() {
     }
     setIsLoading(true);
     try {
-      // On mobile, use direct login API
-      if (Platform.OS !== "web") {
-        const apiUrl = getApiBaseUrl();
-        console.log("[Login] Mobile login to:", apiUrl);
-        const response = await fetch(`${apiUrl}/api/auth/login`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-        });
+      // Use demo login for all platforms - simple and reliable
+      const apiUrl = getApiBaseUrl();
+      console.log("[Login] Demo login to:", apiUrl);
+      const response = await fetch(`${apiUrl}/api/oauth/demo-login`, {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+      });
 
-        if (!response.ok) {
-          throw new Error(`Login failed: ${response.status}`);
-        }
+      if (!response.ok) {
+        throw new Error(`Login failed: ${response.status}`);
+      }
 
-        const data = await response.json();
-        console.log("[Login] Login response:", data);
-        
-        if (data.sessionToken) {
-          await Auth.setSessionToken(data.sessionToken);
-          if (data.user) {
-            const userInfo: Auth.User = {
-              id: data.user.id,
-              openId: data.user.openId,
-              name: data.user.name,
-              email: data.user.email,
-              loginMethod: data.user.loginMethod,
-              lastSignedIn: new Date(data.user.lastSignedIn || Date.now()),
-            };
-            await Auth.setUserInfo(userInfo);
-          }
-          notifyAuthChanged();
-          // Navigation will happen automatically via useAuth hook
-        } else {
-          throw new Error("No session token in response");
+      const data = await response.json();
+      console.log("[Login] Demo login response:", data);
+      
+      if (data.sessionToken) {
+        await Auth.setSessionToken(data.sessionToken);
+        if (data.user) {
+          const userInfo: Auth.User = {
+            id: data.user.id,
+            openId: data.user.openId,
+            name: data.user.name,
+            email: data.user.email,
+            loginMethod: data.user.loginMethod,
+            lastSignedIn: new Date(data.user.lastSignedIn || Date.now()),
+          };
+          await Auth.setUserInfo(userInfo);
         }
+        notifyAuthChanged();
+        // Navigation will happen automatically via useAuth hook
       } else {
-        // On web, use OAuth flow
-        await startOAuthLogin();
+        throw new Error("No session token in response");
       }
     } catch (err) {
       console.error("[Login] Failed to login:", err);
@@ -78,7 +73,7 @@ export default function LoginScreen() {
             <View style={styles.iconContainer}>
               <IconSymbol name="flame.fill" size={56} color="#FFFFFF" />
             </View>
-            <Text style={styles.title}>FitLife</Text>
+            <Text style={styles.title}>Pulse</Text>
             <Text style={styles.subtitle}>Your Daily Exercise Companion</Text>
           </View>
 
