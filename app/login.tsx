@@ -1,8 +1,5 @@
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useColors } from "@/hooks/use-colors";
-import { startOAuthLogin, getApiBaseUrl } from "@/constants/oauth";
-import * as Auth from "@/lib/_core/auth";
-import { notifyAuthChanged } from "@/hooks/use-auth";
 import { LinearGradient } from "expo-linear-gradient";
 import { useState } from "react";
 import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View } from "react-native";
@@ -12,58 +9,13 @@ import { useRouter } from "expo-router";
 export default function LoginScreen() {
   const colors = useColors();
   const router = useRouter();
-  const [isLoading, setIsLoading] = useState(false);
 
-  const handleGetStarted = async () => {
-    if (isLoading) return;
+  const handleGetStarted = () => {
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
-    setIsLoading(true);
-    try {
-      // Use demo login for all platforms - simple and reliable
-      const apiUrl = getApiBaseUrl();
-      const demoUrl = apiUrl ? `${apiUrl}/api/oauth/demo-login` : "/api/oauth/demo-login";
-      console.log("[Login] Demo login to:", demoUrl);
-      const response = await fetch(demoUrl, {
-        method: "GET",
-        headers: { "Content-Type": "application/json" },
-      });
-
-      if (!response.ok) {
-        throw new Error(`Login failed: ${response.status}`);
-      }
-
-      const data = await response.json();
-      console.log("[Login] Demo login response:", data);
-      
-      if (data.sessionToken && data.user) {
-        // Store token and user info
-        await Auth.setSessionToken(data.sessionToken);
-        const userInfo: Auth.User = {
-          id: data.user.id,
-          openId: data.user.openId,
-          name: data.user.name,
-          email: data.user.email,
-          loginMethod: data.user.loginMethod,
-          lastSignedIn: new Date(data.user.lastSignedIn || Date.now()),
-        };
-        await Auth.setUserInfo(userInfo);
-        
-        console.log("[Login] User stored, notifying auth changed");
-        // Notify auth changed to trigger useAuth to pick up the new user
-        notifyAuthChanged();
-        
-        // Navigate to home screen immediately
-        console.log("[Login] Navigating to home screen");
-        router.replace("/(tabs)");
-      } else {
-        throw new Error("No session token or user in response");
-      }
-    } catch (err) {
-      console.error("[Login] Failed to login:", err);
-      setIsLoading(false);
-    }
+    // Navigate to auth screen for login/signup
+    router.push("/auth");
   };
 
   return (
@@ -108,20 +60,13 @@ export default function LoginScreen() {
           <View style={styles.buttonContainer}>
             <Pressable
               onPress={handleGetStarted}
-              disabled={isLoading}
               style={({ pressed }) => [
                 styles.button,
                 { opacity: pressed ? 0.8 : 1 },
               ]}
             >
-              {isLoading ? (
-                <ActivityIndicator color={colors.background} size="small" />
-              ) : (
-                <>
-                  <Text style={styles.buttonText}>Get Started</Text>
-                  <Text style={styles.buttonArrow}> →</Text>
-                </>
-              )}
+              <Text style={styles.buttonText}>Get Started</Text>
+              <Text style={styles.buttonArrow}> →</Text>
             </Pressable>
             <Text style={styles.subtext}>Free to browse · Sign in to get started</Text>
           </View>

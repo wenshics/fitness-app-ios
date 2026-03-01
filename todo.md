@@ -127,3 +127,7 @@
 - [x] URGENT: Revert to simple demo login that was working (FIXED: Login screen now uses /api/oauth/demo-login)
 - [x] URGENT: Ensure "Get Started" page only shows once for new users (FIXED: AuthGuard prevents redirect loop)
 - [x] CRITICAL: Login button not working - Get Started tap does nothing, no navigation (FIXED: Added direct router.replace navigation after successful login)
+- [x] Create proper login/signup screen with email and password fields
+- [x] Implement backend email/password authentication endpoints (already exist)
+- [x] Update Get Started button to navigate to login screen (not auto-login)
+- [ ] Test complete flow: Get Started → Login Screen → Signup/Login with email+password
