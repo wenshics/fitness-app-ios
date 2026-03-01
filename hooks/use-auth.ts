@@ -111,7 +111,9 @@ export function useAuth(options?: UseAuthOptions) {
           }
         } catch (apiErr) {
           console.warn("[useAuth] Web: API call failed:", apiErr);
-          setUser(null);
+          // Don't clear user on API failure - just log it
+          // This prevents redirect loops when API is temporarily unavailable
+          console.log("[useAuth] Web: keeping null user state (API unavailable)");
         }
         setLoading(false);
         return;
@@ -245,14 +247,26 @@ export function useAuth(options?: UseAuthOptions) {
       console.log("[useAuth] Received auth-state-changed event, re-fetching user...");
       // Reset logout flag when user logs back in
       isLoggedOutRef.current = false;
-      fetchUser();
+      // After login, just load from cache - don't refresh from API yet
+      // This prevents the redirect loop when API is temporarily unavailable
+      const loadCachedUser = async () => {
+        const cachedUser = await Auth.getUserInfo();
+        if (cachedUser) {
+          console.log("[useAuth] Loaded cached user after login");
+          setUser(cachedUser);
+          setLoading(false);
+          // Optionally refresh from API in background after a delay
+          setTimeout(() => refreshFromApi(), 1000);
+        }
+      };
+      loadCachedUser();
     };
 
     window.addEventListener(AUTH_CHANGED_EVENT, handleAuthChanged);
     return () => {
       window.removeEventListener(AUTH_CHANGED_EVENT, handleAuthChanged);
     };
-  }, [fetchUser]);
+  }, [refreshFromApi]);
 
   return {
     user,

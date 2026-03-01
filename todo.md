@@ -155,3 +155,12 @@
 - [x] Remove onboarding flag logic (no longer needed) - DONE
 - [x] Test all navigation flows without Get Started - DONE (385 tests passing)
 - [x] Verify no infinite loops or broken flows - DONE (all flows tested)
+
+
+## NEW BUG - LOGIN REDIRECT LOOP
+
+- [x] BUG: After successful login, app shows home for <1s then redirects back to login screen - FIXED
+- [x] Auth state not persisting after login - FIXED (now loads from cache immediately)
+- [x] notifyAuthChanged() may not be triggering properly - FIXED (now loads cached user on event)
+- [x] useAuth hook may not be refreshing from API - FIXED (API refresh is now background, non-blocking)
+- [x] AuthGuard may be redirecting too aggressively - FIXED (no longer clears user on API failure)
