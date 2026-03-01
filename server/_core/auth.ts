@@ -131,6 +131,7 @@ export function registerAuthRoutes(app: Express) {
 
       // Create session
       const sessionToken = generateSessionToken();
+      console.log("[Auth] Email login - creating session", { token: sessionToken, tokenLength: sessionToken.length, userId: user.id });
       sessions.set(sessionToken, {
         userId: user.id,
         userName: user.name,
@@ -138,6 +139,7 @@ export function registerAuthRoutes(app: Express) {
         loginMethod: "email",
         createdAt: new Date(),
       });
+      console.log("[Auth] Email login - session stored", { sessionsCount: sessions.size });
 
       // Set cookie for web
       const cookieOptions = {
@@ -224,11 +226,17 @@ export function registerAuthRoutes(app: Express) {
   // Get current authenticated user
   app.get("/api/auth/me", async (req: Request, res: Response) => {
     try {
-      const token =
-        req.headers.authorization?.replace("Bearer ", "") ||
-        req.cookies[COOKIE_NAME];
+      const authHeader = req.headers.authorization;
+      const token = authHeader?.replace("Bearer ", "") || req.cookies[COOKIE_NAME];
 
-      console.log("[Auth] /api/auth/me called", { hasToken: !!token, hasAuthHeader: !!req.headers.authorization, hasCookie: !!req.cookies[COOKIE_NAME], sessionCount: sessions.size });
+      console.log("[Auth] /api/auth/me called", { 
+        hasToken: !!token, 
+        tokenLength: token?.length,
+        authHeader: authHeader?.substring(0, 20),
+        hasCookie: !!req.cookies[COOKIE_NAME], 
+        sessionCount: sessions.size,
+        sessionTokens: Array.from(sessions.keys()).map(t => t.substring(0, 10))
+      });
 
       if (!token || !sessions.has(token)) {
         console.log("[Auth] /api/auth/me: not authenticated", { hasToken: !!token, tokenInSessions: sessions.has(token) });

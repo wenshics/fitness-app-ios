@@ -147,16 +147,8 @@ export function registerOAuthRoutes(app: Express) {
     res.json({ success: true });
   });
 
-  // Get current authenticated user - works with both cookie (web) and Bearer token (mobile)
-  app.get("/api/auth/me", async (req: Request, res: Response) => {
-    try {
-      const user = await sdk.authenticateRequest(req);
-      res.json({ user: buildUserResponse(user) });
-    } catch (error) {
-      console.error("[Auth] /api/auth/me failed:", error);
-      res.status(401).json({ error: "Not authenticated", user: null });
-    }
-  });
+  // NOTE: /api/auth/me is now handled by registerAuthRoutes in auth.ts
+  // It supports both OAuth tokens and email/password tokens
 
   // Demo login endpoint for development (when OAuth is not configured)
   app.get("/api/oauth/demo-login", async (req: Request, res: Response) => {
