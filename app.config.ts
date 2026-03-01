@@ -28,18 +28,18 @@ const schemeFromBundleId = `manus${timestamp}`;
 
 const env = {
   // App branding - update these values directly (do not use env vars)
-  appName: "FitLife",
+  appName: "Pulse",
   appSlug: "fitness-app-ios",
   // S3 URL of the app logo - set this to the URL returned by generate_image when creating custom logo
   // Leave empty to use the default icon from assets/images/icon.png
-  logoUrl: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663279123655/bfAwNOltXOuhsRIK.png",
+  logoUrl: "https://d2xsxph8kpxj0f.cloudfront.net/310519663279123655/TcKCq6vsXGY366ZGFCDBDp/icon-Du9vu36utPp6yZjLqwe9PU.webp",
   scheme: schemeFromBundleId,
   iosBundleId: bundleId,
   androidPackage: bundleId,
 };
 
 const config: ExpoConfig = {
-  name: env.appName,
+  name: "Pulse",
   slug: env.appSlug,
   version: "1.0.0",
   orientation: "portrait",
@@ -56,7 +56,7 @@ const config: ExpoConfig = {
   },
   android: {
     adaptiveIcon: {
-      backgroundColor: "#0D9488",
+      backgroundColor: "#0a7ea4",
       foregroundImage: "./assets/images/android-icon-foreground.png",
       backgroundImage: "./assets/images/android-icon-background.png",
       monochromeImage: "./assets/images/android-icon-monochrome.png",
@@ -105,9 +105,9 @@ const config: ExpoConfig = {
         image: "./assets/images/splash-icon.png",
         imageWidth: 200,
         resizeMode: "contain",
-        backgroundColor: "#FAFAFA",
+        backgroundColor: "#ffffff",
         dark: {
-          backgroundColor: "#0C0C0E",
+          backgroundColor: "#151718",
         },
       },
     ],
