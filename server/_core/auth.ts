@@ -45,7 +45,10 @@ export function registerAuthRoutes(app: Express) {
   // Email/password signup endpoint
   app.post("/api/auth/email-signup", async (req: Request, res: Response) => {
     try {
-      const { email, password, name } = req.body;
+      const { email: rawEmail, password: rawPassword, name: rawName } = req.body;
+      const email = rawEmail?.trim();
+      const password = rawPassword?.trim();
+      const name = rawName?.trim();
 
       if (!email || !password || !name) {
         res.status(400).json({ error: "Missing required fields" });
@@ -110,7 +113,9 @@ export function registerAuthRoutes(app: Express) {
   // Email/password login endpoint
   app.post("/api/auth/email-login", async (req: Request, res: Response) => {
     try {
-      const { email, password } = req.body;
+      const { email: rawEmail, password: rawPassword } = req.body;
+      const email = rawEmail?.trim();
+      const password = rawPassword?.trim();
 
       if (!email || !password) {
         res.status(400).json({ error: "Missing email or password" });

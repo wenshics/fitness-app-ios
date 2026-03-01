@@ -121,3 +121,5 @@
 - [x] Bug: Login with non-existent account should show "please sign up" message
 - [x] Bug: Wrong password should show "invalid email or password" message
 - [x] Debug backend auth endpoints to ensure proper responses
+- [x] CRITICAL BUG: App stuck in loop between Get Started and login screens - cannot login at all (FIXED: Rolled back and applied only trimming fix, not lowercase conversion)
+- [x] Bug: Existing account login fails with correct password - password verification not working (FIXED: Added email/password trimming on both frontend and backend)
