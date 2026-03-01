@@ -25,9 +25,18 @@ export default function HomeScreen() {
   const firstName = user?.name?.split(" ")[0] || "";
   const greeting = getGreeting();
 
+  // Show login prompt if not authenticated
+  const isAuthenticated = Boolean(user);
+
   const handleStartWorkout = () => {
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+    // Check if user is authenticated first
+    if (!user) {
+      console.log('[Home] User not authenticated, redirecting to login');
+      router.push("/login" as any);
+      return;
     }
     if (!subscription.isSubscribed) {
       router.push("/paywall" as any);
@@ -43,7 +52,11 @@ export default function HomeScreen() {
         <View style={styles.header}>
           <View>
             <Text style={[styles.greeting, { color: colors.muted }]}>{greeting}</Text>
-            <Text style={[styles.name, { color: colors.foreground }]}>{firstName}</Text>
+            {isAuthenticated ? (
+              <Text style={[styles.name, { color: colors.foreground }]}>{firstName}</Text>
+            ) : (
+              <Text style={[styles.name, { color: colors.muted }]}>Not logged in</Text>
+            )}
           </View>
           <View style={[styles.streakBadge, { backgroundColor: colors.primary + "15" }]}>
             <IconSymbol name="flame.fill" size={20} color={colors.primary} />

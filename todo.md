@@ -101,3 +101,8 @@
 - [x] Add payment confirmation screen with transaction ID and plan details
 - [x] Implement card saving with secure device storage (expo-secure-store)
 - [x] Add subscription cancellation feature with confirmation dialog
+- [x] Bug fix: After logout, no login button available on Profile screen
+- [x] Bug fix: Unauthenticated users can access subscription and start workouts
+- [x] Add authentication check before allowing workout start
+- [x] Add authentication check before allowing subscription access
+- [x] Redirect unauthenticated users to login when accessing protected features

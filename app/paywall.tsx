@@ -1,10 +1,11 @@
 import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useColors } from "@/hooks/use-colors";
+import { useAuth } from "@/hooks/use-auth";
 import { PLANS, type PlanType, useSubscription } from "@/lib/subscription-store";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   ActivityIndicator,
   Platform,
@@ -19,9 +20,18 @@ import * as Haptics from "expo-haptics";
 export default function PaywallScreen() {
   const colors = useColors();
   const router = useRouter();
+  const { user } = useAuth();
   const { subscribe } = useSubscription();
   const [selectedPlan, setSelectedPlan] = useState<PlanType>("monthly");
   const [isProcessing, setIsProcessing] = useState(false);
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!user) {
+      console.log('[Paywall] User not authenticated, redirecting to login');
+      router.replace('/login');
+    }
+  }, [user, router]);
 
   const currentPlan = PLANS.find((p) => p.id === selectedPlan)!;
 

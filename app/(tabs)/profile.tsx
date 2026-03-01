@@ -134,6 +134,11 @@ export default function ProfileScreen() {
     }
   };
 
+  const handleLogin = () => {
+    console.log('[Profile] Login button tapped');
+    router.replace('/login');
+  };
+
   return (
     <ScreenContainer className="p-0">
       <View style={{ flex: 1, flexDirection: 'column' }}>
@@ -383,14 +388,16 @@ export default function ProfileScreen() {
 
       </ScrollView>
       
-      {/* Logout Button - Outside ScrollView */}
+      {/* Login/Logout Button - Outside ScrollView */}
       <View style={{ padding: 20, backgroundColor: colors.background }}>
         <TouchableOpacity
-          onPress={handleLogout}
+          onPress={user ? handleLogout : handleLogin}
           activeOpacity={0.7}
-          style={[{ backgroundColor: colors.error, padding: 16, borderRadius: 12, alignItems: 'center' }]}
+          style={[{ backgroundColor: user ? colors.error : colors.primary, padding: 16, borderRadius: 12, alignItems: 'center' }]}
         >
-          <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>Log Out</Text>
+          <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>
+            {user ? 'Log Out' : 'Log In'}
+          </Text>
         </TouchableOpacity>
       </View>
       </View>
