@@ -21,6 +21,7 @@ import { initManusRuntime, subscribeSafeAreaInsets } from "@/lib/_core/manus-run
 import { useAuth } from "@/hooks/use-auth";
 import { WorkoutProvider, useWorkout } from "@/lib/workout-store";
 import { SubscriptionProvider, useSubscription } from "@/lib/subscription-store";
+import { UserProvider } from "@/lib/user-store";
 import { setupNotificationHandler, requestNotificationPermissions } from "@/lib/_core/notifications";
 import { initializeStripe } from "@/lib/_core/stripe-payment";
 
@@ -180,9 +181,10 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <trpc.Provider client={trpcClient} queryClient={queryClient}>
         <QueryClientProvider client={queryClient}>
-          <SubscriptionProvider>
-            <WorkoutProvider>
-              <UserDataSync>
+          <UserProvider>
+            <SubscriptionProvider>
+              <WorkoutProvider>
+                <UserDataSync>
                 <AuthGuard>
                   <Stack screenOptions={{ headerShown: false }}>
                     <Stack.Screen name="(tabs)" />
@@ -204,6 +206,7 @@ export default function RootLayout() {
               </UserDataSync>
             </WorkoutProvider>
           </SubscriptionProvider>
+          </UserProvider>
           <StatusBar style="auto" />
         </QueryClientProvider>
       </trpc.Provider>

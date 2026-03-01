@@ -2,6 +2,7 @@ import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useColors } from "@/hooks/use-colors";
 import { useAuth } from "@/hooks/use-auth";
+import { useUser } from "@/lib/user-store";
 import { useWorkout } from "@/lib/workout-store";
 import { useSubscription } from "@/lib/subscription-store";
 import type { PlanType } from "@/lib/subscription-store";
@@ -31,6 +32,7 @@ import {
 export default function ProfileScreen() {
   const colors = useColors();
   const { user, logout } = useAuth();
+  const { userProfile } = useUser();
   const { state, updateSettings, getUnlockedAwards, getLockedAwards } = useWorkout();
   const { subscription, getCurrentPlan, isTrialActive, getDaysRemaining, changePlan, canUpgradeTo, cancelSubscription } = useSubscription();
   const router = useRouter();
@@ -176,8 +178,40 @@ export default function ProfileScreen() {
             <Text style={[styles.userEmail, { color: colors.muted }]}>
               {user?.email || "Fitness enthusiast"}
             </Text>
+          </View>        </Pressable>
+
+        {/* Personal Info Section */}
+        <View style={[styles.personalInfoCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <View style={styles.infoGrid}>
+            <View style={styles.infoItem}>
+              <Text style={[styles.infoLabel, { color: colors.muted }]}>Height</Text>
+              <Text style={[styles.infoValue, { color: colors.foreground }]}>
+                {userProfile?.height ? `${userProfile.height} cm` : "Not set"}
+              </Text>
+            </View>
+            <View style={styles.infoItem}>
+              <Text style={[styles.infoLabel, { color: colors.muted }]}>Weight</Text>
+              <Text style={[styles.infoValue, { color: colors.foreground }]}>
+                {userProfile?.weight ? `${userProfile.weight} kg` : "Not set"}
+              </Text>
+            </View>
+            <View style={styles.infoItem}>
+              <Text style={[styles.infoLabel, { color: colors.muted }]}>Date of Birth</Text>
+              <Text style={[styles.infoValue, { color: colors.foreground }]}>
+                {userProfile?.dateOfBirth || "Not set"}
+              </Text>
+            </View>
           </View>
-        </Pressable>
+          <Pressable
+            style={({ pressed }) => [
+              styles.editButton,
+              { backgroundColor: colors.primary, opacity: pressed ? 0.8 : 1 },
+            ]}
+            onPress={() => router.push("/onboarding")}
+          >
+            <Text style={[styles.editButtonText, { color: colors.background }]}>Edit Info</Text>
+          </Pressable>
+        </View>
 
         {/* Subscription Banner */}
         <View style={[styles.subscriptionBanner, { backgroundColor: colors.primary }]}>
@@ -577,6 +611,40 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+  },
+  personalInfoCard: {
+    marginHorizontal: 20,
+    marginBottom: 20,
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 16,
+  },
+  infoGrid: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 16,
+  },
+  infoItem: {
+    flex: 1,
+    marginHorizontal: 4,
+  },
+  infoLabel: {
+    fontSize: 12,
+    fontWeight: "500",
+    marginBottom: 4,
+  },
+  infoValue: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  editButton: {
+    borderRadius: 12,
+    paddingVertical: 10,
+    alignItems: "center",
+  },
+  editButtonText: {
+    fontSize: 14,
+    fontWeight: "600",
   },
   subLeft: { flexDirection: "row", alignItems: "center", gap: 12, flex: 1 },
   subTitle: { fontSize: 16, fontWeight: "700", color: "#FFFFFF" },
