@@ -18,12 +18,15 @@ export async function apiCall<T>(endpoint: string, options: RequestInit = {}): P
   console.log("[API] apiCall:", {
     endpoint,
     hasToken: !!sessionToken,
+    tokenLength: sessionToken?.length,
     method: options.method || "GET",
     platform: Platform.OS,
   });
   if (sessionToken) {
     headers["Authorization"] = `Bearer ${sessionToken}`;
-    console.log("[API] Authorization header added");
+    console.log("[API] Authorization header added", { tokenLength: sessionToken.length });
+  } else {
+    console.log("[API] No session token available");
   }
 
   const baseUrl = getApiBaseUrl();
@@ -134,10 +137,18 @@ export async function getMe(): Promise<{
   lastSignedIn: string;
 } | null> {
   try {
+    console.log("[API] getMe: calling /api/auth/me");
+    const sessionToken = await Auth.getSessionToken();
+    console.log("[API] getMe: sessionToken exists?", !!sessionToken);
     const result = await apiCall<{ user: any }>("/api/auth/me");
+    console.log("[API] getMe: response", { hasUser: !!result.user, userId: result.user?.id });
     return result.user || null;
   } catch (error) {
     console.error("[API] getMe failed:", error);
+    if (error instanceof Error) {
+      console.error("[API] getMe error message:", error.message);
+      console.error("[API] getMe error stack:", error.stack);
+    }
     return null;
   }
 }

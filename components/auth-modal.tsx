@@ -1,7 +1,7 @@
-import { useColors } from "@/hooks/use-colors";
 import { getApiBaseUrl } from "@/constants/oauth";
 import * as Auth from "@/lib/_core/auth";
 import { notifyAuthChanged } from "@/hooks/use-auth";
+import { useColors } from "@/hooks/use-colors";
 import { establishSession } from "@/lib/_core/api";
 import {
   ActivityIndicator,
@@ -125,12 +125,8 @@ export function AuthModal({ visible, onClose }: AuthModalProps) {
       console.log(`[AuthModal] ${mode} response data:`, data);
 
       if (data.sessionToken) {
-        console.log("[AuthModal] Setting session token and user info");
+        console.log("[AuthModal] Setting session token");
         await Auth.setSessionToken(data.sessionToken);
-        
-        // Establish session on backend for cookie-based auth
-        console.log("[AuthModal] Establishing session on backend");
-        await establishSession(data.sessionToken);
         
         if (data.user) {
           const userInfo: Auth.User = {
