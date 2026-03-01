@@ -121,3 +121,4 @@
 - [x] Bug: Login with non-existent account should show "please sign up" message
 - [x] Bug: Wrong password should show "invalid email or password" message
 - [x] Debug backend auth endpoints to ensure proper responses
+- [x] Bug: Existing account login fails with correct password - password verification not working (FIXED: added email trimming and lowercase conversion)
