@@ -83,14 +83,10 @@ export default function ProfileScreen() {
       try {
         console.log("[Profile] Starting logout...");
         await logout();
-        console.log("[Profile] Logout complete");
+        console.log("[Profile] Logout complete - AuthGuard will handle navigation");
       } catch (err) {
         console.error("[Profile] Logout error:", err);
       }
-      setTimeout(() => {
-        console.log("[Profile] Redirecting to login");
-        router.replace("/login" as any);
-      }, 100);
     };
 
     if (Platform.OS === "web") {

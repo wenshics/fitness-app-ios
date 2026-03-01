@@ -168,11 +168,15 @@ export function useAuth(options?: UseAuthOptions) {
       console.error("[useAuth] Logout API call failed (will still clear local state):", err);
     }
     
+    // Clear all auth data
     await Auth.removeSessionToken();
     await Auth.clearUserInfo();
+    
+    // Clear state - this triggers AuthGuard to redirect to login
     setUser(null);
     setError(null);
-    console.log("[useAuth] logout complete");
+    
+    console.log("[useAuth] logout complete - user state cleared");
   }, []);
 
   const isAuthenticated = useMemo(() => Boolean(user), [user]);
