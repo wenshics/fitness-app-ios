@@ -153,28 +153,31 @@ export default function ProfileScreen() {
           <Text style={[styles.title, { color: colors.foreground }]}>Profile</Text>
         </View>
 
-        {/* User Card */}
-        <Pressable
-          onPress={() => setShowSettings(!showSettings)}
-          style={({ pressed }) => [
-            styles.userCard,
-            { backgroundColor: colors.surface, borderColor: colors.border },
-            pressed && { opacity: 0.8 },
-          ]}
-        >
-          <View style={[styles.userAvatar, { backgroundColor: colors.primary }]}>
-            <Text style={styles.userAvatarText}>
-              {(user?.name || "A").charAt(0).toUpperCase()}
-            </Text>
-          </View>
-          <View style={styles.userInfo}>
-            <Text style={[styles.userName, { color: colors.foreground }]}>
-              {user?.name || "User"}
-            </Text>
-            <Text style={[styles.userEmail, { color: colors.muted }]}>
-              {user?.email || "Fitness enthusiast"}
-            </Text>
-          </View>        </Pressable>
+        {/* User Card - Only show if logged in */}
+        {user && (
+          <Pressable
+            onPress={() => setShowSettings(!showSettings)}
+            style={({ pressed }) => [
+              styles.userCard,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+              pressed && { opacity: 0.8 },
+            ]}
+          >
+            <View style={[styles.userAvatar, { backgroundColor: colors.primary }]}>
+              <Text style={styles.userAvatarText}>
+                {(user?.name || "A").charAt(0).toUpperCase()}
+              </Text>
+            </View>
+            <View style={styles.userInfo}>
+              <Text style={[styles.userName, { color: colors.foreground }]}>
+                {user?.name}
+              </Text>
+              <Text style={[styles.userEmail, { color: colors.muted }]}>
+                {user?.email}
+              </Text>
+            </View>
+          </Pressable>
+        )}
 
         {/* Personal Info Section */}
         <View style={[styles.personalInfoCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
