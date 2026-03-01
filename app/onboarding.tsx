@@ -1,4 +1,4 @@
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { useCallback, useState } from "react";
 import {
   Alert,
@@ -21,6 +21,8 @@ export default function OnboardingScreen() {
   const { user } = useAuth();
   const { updateUserProfile, userProfile } = useUser();
   const router = useRouter();
+  const params = useLocalSearchParams();
+  const isEditMode = params?.mode === "edit";
 
   const [dateOfBirth, setDateOfBirth] = useState(userProfile?.dateOfBirth || "");
   const [height, setHeight] = useState(userProfile?.height?.toString() || "");
@@ -133,9 +135,13 @@ export default function OnboardingScreen() {
         <View style={styles.container}>
           {/* Header */}
           <View style={styles.header}>
-            <Text style={[styles.title, { color: colors.foreground }]}>Welcome to Pulse!</Text>
+            <Text style={[styles.title, { color: colors.foreground }]}>
+              {isEditMode ? "Edit Profile" : "Welcome to Pulse!"}
+            </Text>
             <Text style={[styles.subtitle, { color: colors.muted }]}>
-              Let's get to know you better
+              {isEditMode
+                ? "Update your personal information"
+                : "Let's get to know you better"}
             </Text>
           </View>
 
@@ -238,7 +244,9 @@ export default function OnboardingScreen() {
               onPress={handleSkip}
               disabled={isLoading}
             >
-              <Text style={[styles.secondaryButtonText, { color: colors.muted }]}>Skip for now</Text>
+              <Text style={[styles.secondaryButtonText, { color: colors.muted }]}>
+                {isEditMode ? "Cancel" : "Skip for now"}
+              </Text>
             </Pressable>
           </View>
         </View>

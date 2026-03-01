@@ -207,7 +207,7 @@ export default function ProfileScreen() {
               styles.editButton,
               { backgroundColor: colors.primary, opacity: pressed ? 0.8 : 1 },
             ]}
-            onPress={() => router.push("/onboarding")}
+            onPress={() => router.push({ pathname: "/onboarding", params: { mode: "edit" } })}
           >
             <Text style={[styles.editButtonText, { color: colors.background }]}>Edit Info</Text>
           </Pressable>
