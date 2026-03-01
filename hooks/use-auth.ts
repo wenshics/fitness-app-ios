@@ -185,6 +185,27 @@ export function useAuth(options?: UseAuthOptions) {
     // Clear storage
     await Auth.removeSessionToken();
     await Auth.clearUserInfo();
+    
+    // FORCE clear localStorage directly to ensure user data is gone
+    if (Platform.OS === "web" && typeof window !== "undefined") {
+      try {
+        window.localStorage.removeItem("user_info");
+        window.localStorage.removeItem("session_token");
+        // Also clear any other auth-related keys
+        const keysToRemove = [];
+        for (let i = 0; i < window.localStorage.length; i++) {
+          const key = window.localStorage.key(i);
+          if (key && (key.includes("user") || key.includes("auth") || key.includes("session"))) {
+            keysToRemove.push(key);
+          }
+        }
+        keysToRemove.forEach(key => window.localStorage.removeItem(key));
+        console.log("[useAuth] Forced localStorage clear, removed keys:", keysToRemove);
+      } catch (err) {
+        console.warn("[useAuth] Failed to clear localStorage:", err);
+      }
+    }
+    
     console.log("[useAuth] Local state and storage cleared");
     
     // Then notify server (best effort)

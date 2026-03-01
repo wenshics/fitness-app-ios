@@ -121,6 +121,19 @@ export default function ProfileScreen() {
     });
   };
 
+  const handleLogout = async () => {
+    console.log('[Profile] Logout button tapped');
+    try {
+      await logout();
+      console.log('[Profile] Logout successful, redirecting to login');
+      // Force redirect to login after logout
+      router.replace('/login');
+    } catch (error) {
+      console.error('[Profile] Logout error:', error);
+      Alert.alert('Error', 'Failed to logout');
+    }
+  };
+
   return (
     <ScreenContainer className="p-0">
       <View style={{ flex: 1, flexDirection: 'column' }}>
@@ -238,65 +251,108 @@ export default function ProfileScreen() {
             <Text style={[styles.statLabel, { color: colors.muted }]}>Workouts</Text>
           </View>
           <View style={[styles.statCard, { backgroundColor: colors.surface }]}>
-            <Text style={[styles.statValue, { color: colors.primary }]}>{state.streak || 0}</Text>
-            <Text style={[styles.statLabel, { color: colors.muted }]}>Streak</Text>
+            <Text style={[styles.statValue, { color: colors.primary }]}>{state.streak}</Text>
+            <Text style={[styles.statLabel, { color: colors.muted }]}>Day Streak</Text>
           </View>
           <View style={[styles.statCard, { backgroundColor: colors.surface }]}>
-            <Text style={[styles.statValue, { color: colors.primary }]}>{Math.round((state.history?.reduce((s: number, h: any) => s + (h.totalDuration || 0), 0) || 0) / 60)}</Text>
-            <Text style={[styles.statLabel, { color: colors.muted }]}>Minutes</Text>
+            <Text style={[styles.statValue, { color: colors.primary }]}>{state.totalCalories || 0}</Text>
+            <Text style={[styles.statLabel, { color: colors.muted }]}>Calories</Text>
           </View>
         </View>
 
-        {/* Awards */}
-        <View style={styles.awardsSection}>
-          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Achievements</Text>
-          <View style={styles.awardsList}>
-            {unlockedAwards.map((award) => (
-              <View key={award.id} style={[styles.awardBadge, { backgroundColor: colors.primary + "20" }]}>
-                <IconSymbol name={award.icon as any} size={28} color={colors.primary} />
-              </View>
-            ))}
-            {lockedAwards.slice(0, 3).map((award) => (
-              <View key={award.id} style={[styles.awardBadge, { backgroundColor: colors.border, opacity: 0.5 }]}>
-                <IconSymbol name={award.icon as any} size={28} color={colors.muted} />
-              </View>
-            ))}
+        {/* Achievements Section */}
+        <View style={styles.achievementsSection}>
+          <View style={styles.achievementsHeader}>
+            <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Achievements</Text>
+            <Text style={[styles.achievementCount, { color: colors.muted }]}>
+              {unlockedAwards.length}/{unlockedAwards.length + lockedAwards.length}
+            </Text>
           </View>
+
+          {/* Unlocked Achievements */}
+          {unlockedAwards.length > 0 && (
+            <View>
+              <Text style={[styles.achievementSubtitle, { color: colors.muted }]}>Unlocked</Text>
+              <View style={styles.achievementGrid}>
+                {unlockedAwards.map((award) => (
+                  <Pressable
+                    key={award.id}
+                    style={({ pressed }) => [
+                      styles.achievementBadge,
+                      { backgroundColor: colors.surface },
+                      pressed && { opacity: 0.7 },
+                    ]}
+                    onPress={() => {
+                      if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      Alert.alert(award.name, award.description);
+                    }}
+                  >
+                    <Text style={styles.achievementIcon}>{award.icon}</Text>
+                    <Text style={[styles.achievementName, { color: colors.foreground }]}>
+                      {award.name}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+          )}
+
+          {/* Locked Achievements */}
+          {lockedAwards.length > 0 && (
+            <View>
+              <Text style={[styles.achievementSubtitle, { color: colors.muted }]}>Locked</Text>
+              <View style={styles.achievementGrid}>
+                {lockedAwards.map((award) => (
+                  <Pressable
+                    key={award.id}
+                    style={({ pressed }) => [
+                      styles.achievementBadge,
+                      { backgroundColor: colors.surface, opacity: 0.5 },
+                      pressed && { opacity: 0.3 },
+                    ]}
+                    onPress={() => {
+                      if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      Alert.alert(award.name, award.description);
+                    }}
+                  >
+                    <Text style={[styles.achievementIcon, { opacity: 0.5 }]}>🔒</Text>
+                    <Text style={[styles.achievementName, { color: colors.muted }]}>
+                      {award.name}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+          )}
         </View>
 
         {/* Settings Section */}
-        {showSettings && (
+        {showSettings && user && (
           <View style={[styles.settingsSection, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            {/* Reminders Enabled Toggle */}
-            <View style={[styles.settingRow, { borderBottomColor: colors.border, paddingHorizontal: 16, paddingVertical: 12 }]}>
-              <Text style={[styles.settingLabel, { color: colors.foreground }]}>Reminders Enabled</Text>
-              <Pressable
-                onPress={() => {
-                  const newState = !remindersEnabled;
-                  setRemindersEnabled(newState);
-                  const settingsWithEnabled = { ...localReminders, enabled: newState };
-                  updateSettings({ reminders: settingsWithEnabled });
-                  // Schedule or cancel notifications based on toggle
-                  if (newState) {
-                    scheduleAllReminders(settingsWithEnabled);
-                  } else {
-                    cancelAllReminders();
-                  }
-                }}
-                style={({ pressed }) => [{
-                  paddingHorizontal: 12,
-                  paddingVertical: 8,
-                  borderRadius: 6,
-                  backgroundColor: remindersEnabled ? colors.primary : colors.border,
-                }, pressed && { opacity: 0.8 }]}
-              >
-                <Text style={{ color: colors.background, fontWeight: '600', fontSize: 12 }}>
-                  {remindersEnabled ? 'ON' : 'OFF'}
-                </Text>
-              </Pressable>
-            </View>
+            <Pressable
+              onPress={() => setRemindersEnabled(!remindersEnabled)}
+              style={({ pressed }) => [
+                styles.settingRow,
+                { borderBottomColor: colors.border },
+                pressed && { opacity: 0.7 },
+              ]}
+            >
+              <Text style={[styles.settingLabel, { color: colors.foreground }]}>
+                Notifications
+              </Text>
+              <View style={[styles.toggle, { backgroundColor: remindersEnabled ? colors.primary : colors.border }]}>
+                <View
+                  style={[
+                    styles.toggleInner,
+                    {
+                      transform: [{ translateX: remindersEnabled ? 20 : 0 }],
+                      backgroundColor: 'white',
+                    },
+                  ]}
+                />
+              </View>
+            </Pressable>
 
-            {/* Reminder Times (only show if enabled) */}
             {remindersEnabled && (
               <>
                 <Text style={[styles.settingTitle, { color: colors.foreground }]}>Reminder Times</Text>
@@ -330,16 +386,7 @@ export default function ProfileScreen() {
       {/* Logout Button - Outside ScrollView */}
       <View style={{ padding: 20, backgroundColor: colors.background }}>
         <TouchableOpacity
-          onPress={async () => {
-            console.log('[Profile] Logout button tapped');
-            try {
-              await logout();
-              console.log('[Profile] Logout successful');
-            } catch (error) {
-              console.error('[Profile] Logout error:', error);
-              Alert.alert('Error', 'Failed to logout');
-            }
-          }}
+          onPress={handleLogout}
           activeOpacity={0.7}
           style={[{ backgroundColor: colors.error, padding: 16, borderRadius: 12, alignItems: 'center' }]}
         >
@@ -498,112 +545,125 @@ export default function ProfileScreen() {
               <Text style={[styles.timePickerTitle, { color: colors.foreground }]}>
                 {editingReminder ? editingReminder.replace(/([A-Z])/g, " $1").trim() : ""}
               </Text>
-              <Pressable
-                onPress={saveReminder}
-                style={({ pressed }) => [pressed && { opacity: 0.6 }]}
-              >
+              <Pressable onPress={saveReminder} style={({ pressed }) => [pressed && { opacity: 0.6 }]}>
                 <Text style={[styles.timePickerSave, { color: colors.primary }]}>Save</Text>
               </Pressable>
             </View>
 
             <View style={styles.timePickerContent}>
-              <View style={styles.timePickerRow}>
-                <View style={styles.timePickerColumn}>
-                  <Text style={[styles.timePickerLabel, { color: colors.muted }]}>Hour</Text>
-                  <View style={[styles.timePickerBox, { borderColor: colors.border }]}>
+              <View style={styles.pickerColumn}>
+                <Text style={[styles.pickerLabel, { color: colors.muted }]}>Hour</Text>
+                <FlatList
+                  data={Array.from({ length: 24 }, (_, i) => i)}
+                  renderItem={({ item }) => (
                     <Pressable
-                      onPress={() => setPickerHour(Math.max(0, pickerHour - 1))}
-                      style={({ pressed }) => [pressed && { opacity: 0.6 }]}
+                      onPress={() => setPickerHour(item)}
+                      style={[
+                        styles.pickerItem,
+                        pickerHour === item && { backgroundColor: colors.primary + "20" },
+                      ]}
                     >
-                      <Text style={[styles.timePickerButton, { color: colors.primary }]}>−</Text>
+                      <Text
+                        style={[
+                          styles.pickerItemText,
+                          { color: pickerHour === item ? colors.primary : colors.foreground },
+                        ]}
+                      >
+                        {String(item).padStart(2, "0")}
+                      </Text>
                     </Pressable>
-                    <Text style={[styles.timePickerValue, { color: colors.foreground }]}>
-                      {String(pickerHour).padStart(2, "0")}
-                    </Text>
-                    <Pressable
-                      onPress={() => setPickerHour(Math.min(23, pickerHour + 1))}
-                      style={({ pressed }) => [pressed && { opacity: 0.6 }]}
-                    >
-                      <Text style={[styles.timePickerButton, { color: colors.primary }]}>+</Text>
-                    </Pressable>
-                  </View>
-                </View>
+                  )}
+                  keyExtractor={(item) => item.toString()}
+                  scrollEventThrottle={16}
+                />
+              </View>
 
-                <Text style={[styles.timePickerColon, { color: colors.foreground }]}>:</Text>
-
-                <View style={styles.timePickerColumn}>
-                  <Text style={[styles.timePickerLabel, { color: colors.muted }]}>Minute</Text>
-                  <View style={[styles.timePickerBox, { borderColor: colors.border }]}>
+              <View style={styles.pickerColumn}>
+                <Text style={[styles.pickerLabel, { color: colors.muted }]}>Minute</Text>
+                <FlatList
+                  data={Array.from({ length: 60 }, (_, i) => i)}
+                  renderItem={({ item }) => (
                     <Pressable
-                      onPress={() => setPickerMinute(Math.max(0, pickerMinute - 5))}
-                      style={({ pressed }) => [pressed && { opacity: 0.6 }]}
+                      onPress={() => setPickerMinute(item)}
+                      style={[
+                        styles.pickerItem,
+                        pickerMinute === item && { backgroundColor: colors.primary + "20" },
+                      ]}
                     >
-                      <Text style={[styles.timePickerButton, { color: colors.primary }]}>−</Text>
+                      <Text
+                        style={[
+                          styles.pickerItemText,
+                          { color: pickerMinute === item ? colors.primary : colors.foreground },
+                        ]}
+                      >
+                        {String(item).padStart(2, "0")}
+                      </Text>
                     </Pressable>
-                    <Text style={[styles.timePickerValue, { color: colors.foreground }]}>
-                      {String(pickerMinute).padStart(2, "0")}
-                    </Text>
-                    <Pressable
-                      onPress={() => setPickerMinute(Math.min(59, pickerMinute + 5))}
-                      style={({ pressed }) => [pressed && { opacity: 0.6 }]}
-                    >
-                      <Text style={[styles.timePickerButton, { color: colors.primary }]}>+</Text>
-                    </Pressable>
-                  </View>
-                </View>
+                  )}
+                  keyExtractor={(item) => item.toString()}
+                  scrollEventThrottle={16}
+                />
               </View>
             </View>
           </Pressable>
         </Pressable>
       </Modal>
-
     </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  headerContainer: { paddingHorizontal: 20, marginBottom: 20, paddingTop: 20 },
-  title: { fontSize: 28, fontWeight: "800", letterSpacing: -0.3 },
+  headerContainer: {
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 12,
+  },
+  title: {
+    fontSize: 32,
+    fontWeight: "700",
+  },
   userCard: {
+    marginHorizontal: 16,
+    marginTop: 16,
+    marginBottom: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
     flexDirection: "row",
     alignItems: "center",
-    marginHorizontal: 20,
-    padding: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-    marginBottom: 16,
+    gap: 12,
   },
   userAvatar: {
     width: 56,
     height: 56,
     borderRadius: 28,
-    justifyContent: "center",
     alignItems: "center",
-    marginRight: 12,
+    justifyContent: "center",
   },
   userAvatarText: {
     fontSize: 24,
     fontWeight: "700",
-    color: "#FFFFFF",
+    color: "white",
   },
-  userInfo: { flex: 1 },
-  userName: { fontSize: 16, fontWeight: "600", marginBottom: 2 },
-  userEmail: { fontSize: 13 },
-  subscriptionBanner: {
-    marginHorizontal: 20,
-    marginBottom: 20,
-    borderRadius: 16,
-    padding: 16,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+  userInfo: {
+    flex: 1,
+  },
+  userName: {
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: 4,
+  },
+  userEmail: {
+    fontSize: 13,
   },
   personalInfoCard: {
-    marginHorizontal: 20,
-    marginBottom: 20,
-    borderRadius: 16,
+    marginHorizontal: 16,
+    marginBottom: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    borderRadius: 12,
     borderWidth: 1,
-    padding: 16,
   },
   infoGrid: {
     flexDirection: "row",
@@ -620,156 +680,383 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   infoValue: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "600",
   },
   editButton: {
-    borderRadius: 12,
     paddingVertical: 10,
+    borderRadius: 8,
     alignItems: "center",
   },
   editButtonText: {
     fontSize: 14,
     fontWeight: "600",
   },
-  subLeft: { flexDirection: "row", alignItems: "center", gap: 12, flex: 1 },
-  subTitle: { fontSize: 16, fontWeight: "700", color: "#FFFFFF" },
-  subPrice: { fontSize: 13, color: "rgba(255,255,255,0.8)", marginTop: 2 },
-  subRightCol: { alignItems: "flex-end", gap: 8 },
-  subBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6 },
-  subBadgeText: { fontSize: 12, fontWeight: "500", color: "#FFFFFF" },
-  changePlanBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6, backgroundColor: "rgba(255,255,255,0.2)" },
-  changePlanText: { fontSize: 12, fontWeight: "600", color: "#FFFFFF" },
+  subscriptionBanner: {
+    marginHorizontal: 16,
+    marginBottom: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  subLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    flex: 1,
+  },
+  subTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "white",
+  },
+  subPrice: {
+    fontSize: 12,
+    color: "rgba(255,255,255,0.8)",
+  },
+  subRightCol: {
+    alignItems: "flex-end",
+    gap: 8,
+  },
+  subBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  subBadgeText: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "white",
+  },
+  changePlanBtn: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  changePlanText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "white",
+  },
+  cancelSubBtn: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  cancelSubText: {
+    fontSize: 12,
+    color: "rgba(255,255,255,0.7)",
+  },
   statsGrid: {
     flexDirection: "row",
-    marginHorizontal: 20,
-    marginBottom: 20,
-    gap: 12,
+    justifyContent: "space-between",
+    marginHorizontal: 16,
+    marginBottom: 16,
+    gap: 8,
   },
   statCard: {
     flex: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 16,
     borderRadius: 12,
-    padding: 12,
     alignItems: "center",
   },
-  statValue: { fontSize: 20, fontWeight: "700", marginBottom: 4 },
-  statLabel: { fontSize: 12 },
-  awardsSection: { marginHorizontal: 20, marginBottom: 20 },
-  sectionTitle: { fontSize: 16, fontWeight: "700", marginBottom: 12 },
-  awardsList: { flexDirection: "row", gap: 12, flexWrap: "wrap" },
-  awardBadge: { width: 56, height: 56, borderRadius: 12, justifyContent: "center", alignItems: "center" },
-  awardEmoji: { fontSize: 28 },
-  settingsSection: { marginHorizontal: 20, marginBottom: 20, borderRadius: 12, borderWidth: 1, overflow: "hidden" },
-  settingTitle: { fontSize: 14, fontWeight: "700", paddingHorizontal: 16, paddingTop: 12 },
-  settingsList: { marginTop: 8 },
-  settingRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1 },
-  settingLabel: { fontSize: 13, fontWeight: "500" },
-  settingValue: { fontSize: 13, fontWeight: "600" },
-  logoutBtn: { marginHorizontal: 20, marginBottom: 20, borderRadius: 12, paddingVertical: 14, alignItems: "center" },
-  logoutText: { fontSize: 16, fontWeight: "600", color: "#FFFFFF" },
-  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
-  modalContent: { borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingTop: 16, paddingBottom: 32, maxHeight: "80%" },
-  modalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 20, marginBottom: 16 },
-  modalCancel: { fontSize: 16, fontWeight: "500" },
-  modalTitle: { fontSize: 18, fontWeight: "700" },
-  modalSave: { fontSize: 16, fontWeight: "600" },
-  changePlanNote: { fontSize: 13, paddingHorizontal: 20, marginBottom: 16 },
-  plansList: { paddingHorizontal: 20, gap: 12 },
-  planOption: { borderWidth: 1.5, borderRadius: 12, padding: 12, flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  planOptionLeft: { flexDirection: "row", alignItems: "center", gap: 12, flex: 1 },
-  planRadio: { width: 20, height: 20, borderRadius: 10, borderWidth: 2, justifyContent: "center", alignItems: "center" },
-  planRadioInner: { width: 10, height: 10, borderRadius: 5 },
-  planLabelRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 2 },
-  planOptionLabel: { fontSize: 14, fontWeight: "600" },
-  planOptionPerWeek: { fontSize: 12, marginTop: 2 },
-  planOptionPrice: { fontSize: 16, fontWeight: "700" },
-  currentBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 4 },
-  confirmDialog: { borderRadius: 16, padding: 24, margin: 20, borderWidth: 1, alignItems: "center" },
-  confirmHeader: { marginBottom: 16 },
-  confirmTitle: { fontSize: 18, fontWeight: "700", marginBottom: 8, textAlign: "center" },
-  confirmMessage: { fontSize: 14, textAlign: "center", marginBottom: 24, lineHeight: 20 },
-  confirmButtonsRow: { flexDirection: "row", gap: 12, width: "100%" },
-  confirmCancelBtn: { flex: 1, paddingVertical: 12, borderRadius: 8, borderWidth: 1.5, alignItems: "center" },
-  confirmCancelText: { fontSize: 14, fontWeight: "600" },
-  confirmDeleteBtn: { flex: 1, paddingVertical: 12, borderRadius: 8, backgroundColor: "#DC2626", alignItems: "center" },
-  confirmDeleteText: { fontSize: 14, fontWeight: "600", color: "#FFFFFF" },
-  currentBadgeText: { fontSize: 11, fontWeight: "600" },
-  cancelSubBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6, backgroundColor: "rgba(220,38,38,0.2)" },
-  cancelSubText: { fontSize: 12, fontWeight: "600", color: "#DC2626" },
-    timePickerModal: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingBottom: 32,
+  statValue: {
+    fontSize: 20,
+    fontWeight: "700",
+    marginBottom: 4,
+  },
+  statLabel: {
+    fontSize: 12,
+    fontWeight: "500",
+  },
+  achievementsSection: {
+    marginHorizontal: 16,
+    marginBottom: 16,
+  },
+  achievementsHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+  },
+  achievementCount: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  achievementSubtitle: {
+    fontSize: 12,
+    fontWeight: "600",
+    marginBottom: 8,
+  },
+  achievementGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginBottom: 16,
+  },
+  achievementBadge: {
+    width: "31%",
+    paddingHorizontal: 8,
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: "center",
+    gap: 4,
+  },
+  achievementIcon: {
+    fontSize: 28,
+  },
+  achievementName: {
+    fontSize: 11,
+    fontWeight: "600",
+    textAlign: "center",
+  },
+  settingsSection: {
+    marginHorizontal: 16,
+    marginBottom: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    overflow: "hidden",
+  },
+  settingRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+  },
+  settingLabel: {
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  settingValue: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  settingTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 8,
+  },
+  settingsList: {
+    paddingHorizontal: 0,
+  },
+  toggle: {
+    width: 48,
+    height: 28,
+    borderRadius: 14,
+    padding: 2,
+    justifyContent: "center",
+  },
+  toggleInner: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "flex-end",
+  },
+  modalContent: {
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingTop: 16,
+    maxHeight: "80%",
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(0,0,0,0.1)",
+  },
+  modalCancel: {
+    fontSize: 16,
+    fontWeight: "500",
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+  },
+  modalSave: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  changePlanNote: {
+    fontSize: 13,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  plansList: {
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+  },
+  planOption: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 8,
+  },
+  planOptionLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    flex: 1,
+  },
+  planRadio: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  planRadioInner: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  planLabelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 4,
+  },
+  planOptionLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  currentBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  currentBadgeText: {
+    fontSize: 11,
+    fontWeight: "600",
+  },
+  planOptionPerWeek: {
+    fontSize: 12,
+  },
+  planOptionPrice: {
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  confirmDialog: {
+    marginHorizontal: 16,
+    marginBottom: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 20,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: "center",
+  },
+  confirmHeader: {
+    marginBottom: 12,
+  },
+  confirmTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    marginBottom: 8,
+  },
+  confirmMessage: {
+    fontSize: 14,
+    textAlign: "center",
+    marginBottom: 16,
+  },
+  confirmButtonsRow: {
+    flexDirection: "row",
+    gap: 8,
+    width: "100%",
+  },
+  confirmCancelBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignItems: "center",
+  },
+  confirmCancelText: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  confirmDeleteBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    backgroundColor: "#EF4444",
+    alignItems: "center",
+  },
+  confirmDeleteText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "white",
+  },
+  timePickerModal: {
+    marginHorizontal: 16,
+    marginBottom: 16,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingTop: 16,
+    maxHeight: "60%",
   },
   timePickerHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 16,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: "rgba(0,0,0,0.1)",
   },
   timePickerCancel: {
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   timePickerTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: "700",
   },
   timePickerSave: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   timePickerContent: {
-    paddingHorizontal: 20,
-    paddingTop: 32,
-    paddingBottom: 16,
-    alignItems: 'center',
-  },
-  timePickerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 16,
-  },
-  timePickerColumn: {
-    alignItems: 'center',
-    gap: 8,
-  },
-  timePickerLabel: {
-    fontSize: 13,
-    fontWeight: '500',
-  },
-  timePickerBox: {
-    borderWidth: 1,
-    borderRadius: 12,
+    flexDirection: "row",
     paddingHorizontal: 16,
     paddingVertical: 12,
-    alignItems: 'center',
-    gap: 12,
   },
-  timePickerButton: {
-    fontSize: 24,
-    fontWeight: '600',
-    paddingHorizontal: 8,
+  pickerColumn: {
+    flex: 1,
+    alignItems: "center",
   },
-  timePickerValue: {
-    fontSize: 32,
-    fontWeight: '700',
-    minWidth: 60,
-    textAlign: 'center',
+  pickerLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+    marginBottom: 8,
   },
-  timePickerColon: {
-    fontSize: 32,
-    fontWeight: '700',
-    marginTop: 20,
+  pickerItem: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
   },
-
+  pickerItemText: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
 });
