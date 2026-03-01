@@ -1,4 +1,3 @@
-import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useColors } from "@/hooks/use-colors";
 import { startOAuthLogin, getApiBaseUrl } from "@/constants/oauth";
@@ -8,9 +7,11 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useState } from "react";
 import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import * as Haptics from "expo-haptics";
+import { useRouter } from "expo-router";
 
 export default function LoginScreen() {
   const colors = useColors();
+  const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
 
   const handleGetStarted = async () => {
@@ -36,23 +37,28 @@ export default function LoginScreen() {
       const data = await response.json();
       console.log("[Login] Demo login response:", data);
       
-      if (data.sessionToken) {
+      if (data.sessionToken && data.user) {
+        // Store token and user info
         await Auth.setSessionToken(data.sessionToken);
-        if (data.user) {
-          const userInfo: Auth.User = {
-            id: data.user.id,
-            openId: data.user.openId,
-            name: data.user.name,
-            email: data.user.email,
-            loginMethod: data.user.loginMethod,
-            lastSignedIn: new Date(data.user.lastSignedIn || Date.now()),
-          };
-          await Auth.setUserInfo(userInfo);
-        }
+        const userInfo: Auth.User = {
+          id: data.user.id,
+          openId: data.user.openId,
+          name: data.user.name,
+          email: data.user.email,
+          loginMethod: data.user.loginMethod,
+          lastSignedIn: new Date(data.user.lastSignedIn || Date.now()),
+        };
+        await Auth.setUserInfo(userInfo);
+        
+        console.log("[Login] User stored, notifying auth changed");
+        // Notify auth changed to trigger useAuth to pick up the new user
         notifyAuthChanged();
-        // Navigation will happen automatically via useAuth hook
+        
+        // Navigate to home screen immediately
+        console.log("[Login] Navigating to home screen");
+        router.replace("/(tabs)");
       } else {
-        throw new Error("No session token in response");
+        throw new Error("No session token or user in response");
       }
     } catch (err) {
       console.error("[Login] Failed to login:", err);
@@ -61,7 +67,7 @@ export default function LoginScreen() {
   };
 
   return (
-    <ScreenContainer edges={["top", "bottom", "left", "right"]}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <LinearGradient
         colors={["#0F766E", "#0D9488", "#14B8A6"]}
         style={styles.gradient}
@@ -78,71 +84,71 @@ export default function LoginScreen() {
             <Text style={styles.subtitle}>Your Daily Exercise Companion</Text>
           </View>
 
-          {/* Features */}
-          <View style={styles.features}>
-            <FeatureRow icon="dumbbell.fill" text="30 exercises across 3 categories" />
-            <FeatureRow icon="sparkles" text="AI-generated daily workout plans" />
-            <FeatureRow icon="timer" text="Built-in timers for every workout" />
-            <FeatureRow icon="trophy.fill" text="Awards, streaks & progress tracking" />
+          {/* Features list */}
+          <View style={styles.featuresList}>
+            <View style={styles.featureItem}>
+              <IconSymbol name="dumbbell.fill" size={24} color="#FFFFFF" />
+              <Text style={styles.featureText}>30 exercises across 3 categories</Text>
+            </View>
+            <View style={styles.featureItem}>
+              <IconSymbol name="sparkles" size={24} color="#FFFFFF" />
+              <Text style={styles.featureText}>AI-generated daily workout plans</Text>
+            </View>
+            <View style={styles.featureItem}>
+              <IconSymbol name="timer" size={24} color="#FFFFFF" />
+              <Text style={styles.featureText}>Built-in timers for every workout</Text>
+            </View>
+            <View style={styles.featureItem}>
+              <IconSymbol name="star.fill" size={24} color="#FFFFFF" />
+              <Text style={styles.featureText}>Awards, streaks & progress tracking</Text>
+            </View>
           </View>
 
-          {/* CTA */}
-          <View style={styles.ctaArea}>
+          {/* CTA Button */}
+          <View style={styles.buttonContainer}>
             <Pressable
               onPress={handleGetStarted}
+              disabled={isLoading}
               style={({ pressed }) => [
                 styles.button,
-                pressed && { transform: [{ scale: 0.97 }], opacity: 0.9 },
-                isLoading && { opacity: 0.7 },
+                { opacity: pressed ? 0.8 : 1 },
               ]}
             >
               {isLoading ? (
-                <View style={styles.loadingRow}>
-                  <ActivityIndicator size="small" color="#0D9488" />
-                  <Text style={styles.buttonText}>Connecting...</Text>
-                </View>
+                <ActivityIndicator color={colors.background} size="small" />
               ) : (
                 <>
                   <Text style={styles.buttonText}>Get Started</Text>
-                  <IconSymbol name="arrow.right" size={18} color="#0D9488" />
+                  <Text style={styles.buttonArrow}> →</Text>
                 </>
               )}
             </Pressable>
-
-            <Text style={styles.disclaimer}>
-              Free to browse · Sign in to get started
-            </Text>
+            <Text style={styles.subtext}>Free to browse · Sign in to get started</Text>
           </View>
         </View>
       </LinearGradient>
-    </ScreenContainer>
-  );
-}
-
-function FeatureRow({ icon, text }: { icon: string; text: string }) {
-  return (
-    <View style={styles.featureRow}>
-      <View style={styles.featureIcon}>
-        <IconSymbol name={icon as any} size={20} color="#FFFFFF" />
-      </View>
-      <Text style={styles.featureText}>{text}</Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
   gradient: {
     flex: 1,
+    justifyContent: "space-between",
+    paddingTop: 60,
+    paddingBottom: 40,
   },
   content: {
     flex: 1,
-    justifyContent: "space-between",
     paddingHorizontal: 24,
-    paddingVertical: 40,
+    justifyContent: "space-between",
   },
   logoArea: {
     alignItems: "center",
-    marginTop: 20,
+    marginTop: 40,
   },
   iconContainer: {
     width: 100,
@@ -154,63 +160,56 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   title: {
-    fontSize: 36,
+    fontSize: 40,
     fontWeight: "700",
     color: "#FFFFFF",
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: "rgba(255, 255, 255, 0.9)",
+    color: "rgba(255, 255, 255, 0.8)",
     textAlign: "center",
   },
-  features: {
+  featuresList: {
     gap: 16,
+    marginVertical: 40,
   },
-  featureRow: {
+  featureItem: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-  },
-  featureIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 8,
-    backgroundColor: "rgba(255, 255, 255, 0.15)",
-    justifyContent: "center",
-    alignItems: "center",
-    flexShrink: 0,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
   },
   featureText: {
     fontSize: 14,
     color: "#FFFFFF",
     flex: 1,
   },
-  ctaArea: {
+  buttonContainer: {
     gap: 12,
-    marginBottom: 20,
   },
   button: {
     backgroundColor: "#FFFFFF",
-    borderRadius: 12,
     paddingVertical: 16,
-    paddingHorizontal: 24,
-    flexDirection: "row",
+    borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
-    gap: 8,
+    flexDirection: "row",
   },
   buttonText: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#0D9488",
+    color: "#0F766E",
   },
-  loadingRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
+  buttonArrow: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#0F766E",
   },
-  disclaimer: {
+  subtext: {
     fontSize: 13,
     color: "rgba(255, 255, 255, 0.7)",
     textAlign: "center",
