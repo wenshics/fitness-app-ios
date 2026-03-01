@@ -45,10 +45,7 @@ export function registerAuthRoutes(app: Express) {
   // Email/password signup endpoint
   app.post("/api/auth/email-signup", async (req: Request, res: Response) => {
     try {
-      const { email: rawEmail, password: rawPassword, name: rawName } = req.body;
-      const email = rawEmail?.trim().toLowerCase();
-      const password = rawPassword?.trim();
-      const name = rawName?.trim();
+      const { email, password, name } = req.body;
 
       if (!email || !password || !name) {
         res.status(400).json({ error: "Missing required fields" });
@@ -65,7 +62,6 @@ export function registerAuthRoutes(app: Express) {
       // Create new user
       const userId = `user-${Date.now()}`;
       const passwordHash = hashPassword(password);
-      console.log("[Auth] Signup - storing user:", { email, name, passwordLength: password.length, passwordHashLength: passwordHash.length, passwordHashFirst20: passwordHash.substring(0, 20) });
       users.set(email, {
         id: userId,
         name,
@@ -114,9 +110,7 @@ export function registerAuthRoutes(app: Express) {
   // Email/password login endpoint
   app.post("/api/auth/email-login", async (req: Request, res: Response) => {
     try {
-      const { email: rawEmail, password: rawPassword } = req.body;
-      const email = rawEmail?.trim().toLowerCase();
-      const password = rawPassword?.trim();
+      const { email, password } = req.body;
 
       if (!email || !password) {
         res.status(400).json({ error: "Missing email or password" });
@@ -124,22 +118,8 @@ export function registerAuthRoutes(app: Express) {
       }
 
       // Find user
-      console.log("[Auth] Looking for user with email:", email);
       const user = Array.from(users.values()).find(u => u.email === email);
-      console.log("[Auth] User found:", !!user);
-      
-      if (!user) {
-        console.log("[Auth] User not found");
-        res.status(401).json({ error: "Invalid email or password" });
-        return;
-      }
-      
-      const passwordMatch = verifyPassword(password, user.passwordHash);
-      const hashedInput = hashPassword(password);
-      console.log("[Auth] Password match:", passwordMatch, { passwordLength: password.length, storedHashFirst20: user.passwordHash.substring(0, 20), inputHashFirst20: hashedInput.substring(0, 20) });
-      
-      if (!passwordMatch) {
-        console.log("[Auth] Password mismatch");
+      if (!user || !verifyPassword(password, user.passwordHash)) {
         res.status(401).json({ error: "Invalid email or password" });
         return;
       }

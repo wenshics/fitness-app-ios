@@ -76,8 +76,8 @@ export function AuthModal({ visible, onClose }: AuthModalProps) {
       const fullUrl = `${apiUrl}${endpoint}`;
 
       const payload = mode === "login" 
-        ? { email: email.trim(), password: password.trim() }
-        : { email: email.trim(), password: password.trim(), name: name.trim() };
+        ? { email, password }
+        : { email, password, name };
 
       console.log(`[AuthModal] ${mode} request to:`, fullUrl);
       console.log(`[AuthModal] ${mode} payload:`, payload);
