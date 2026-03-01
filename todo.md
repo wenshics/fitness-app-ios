@@ -146,3 +146,12 @@
 - [x] Returning users should skip Get Started entirely - FIXED
 - [x] Implement onboarding flag in localStorage to track if user has seen Get Started - IMPLEMENTED
 - [x] Fix AuthGuard/navigation logic to handle first-time vs returning users - FIXED
+
+
+## SIMPLIFICATION - REMOVE GET STARTED PAGE
+
+- [x] Remove /login screen (Get Started page) entirely - DONE
+- [x] Update AuthGuard to route unauthenticated users directly to login-screen - DONE
+- [x] Remove onboarding flag logic (no longer needed) - DONE
+- [x] Test all navigation flows without Get Started - DONE (385 tests passing)
+- [x] Verify no infinite loops or broken flows - DONE (all flows tested)

@@ -58,47 +58,28 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, loading: isLoading } = useAuth();
   const segments = useSegments();
   const router = useRouter();
-  const [onboardingCompleted, setOnboardingCompleted] = React.useState<boolean | null>(null);
-
-  // Check onboarding status on mount
-  useEffect(() => {
-    const checkOnboarding = async () => {
-      const completed = await Auth.hasCompletedOnboarding();
-      setOnboardingCompleted(completed);
-      console.log("[AuthGuard] Onboarding completed:", completed);
-    };
-    checkOnboarding();
-  }, []);
 
   useEffect(() => {
-    // Wait for router to be ready, auth to finish loading, and onboarding check to complete
-    if (isLoading || onboardingCompleted === null) {
+    // Wait for router to be ready and auth to finish loading
+    if (isLoading) {
       console.log("[AuthGuard] Still loading, waiting...");
       return;
     }
 
-    const inAuthGroup = segments[0] === "oauth" || segments[0] === "login" || segments[0] === "auth" || segments[0] === "login-screen" || segments[0] === "signup-screen";
+    const inAuthGroup = segments[0] === "oauth" || segments[0] === "auth" || segments[0] === "login-screen" || segments[0] === "signup-screen";
     const currentPath = segments.join("/");
 
     console.log("[AuthGuard] Auth state check:", {
       isAuthenticated,
       inAuthGroup,
-      onboardingCompleted,
       currentPath,
     });
 
     // Always redirect based on current auth state
     if (!isAuthenticated && !inAuthGroup) {
-      // Not logged in and not on auth page
-      if (onboardingCompleted) {
-        // User has seen Get Started before - go to login screen
-        console.log("[AuthGuard] Redirecting to login-screen (onboarding completed)");
-        router.replace("/login-screen");
-      } else {
-        // First time user - show Get Started
-        console.log("[AuthGuard] Redirecting to login (Get Started)");
-        router.replace("/login");
-      }
+      // Not logged in and not on auth page - go directly to login-screen
+      console.log("[AuthGuard] Redirecting to login-screen");
+      router.replace("/login-screen");
     } else if (isAuthenticated && inAuthGroup) {
       // Logged in but on auth page - go to app
       console.log("[AuthGuard] Redirecting to app");
@@ -106,7 +87,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     } else {
       console.log("[AuthGuard] No redirect needed");
     }
-  }, [isAuthenticated, isLoading, segments, router, onboardingCompleted]);
+  }, [isAuthenticated, isLoading, segments, router]);
 
   return <>{children}</>;
 }

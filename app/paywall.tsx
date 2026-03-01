@@ -28,8 +28,8 @@ export default function PaywallScreen() {
   // Redirect to login if not authenticated
   useEffect(() => {
     if (!user) {
-      console.log('[Paywall] User not authenticated, redirecting to login');
-      router.replace('/login');
+      console.log('[Paywall] User not authenticated, redirecting to login-screen');
+      router.replace('/login-screen');
     }
   }, [user, router]);
 
