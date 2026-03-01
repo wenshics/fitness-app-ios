@@ -116,3 +116,8 @@
 - [x] Update Home "Start Workout" to show login modal when not authenticated
 - [x] Update Exercise "Start" button to show login modal when not authenticated
 - [x] Test email/password login and signup flows
+- [x] Bug: AuthModal not closing after successful login/signup
+- [x] Bug: No error messages shown in AuthModal
+- [x] Bug: Login with non-existent account should show "please sign up" message
+- [x] Bug: Wrong password should show "invalid email or password" message
+- [x] Debug backend auth endpoints to ensure proper responses

@@ -2,6 +2,7 @@ import { useColors } from "@/hooks/use-colors";
 import { getApiBaseUrl } from "@/constants/oauth";
 import * as Auth from "@/lib/_core/auth";
 import { notifyAuthChanged } from "@/hooks/use-auth";
+import { establishSession } from "@/lib/_core/api";
 import {
   ActivityIndicator,
   Alert,
@@ -30,32 +31,36 @@ export function AuthModal({ visible, onClose }: AuthModalProps) {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [name, setName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   const handleSubmit = async () => {
     if (isLoading) return;
 
+    // Clear previous error
+    setErrorMessage("");
+
     // Validation
     if (!email.trim()) {
-      Alert.alert("Error", "Please enter your email");
+      setErrorMessage("Please enter your email");
       return;
     }
 
     if (!password.trim()) {
-      Alert.alert("Error", "Please enter your password");
+      setErrorMessage("Please enter your password");
       return;
     }
 
     if (mode === "signup") {
       if (!name.trim()) {
-        Alert.alert("Error", "Please enter your name");
+        setErrorMessage("Please enter your name");
         return;
       }
       if (password !== confirmPassword) {
-        Alert.alert("Error", "Passwords do not match");
+        setErrorMessage("Passwords do not match");
         return;
       }
       if (password.length < 6) {
-        Alert.alert("Error", "Password must be at least 6 characters");
+        setErrorMessage("Password must be at least 6 characters");
         return;
       }
     }
@@ -68,29 +73,65 @@ export function AuthModal({ visible, onClose }: AuthModalProps) {
     try {
       const apiUrl = getApiBaseUrl();
       const endpoint = mode === "login" ? "/api/auth/email-login" : "/api/auth/email-signup";
+      const fullUrl = `${apiUrl}${endpoint}`;
 
       const payload = mode === "login" 
         ? { email, password }
         : { email, password, name };
 
-      console.log(`[AuthModal] ${mode} to:`, apiUrl + endpoint);
+      console.log(`[AuthModal] ${mode} request to:`, fullUrl);
+      console.log(`[AuthModal] ${mode} payload:`, payload);
 
-      const response = await fetch(`${apiUrl}${endpoint}`, {
+      const response = await fetch(fullUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
+      console.log(`[AuthModal] ${mode} response status:`, response.status);
+      const responseText = await response.text();
+      console.log(`[AuthModal] ${mode} response text:`, responseText);
+
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `${mode} failed: ${response.status}`);
+        try {
+          const errorData = JSON.parse(responseText);
+          const errorMsg = errorData.error || errorData.message || `${mode} failed`;
+          
+          // Provide specific error messages
+          if (mode === "login" && response.status === 401) {
+            setErrorMessage("Invalid email or password. Please sign up with a new account if you don't have one.");
+          } else if (mode === "signup" && response.status === 400 && errorMsg.includes("already")) {
+            setErrorMessage("Email already registered. Please sign in instead.");
+          } else {
+            setErrorMessage(errorMsg);
+          }
+        } catch {
+          setErrorMessage(`${mode} failed: ${response.status}`);
+        }
+        setIsLoading(false);
+        return;
       }
 
-      const data = await response.json();
-      console.log(`[AuthModal] ${mode} response:`, data);
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch {
+        console.error("[AuthModal] Failed to parse response:", responseText);
+        setErrorMessage("Invalid response from server");
+        setIsLoading(false);
+        return;
+      }
+
+      console.log(`[AuthModal] ${mode} response data:`, data);
 
       if (data.sessionToken) {
+        console.log("[AuthModal] Setting session token and user info");
         await Auth.setSessionToken(data.sessionToken);
+        
+        // Establish session on backend for cookie-based auth
+        console.log("[AuthModal] Establishing session on backend");
+        await establishSession(data.sessionToken);
+        
         if (data.user) {
           const userInfo: Auth.User = {
             id: data.user.id,
@@ -102,22 +143,33 @@ export function AuthModal({ visible, onClose }: AuthModalProps) {
           };
           await Auth.setUserInfo(userInfo);
         }
+        
+        console.log("[AuthModal] Notifying auth changed");
         notifyAuthChanged();
         
+        console.log("[AuthModal] Resetting form and closing modal");
         // Reset form and close
         setEmail("");
         setPassword("");
         setConfirmPassword("");
         setName("");
         setMode("login");
-        onClose();
+        setErrorMessage("");
+        setIsLoading(false);
+        
+        // Close modal after a brief delay to ensure state updates
+        setTimeout(() => {
+          onClose();
+        }, 100);
       } else {
-        throw new Error("No session token in response");
+        console.error("[AuthModal] No session token in response");
+        setErrorMessage("No session token in response");
+        setIsLoading(false);
       }
     } catch (err) {
       console.error(`[AuthModal] ${mode} error:`, err);
       const message = err instanceof Error ? err.message : `${mode} failed`;
-      Alert.alert("Error", message);
+      setErrorMessage(message);
       setIsLoading(false);
     }
   };
@@ -145,6 +197,15 @@ export function AuthModal({ visible, onClose }: AuthModalProps) {
                 : "Create a new account to get started"}
             </Text>
           </View>
+
+          {/* Error Message */}
+          {errorMessage && (
+            <View style={[styles.errorContainer, { backgroundColor: colors.error + "20", borderColor: colors.error }]}>
+              <Text style={[styles.errorText, { color: colors.error }]}>
+                {errorMessage}
+              </Text>
+            </View>
+          )}
 
           {/* Form */}
           <View style={styles.form}>
@@ -252,6 +313,7 @@ export function AuthModal({ visible, onClose }: AuthModalProps) {
                 setPassword("");
                 setConfirmPassword("");
                 setName("");
+                setErrorMessage("");
               }}
               disabled={isLoading}
             >
@@ -284,7 +346,7 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   header: {
-    marginBottom: 24,
+    marginBottom: 16,
   },
   title: {
     fontSize: 24,
@@ -293,6 +355,16 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 14,
+  },
+  errorContainer: {
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+  },
+  errorText: {
+    fontSize: 14,
+    fontWeight: "500",
   },
   form: {
     gap: 12,

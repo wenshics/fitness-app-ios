@@ -11,6 +11,7 @@ const sessions = new Map<
     userId: string;
     userName: string;
     email: string;
+    loginMethod?: string;
     createdAt: Date;
   }
 >();
@@ -75,6 +76,7 @@ export function registerAuthRoutes(app: Express) {
         userId,
         userName: name,
         email,
+        loginMethod: "email",
         createdAt: new Date(),
       });
 
@@ -128,6 +130,7 @@ export function registerAuthRoutes(app: Express) {
         userId: user.id,
         userName: user.name,
         email: user.email,
+        loginMethod: "email",
         createdAt: new Date(),
       });
 
@@ -232,13 +235,57 @@ export function registerAuthRoutes(app: Express) {
           openId: session?.userId,
           name: session?.userName,
           email: session?.email,
-          loginMethod: "demo",
+          loginMethod: session?.loginMethod || "demo",
           lastSignedIn: session?.createdAt.toISOString(),
         },
       });
     } catch (error) {
       console.error("[Auth] /api/auth/me failed:", error);
       res.status(401).json({ error: "Not authenticated", user: null });
+    }
+  });
+
+  // Establish session for email/password auth (sets cookie)
+  app.post("/api/auth/session", async (req: Request, res: Response) => {
+    try {
+      const token =
+        req.headers.authorization?.replace("Bearer ", "") ||
+        req.body.token;
+
+      if (!token || !sessions.has(token)) {
+        res.status(401).json({ error: "Invalid token" });
+        return;
+      }
+
+      const session = sessions.get(token);
+      if (!session) {
+        res.status(401).json({ error: "Invalid session" });
+        return;
+      }
+
+      // Set cookie for web
+      const cookieOptions = {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax" as const,
+        maxAge: ONE_YEAR_MS,
+      };
+      res.cookie(COOKIE_NAME, token, cookieOptions);
+
+      res.json({
+        success: true,
+        user: {
+          id: session.userId,
+          openId: session.userId,
+          name: session.userName,
+          email: session.email,
+          loginMethod: session.loginMethod || "email",
+          lastSignedIn: session.createdAt.toISOString(),
+        },
+      });
+    } catch (error) {
+      console.error("[Auth] /api/auth/session failed:", error);
+      res.status(401).json({ error: "Invalid token" });
     }
   });
 
