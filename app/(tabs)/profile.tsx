@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useWorkout } from "@/lib/workout-store";
 import { useSubscription } from "@/lib/subscription-store";
 import type { PlanType } from "@/lib/subscription-store";
+import { scheduleAllReminders, cancelAllReminders, initializeNotifications } from "@/lib/notification-service";
 const PLANS = [
   { id: "daily" as const, label: "Daily", price: "$0.99", period: "/day", perWeek: "$6.93/wk", savings: "Save 0%", popular: false },
   { id: "weekly" as const, label: "Weekly", price: "$5.99", period: "/week", perWeek: "$5.99/wk", savings: "Save 14%", popular: false },
@@ -13,7 +14,7 @@ const PLANS = [
 ]
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
-import { useCallback, useState } from "react";
+import { useCallback, useState, useEffect } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -45,6 +46,8 @@ export default function ProfileScreen() {
   const [remindersEnabled, setRemindersEnabled] = useState((reminders as any)?.enabled !== false);
   
   const validReminders = Object.entries(reminders).reduce((acc: any, [key, value]: [string, any]) => {
+    // Skip the 'enabled' field - only include time objects
+    if (key === 'enabled') return acc;
     acc[key] = {
       hour: typeof value?.hour === 'number' ? value.hour : 18,
       minute: typeof value?.minute === 'number' ? value.minute : 0,
@@ -58,6 +61,18 @@ export default function ProfileScreen() {
 
   const unlockedAwards = getUnlockedAwards();
   const lockedAwards = getLockedAwards();
+  // Initialize notifications on component mount
+  useEffect(() => {
+    const init = async () => {
+      const granted = await initializeNotifications();
+      if (granted && remindersEnabled) {
+        // Schedule reminders if notifications are enabled
+        const settingsWithEnabled = { ...localReminders, enabled: true };
+        await scheduleAllReminders(settingsWithEnabled);
+      }
+    };
+    init();
+  }, []);
 
   const handleLogout = () => {
     if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
@@ -107,10 +122,16 @@ export default function ProfileScreen() {
         [editingReminder]: { hour: pickerHour, minute: pickerMinute },
       };
       setLocalReminders(updated);
-      updateSettings({ reminders: updated });
+      // Include enabled field when updating settings
+      const settingsWithEnabled = { ...updated, enabled: remindersEnabled };
+      updateSettings({ reminders: settingsWithEnabled });
+      // Reschedule notifications with new times
+      if (remindersEnabled) {
+        scheduleAllReminders(settingsWithEnabled);
+      }
       setEditingReminder(null);
     }
-  }, [editingReminder, pickerHour, pickerMinute, reminders, updateSettings]);
+  }, [editingReminder, pickerHour, pickerMinute, reminders, updateSettings, remindersEnabled]);
 
   const handleUpgradeConfirm = async () => {
     if (!selectedUpgradePlan || selectedUpgradePlan === subscription.plan) {
@@ -243,7 +264,14 @@ export default function ProfileScreen() {
                 onPress={() => {
                   const newState = !remindersEnabled;
                   setRemindersEnabled(newState);
-                  updateSettings({ reminders: { ...localReminders, enabled: newState } });
+                  const settingsWithEnabled = { ...localReminders, enabled: newState };
+                  updateSettings({ reminders: settingsWithEnabled });
+                  // Schedule or cancel notifications based on toggle
+                  if (newState) {
+                    scheduleAllReminders(settingsWithEnabled);
+                  } else {
+                    cancelAllReminders();
+                  }
                 }}
                 style={({ pressed }) => [{
                   paddingHorizontal: 12,
