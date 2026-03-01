@@ -174,3 +174,10 @@
 - [x] Test: login persists across app restarts
 - [x] Test: logout clears state and goes to login
 - [x] Test: no redirect loops
+
+## DATABASE PERSISTENCE FOR AUTH
+
+- [x] Add users and sessions tables to database schema
+- [x] Rewrite server auth to use database (not in-memory Maps)
+- [x] Accounts survive server restarts
+- [x] Login works with previously created accounts

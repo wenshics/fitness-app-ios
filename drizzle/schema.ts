@@ -25,4 +25,28 @@ export const users = mysqlTable("users", {
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 
-// TODO: Add your tables here
+// Email/password auth tables — persistent across server restarts
+export const emailUsers = mysqlTable("email_users", {
+  id: int("id").autoincrement().primaryKey(),
+  email: varchar("email", { length: 320 }).notNull().unique(),
+  name: text("name").notNull(),
+  passwordHash: text("passwordHash").notNull(),
+  birthday: varchar("birthday", { length: 20 }),
+  heightCm: int("heightCm"),
+  weightKg: int("weightKg"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export const emailSessions = mysqlTable("email_sessions", {
+  id: int("id").autoincrement().primaryKey(),
+  token: varchar("token", { length: 128 }).notNull().unique(),
+  userId: int("userId").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  expiresAt: timestamp("expiresAt").notNull(),
+});
+
+export type EmailUser = typeof emailUsers.$inferSelect;
+export type InsertEmailUser = typeof emailUsers.$inferInsert;
+export type EmailSession = typeof emailSessions.$inferSelect;
+export type InsertEmailSession = typeof emailSessions.$inferInsert;

@@ -1,333 +1,219 @@
 import type { Express, Request, Response } from "express";
-import { randomBytes } from "crypto";
+import {
+  createEmailUser,
+  findEmailUserByEmail,
+  verifyPassword,
+  createEmailSession,
+  findEmailSessionUser,
+  deleteEmailSession,
+} from "../db";
 
-const ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
 const COOKIE_NAME = "app_session_id";
+const ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
 
-// Simple in-memory session store for demo
-const sessions = new Map<
-  string,
-  {
-    userId: string;
-    userName: string;
-    email: string;
-    loginMethod?: string;
-    createdAt: Date;
-  }
->();
-
-// Simple in-memory user store for email/password auth
-const users = new Map<
-  string,
-  {
-    id: string;
-    name: string;
-    email: string;
-    passwordHash: string;
-    createdAt: Date;
-  }
->();
-
-// Simple password hashing (in production, use bcrypt)
-function hashPassword(password: string): string {
-  return Buffer.from(password).toString('base64');
-}
-
-function verifyPassword(password: string, hash: string): boolean {
-  return hashPassword(password) === hash;
-}
-
-function generateSessionToken(): string {
-  return randomBytes(32).toString("hex");
+function cookieOptions(maxAge = ONE_YEAR_MS) {
+  return {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax" as const,
+    maxAge,
+  };
 }
 
 export function registerAuthRoutes(app: Express) {
-  // Email/password signup endpoint
+  // ── Email/password signup ──────────────────────────────────────────────────
   app.post("/api/auth/email-signup", async (req: Request, res: Response) => {
     try {
-      const { email: rawEmail, password: rawPassword, name: rawName } = req.body;
-      const email = rawEmail?.trim();
-      const password = rawPassword?.trim();
-      const name = rawName?.trim();
+      const { email, password, name, birthday, height, weight } = req.body;
 
-      if (!email || !password || !name) {
+      if (!email?.trim() || !password?.trim() || !name?.trim()) {
         res.status(400).json({ error: "Missing required fields" });
         return;
       }
 
-      // Check if user already exists
-      const existingUser = Array.from(users.values()).find(u => u.email === email);
-      if (existingUser) {
+      // Check duplicate
+      const existing = await findEmailUserByEmail(email.trim());
+      if (existing) {
         res.status(400).json({ error: "Email already registered" });
         return;
       }
 
-      // Create new user
-      const userId = `user-${Date.now()}`;
-      const passwordHash = hashPassword(password);
-      users.set(email, {
-        id: userId,
-        name,
-        email,
-        passwordHash,
-        createdAt: new Date(),
-      });
+      const user = await createEmailUser(
+        email.trim(),
+        password.trim(),
+        name.trim(),
+        birthday?.trim() || undefined,
+        height ? Math.round(parseFloat(height)) : undefined,
+        weight ? Math.round(parseFloat(weight)) : undefined,
+      );
 
-      // Create session
-      const sessionToken = generateSessionToken();
-      sessions.set(sessionToken, {
-        userId,
-        userName: name,
-        email,
-        loginMethod: "email",
-        createdAt: new Date(),
-      });
-
-      // Set cookie for web
-      const cookieOptions = {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax" as const,
-        maxAge: ONE_YEAR_MS,
-      };
-      res.cookie(COOKIE_NAME, sessionToken, cookieOptions);
-
-      res.json({
-        success: true,
-        sessionToken,
-        user: {
-          id: userId,
-          openId: userId,
-          name,
-          email,
-          loginMethod: "email",
-          lastSignedIn: new Date().toISOString(),
-        },
-      });
-    } catch (error) {
-      console.error("[Auth] Email signup failed", error);
-      res.status(500).json({ error: "Signup failed", success: false });
-    }
-  });
-
-  // Email/password login endpoint
-  app.post("/api/auth/email-login", async (req: Request, res: Response) => {
-    try {
-      const { email: rawEmail, password: rawPassword } = req.body;
-      const email = rawEmail?.trim();
-      const password = rawPassword?.trim();
-
-      if (!email || !password) {
-        res.status(400).json({ error: "Missing email or password" });
+      if (!user) {
+        res.status(500).json({ error: "Failed to create account — database unavailable" });
         return;
       }
 
-      // Find user
-      const user = Array.from(users.values()).find(u => u.email === email);
-      if (!user || !verifyPassword(password, user.passwordHash)) {
-        res.status(401).json({ error: "Invalid email or password" });
-        return;
-      }
+      const token = await createEmailSession(user.id);
 
-      // Create session
-      const sessionToken = generateSessionToken();
-      console.log("[Auth] Email login - creating session", { token: sessionToken, tokenLength: sessionToken.length, userId: user.id });
-      sessions.set(sessionToken, {
-        userId: user.id,
-        userName: user.name,
-        email: user.email,
-        loginMethod: "email",
-        createdAt: new Date(),
-      });
-      console.log("[Auth] Email login - session stored", { sessionsCount: sessions.size });
-
-      // Set cookie for web
-      const cookieOptions = {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax" as const,
-        maxAge: ONE_YEAR_MS,
-      };
-      res.cookie(COOKIE_NAME, sessionToken, cookieOptions);
-
+      res.cookie(COOKIE_NAME, token, cookieOptions());
       res.json({
         success: true,
-        sessionToken,
+        sessionToken: token,
         user: {
-          id: user.id,
-          openId: user.id,
+          id: String(user.id),
+          openId: String(user.id),
           name: user.name,
           email: user.email,
           loginMethod: "email",
           lastSignedIn: new Date().toISOString(),
         },
       });
-    } catch (error) {
-      console.error("[Auth] Email login failed", error);
-      res.status(500).json({ error: "Login failed", success: false });
+    } catch (err) {
+      console.error("[Auth] email-signup error:", err);
+      res.status(500).json({ error: "Signup failed" });
     }
   });
 
-  // Direct login endpoint for mobile apps (no OAuth, no deep links)
-  app.post("/api/auth/login", async (req: Request, res: Response) => {
+  // ── Email/password login ───────────────────────────────────────────────────
+  app.post("/api/auth/email-login", async (req: Request, res: Response) => {
     try {
-      // Create a demo user
-      const userId = `user-${Date.now()}`;
-      const sessionToken = generateSessionToken();
+      const { email, password } = req.body;
 
-      // Store session
-      sessions.set(sessionToken, {
-        userId,
-        userName: "Demo User",
-        email: "demo@fitlife.app",
-        createdAt: new Date(),
-      });
+      if (!email?.trim() || !password?.trim()) {
+        res.status(400).json({ error: "Missing email or password" });
+        return;
+      }
 
-      // Set cookie for web
-      const cookieOptions = {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax" as const,
-        maxAge: ONE_YEAR_MS,
-      };
-      res.cookie(COOKIE_NAME, sessionToken, cookieOptions);
+      const user = await findEmailUserByEmail(email.trim());
+      if (!user || !verifyPassword(password.trim(), user.passwordHash)) {
+        res.status(401).json({ error: "Invalid email or password" });
+        return;
+      }
 
-      // Return response for mobile
+      const token = await createEmailSession(user.id);
+
+      res.cookie(COOKIE_NAME, token, cookieOptions());
       res.json({
         success: true,
-        sessionToken,
+        sessionToken: token,
         user: {
-          id: userId,
-          openId: userId,
-          name: "Demo User",
-          email: "demo@fitlife.app",
-          loginMethod: "demo",
+          id: String(user.id),
+          openId: String(user.id),
+          name: user.name,
+          email: user.email,
+          loginMethod: "email",
           lastSignedIn: new Date().toISOString(),
         },
       });
-    } catch (error) {
-      console.error("[Auth] Login failed", error);
-      res.status(500).json({ error: "Login failed", success: false });
+    } catch (err) {
+      console.error("[Auth] email-login error:", err);
+      res.status(500).json({ error: "Login failed" });
     }
   });
 
-  // Logout endpoint
-  app.post("/api/auth/logout", (req: Request, res: Response) => {
-    const cookieOptions = {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax" as const,
-      maxAge: -1,
-    };
-    res.clearCookie(COOKIE_NAME, cookieOptions);
-    res.json({ success: true });
-  });
-
-  // Get current authenticated user
+  // ── Get current user (/api/auth/me) ───────────────────────────────────────
   app.get("/api/auth/me", async (req: Request, res: Response) => {
     try {
-      const authHeader = req.headers.authorization;
-      const token = authHeader?.replace("Bearer ", "") || req.cookies[COOKIE_NAME];
+      const token =
+        req.headers.authorization?.replace("Bearer ", "") ||
+        req.cookies?.[COOKIE_NAME];
 
-      console.log("[Auth] /api/auth/me called", { 
-        hasToken: !!token, 
-        tokenLength: token?.length,
-        authHeader: authHeader?.substring(0, 20),
-        hasCookie: !!req.cookies[COOKIE_NAME], 
-        sessionCount: sessions.size,
-        sessionTokens: Array.from(sessions.keys()).map(t => t.substring(0, 10))
-      });
-
-      if (!token || !sessions.has(token)) {
-        console.log("[Auth] /api/auth/me: not authenticated", { hasToken: !!token, tokenInSessions: sessions.has(token) });
+      if (!token) {
         res.status(401).json({ error: "Not authenticated", user: null });
         return;
       }
 
-      const session = sessions.get(token);
-      console.log("[Auth] /api/auth/me: returning user", { userId: session?.userId, email: session?.email });
+      const session = await findEmailSessionUser(token);
+      if (!session) {
+        res.status(401).json({ error: "Session expired or invalid", user: null });
+        return;
+      }
+
       res.json({
         user: {
-          id: session?.userId,
-          openId: session?.userId,
-          name: session?.userName,
-          email: session?.email,
-          loginMethod: session?.loginMethod || "demo",
-          lastSignedIn: session?.createdAt.toISOString(),
+          id: String(session.userId),
+          openId: String(session.userId),
+          name: session.name,
+          email: session.email,
+          loginMethod: "email",
+          lastSignedIn: new Date().toISOString(),
         },
       });
-    } catch (error) {
-      console.error("[Auth] /api/auth/me failed:", error);
+    } catch (err) {
+      console.error("[Auth] /api/auth/me error:", err);
       res.status(401).json({ error: "Not authenticated", user: null });
     }
   });
 
-  // Establish session for email/password auth (sets cookie)
+  // ── Logout ─────────────────────────────────────────────────────────────────
+  app.post("/api/auth/logout", async (req: Request, res: Response) => {
+    try {
+      const token =
+        req.headers.authorization?.replace("Bearer ", "") ||
+        req.cookies?.[COOKIE_NAME];
+
+      if (token) {
+        await deleteEmailSession(token).catch(() => {});
+      }
+
+      res.clearCookie(COOKIE_NAME, cookieOptions(-1));
+      res.json({ success: true });
+    } catch (err) {
+      console.error("[Auth] logout error:", err);
+      res.json({ success: true }); // always succeed from client perspective
+    }
+  });
+
+  // ── Establish session cookie (used after native token exchange) ───────────
   app.post("/api/auth/session", async (req: Request, res: Response) => {
     try {
       const token =
         req.headers.authorization?.replace("Bearer ", "") ||
-        req.body.token;
+        req.body?.token;
 
-      console.log("[Auth] /api/auth/session called", { hasToken: !!token, sessionCount: sessions.size });
-
-      if (!token || !sessions.has(token)) {
-        console.log("[Auth] /api/auth/session: token not found in sessions", { hasToken: !!token, tokenExists: sessions.has(token) });
-        res.status(401).json({ error: "Invalid token" });
+      if (!token) {
+        res.status(401).json({ error: "No token provided" });
         return;
       }
 
-      const session = sessions.get(token);
+      const session = await findEmailSessionUser(token);
       if (!session) {
-        console.log("[Auth] /api/auth/session: session is null");
-        res.status(401).json({ error: "Invalid session" });
+        res.status(401).json({ error: "Invalid or expired token" });
         return;
       }
 
-      console.log("[Auth] /api/auth/session: setting cookie", { userId: session.userId, email: session.email });
-
-      // Set cookie for web
-      const cookieOptions = {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax" as const,
-        maxAge: ONE_YEAR_MS,
-      };
-      res.cookie(COOKIE_NAME, token, cookieOptions);
-      console.log("[Auth] /api/auth/session: cookie set", { cookieName: COOKIE_NAME });
-
+      res.cookie(COOKIE_NAME, token, cookieOptions());
       res.json({
         success: true,
         user: {
-          id: session.userId,
-          openId: session.userId,
-          name: session.userName,
+          id: String(session.userId),
+          openId: String(session.userId),
+          name: session.name,
           email: session.email,
-          loginMethod: session.loginMethod || "email",
-          lastSignedIn: session.createdAt.toISOString(),
+          loginMethod: "email",
+          lastSignedIn: new Date().toISOString(),
         },
       });
-    } catch (error) {
-      console.error("[Auth] /api/auth/session failed:", error);
+    } catch (err) {
+      console.error("[Auth] /api/auth/session error:", err);
       res.status(401).json({ error: "Invalid token" });
     }
   });
 
-  // Verify session token
-  app.post("/api/auth/verify", (req: Request, res: Response) => {
+  // ── Verify token ───────────────────────────────────────────────────────────
+  app.post("/api/auth/verify", async (req: Request, res: Response) => {
     try {
       const token =
         req.headers.authorization?.replace("Bearer ", "") ||
-        req.cookies[COOKIE_NAME];
+        req.body?.token;
 
-      if (!token || !sessions.has(token)) {
+      if (!token) {
         res.status(401).json({ valid: false });
         return;
       }
 
-      res.json({ valid: true });
-    } catch (error) {
-      console.error("[Auth] /api/auth/verify failed:", error);
+      const session = await findEmailSessionUser(token);
+      res.json({ valid: Boolean(session) });
+    } catch (err) {
       res.status(401).json({ valid: false });
     }
   });

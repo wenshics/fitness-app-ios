@@ -89,4 +89,89 @@ export async function getUserByOpenId(openId: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
+// ---- Email/Password Auth Helpers ----
+import { emailUsers, emailSessions, InsertEmailUser } from "../drizzle/schema";
+import { randomBytes } from "crypto";
+
+const ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
+
+/** Simple deterministic hash — good enough for this app (use bcrypt in production) */
+function hashPassword(password: string): string {
+  return Buffer.from(password + "__salt_pulse_app__").toString("base64");
+}
+
+export function verifyPassword(password: string, hash: string): boolean {
+  return hashPassword(password) === hash;
+}
+
+export async function createEmailUser(
+  email: string,
+  password: string,
+  name: string,
+  birthday?: string,
+  heightCm?: number,
+  weightKg?: number,
+): Promise<{ id: number; email: string; name: string } | null> {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[DB] createEmailUser: database not available");
+    return null;
+  }
+  const passwordHash = hashPassword(password);
+  const result = await db.insert(emailUsers).values({
+    email: email.toLowerCase().trim(),
+    name: name.trim(),
+    passwordHash,
+    birthday: birthday ?? null,
+    heightCm: heightCm ?? null,
+    weightKg: weightKg ?? null,
+  });
+  return { id: Number(result[0].insertId), email, name };
+}
+
+export async function findEmailUserByEmail(email: string) {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db
+    .select()
+    .from(emailUsers)
+    .where(eq(emailUsers.email, email.toLowerCase().trim()))
+    .limit(1);
+  return rows[0] ?? null;
+}
+
+export async function createEmailSession(userId: number): Promise<string> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const token = randomBytes(48).toString("hex");
+  const expiresAt = new Date(Date.now() + ONE_YEAR_MS);
+  await db.insert(emailSessions).values({ token, userId, expiresAt });
+  return token;
+}
+
+export async function findEmailSessionUser(token: string) {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db
+    .select({
+      userId: emailSessions.userId,
+      expiresAt: emailSessions.expiresAt,
+      email: emailUsers.email,
+      name: emailUsers.name,
+    })
+    .from(emailSessions)
+    .innerJoin(emailUsers, eq(emailSessions.userId, emailUsers.id))
+    .where(eq(emailSessions.token, token))
+    .limit(1);
+  if (!rows[0]) return null;
+  if (rows[0].expiresAt < new Date()) return null; // expired
+  return rows[0];
+}
+
+export async function deleteEmailSession(token: string): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(emailSessions).where(eq(emailSessions.token, token));
+}
+
 // TODO: add feature queries here as your schema grows.
