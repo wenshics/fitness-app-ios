@@ -14,13 +14,13 @@ import {
 import { useRouter } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
-import * as Auth from "@/lib/_core/auth";
-import { notifyAuthChanged } from "@/hooks/use-auth";
+import { useAuth } from "@/hooks/use-auth";
 import { getApiBaseUrl } from "@/constants/oauth";
 
 export default function SignupScreen() {
   const colors = useColors();
   const router = useRouter();
+  const { login } = useAuth();
 
   // Form state
   const [email, setEmail] = useState("");
@@ -134,33 +134,23 @@ export default function SignupScreen() {
       }
 
       if (data.sessionToken && data.user) {
-        // Store token and user info
-        await Auth.setSessionToken(data.sessionToken);
-        const userInfo: Auth.User = {
-          id: data.user.id,
-          openId: data.user.openId,
-          name: data.user.name,
-          email: data.user.email,
-          loginMethod: data.user.loginMethod,
-          lastSignedIn: new Date(data.user.lastSignedIn || Date.now()),
-        };
-        await Auth.setUserInfo(userInfo);
-
-        console.log("[Signup] Account created successfully");
-        notifyAuthChanged();
-
-        // Show success message
-        Alert.alert("Success", "Your account has been created successfully!", [
+        // Use login() from useAuth — stores token + user, sets state immediately
+        await login(
           {
-            text: "OK",
-            onPress: () => {
-              // Navigate to home screen
-              router.replace("/(tabs)");
-            },
+            id: data.user.id,
+            openId: data.user.openId,
+            name: data.user.name,
+            email: data.user.email,
+            loginMethod: data.user.loginMethod,
+            lastSignedIn: new Date(data.user.lastSignedIn || Date.now()),
           },
-        ]);
+          data.sessionToken,
+        );
+
+        // Navigate to home — user state is already set, no redirect loop possible
+        router.replace("/(tabs)");
       } else {
-        setError("Invalid response from server");
+        setError("Invalid response from server. Please try again.");
         setIsLoading(false);
       }
     } catch (err) {

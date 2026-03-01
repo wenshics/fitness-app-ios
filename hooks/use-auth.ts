@@ -1,279 +1,94 @@
-import * as Api from "@/lib/_core/api";
 import * as Auth from "@/lib/_core/auth";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Platform } from "react-native";
-
-type UseAuthOptions = {
-  autoFetch?: boolean;
-};
+import * as Api from "@/lib/_core/api";
 
 /**
- * Custom event name used to signal that auth state has changed
- * (e.g., after OAuth callback stores user info in localStorage).
- * This allows useAuth to reactively pick up the new user without
- * requiring a page reload or second login attempt.
+ * SIMPLE AUTH DESIGN:
+ * - Local storage (SecureStore on native, localStorage on web) is the SINGLE SOURCE OF TRUTH
+ * - On app load: read user from local storage immediately — no API calls
+ * - On login/signup: store token + user info locally, set user state
+ * - On logout: clear local storage, clear user state
+ * - NEVER call the API to verify the session on app load — this causes redirect loops
+ *   when the server restarts and loses in-memory sessions
  */
-const AUTH_CHANGED_EVENT = "auth-state-changed";
+
+export type AuthUser = Auth.User;
 
 /**
- * Dispatch a custom event to notify all useAuth instances that
- * credentials have been updated. Call this after storing user info
- * in the OAuth callback.
+ * Notify all useAuth instances that the user has logged in.
+ * Call this after storing user info locally.
  */
 export function notifyAuthChanged(): void {
-  if (Platform.OS === "web" && typeof window !== "undefined") {
-    console.log("[useAuth] Dispatching auth-state-changed event");
-    window.dispatchEvent(new CustomEvent(AUTH_CHANGED_EVENT));
-  }
+  // No-op: login-screen directly sets state via the returned setUser
+  // This is kept for backward compatibility with any code that calls it
 }
 
-export function useAuth(options?: UseAuthOptions) {
-  const { autoFetch = true } = options ?? {};
+export function useAuth() {
   const [user, setUser] = useState<Auth.User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-  const initialCheckDone = useRef(false);
-  const isLoggedOutRef = useRef(false); // Track if user explicitly logged out
 
-  // Core function: try to get user from API (background refresh)
-  const refreshFromApi = useCallback(async () => {
-    if (Platform.OS !== "web") return;
-    
-    // Don't restore user if they explicitly logged out
-    if (isLoggedOutRef.current) {
-      console.log("[useAuth] Skipping refresh - user logged out");
-      return;
-    }
-    
-    try {
-      const apiUser = await Api.getMe();
-      if (apiUser) {
-        const userInfo: Auth.User = {
-          id: apiUser.id,
-          openId: apiUser.openId,
-          name: apiUser.name,
-          email: apiUser.email,
-          loginMethod: apiUser.loginMethod,
-          lastSignedIn: new Date(apiUser.lastSignedIn),
-        };
-        setUser(userInfo);
-        await Auth.setUserInfo(userInfo);
-        console.log("[useAuth] Refreshed user from API");
-      } else {
-        // API returned null - user is not authenticated
-        console.log("[useAuth] API returned no user - clearing cached user");
-        setUser(null);
-        await Auth.clearUserInfo();
-      }
-    } catch (err) {
-      console.warn("[useAuth] API refresh failed:", err);
-      // On API failure, clear the user to be safe
-      setUser(null);
-    }
-  }, []);
+  // Load user from local storage on mount — synchronous, no API calls
+  useEffect(() => {
+    let cancelled = false;
 
-  const fetchUser = useCallback(async () => {
-    console.log("[useAuth] fetchUser called, platform:", Platform.OS);
-    try {
-      setError(null);
-
-      if (Platform.OS === "web") {
-        // Step 1: Check localStorage cache first (instant, synchronous on web)
-        const cachedUser = await Auth.getUserInfo();
-        if (cachedUser) {
-          console.log("[useAuth] Web: found cached user in localStorage");
-          setUser(cachedUser);
-          setLoading(false);
-          // Step 2: Refresh from API in background (non-blocking)
-          refreshFromApi();
-          return;
-        }
-
-        // Step 2: No cache - try API directly
-        console.log("[useAuth] Web: no cached user, trying API...");
-        try {
-          const apiUser = await Api.getMe();
-          if (apiUser) {
-            const userInfo: Auth.User = {
-              id: apiUser.id,
-              openId: apiUser.openId,
-              name: apiUser.name,
-              email: apiUser.email,
-              loginMethod: apiUser.loginMethod,
-              lastSignedIn: new Date(apiUser.lastSignedIn),
-            };
-            setUser(userInfo);
-            await Auth.setUserInfo(userInfo);
-            console.log("[useAuth] Web: user set from API");
-          } else {
-            console.log("[useAuth] Web: no user from API");
-            setUser(null);
-          }
-        } catch (apiErr) {
-          console.warn("[useAuth] Web: API call failed:", apiErr);
-          // Don't clear user on API failure - just log it
-          // This prevents redirect loops when API is temporarily unavailable
-          console.log("[useAuth] Web: keeping null user state (API unavailable)");
-        }
-        setLoading(false);
-        return;
-      }
-
-      // Native platform: use token-based auth
-      const sessionToken = await Auth.getSessionToken();
-      if (!sessionToken) {
-        console.log("[useAuth] Native: no session token");
-        setUser(null);
-        setLoading(false);
-        return;
-      }
-
-      const cachedUser = await Auth.getUserInfo();
-      if (cachedUser) {
-        console.log("[useAuth] Native: using cached user");
-        setUser(cachedUser);
-        setLoading(false);
-        return;
-      }
-
-      // No cached user but have token - validate with API
-      console.log("[useAuth] Native: no cached user, validating token with API...");
+    const loadUser = async () => {
       try {
-        const apiUser = await Api.getMe();
-        if (apiUser) {
-          const userInfo: Auth.User = {
-            id: apiUser.id,
-            openId: apiUser.openId,
-            name: apiUser.name,
-            email: apiUser.email,
-            loginMethod: apiUser.loginMethod,
-            lastSignedIn: new Date(apiUser.lastSignedIn),
-          };
-          setUser(userInfo);
-          await Auth.setUserInfo(userInfo);
-          console.log("[useAuth] Native: user set from API");
-        } else {
-          console.log("[useAuth] Native: API returned no user, clearing token");
-          await Auth.removeSessionToken();
+        const stored = await Auth.getUserInfo();
+        if (!cancelled) {
+          setUser(stored);
+        }
+      } catch (err) {
+        console.warn("[useAuth] Failed to load user from storage:", err);
+        if (!cancelled) {
           setUser(null);
         }
-      } catch (apiErr) {
-        console.warn("[useAuth] Native: API validation failed, clearing token:", apiErr);
-        await Auth.removeSessionToken();
-        setUser(null);
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
-      setLoading(false);
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error("Failed to fetch user");
-      console.error("[useAuth] fetchUser error:", error);
-      setError(error);
-      setUser(null);
-      setLoading(false);
-    }
-  }, [refreshFromApi]);
+    };
+
+    loadUser();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const login = useCallback(async (userData: Auth.User, sessionToken: string) => {
+    // Store token and user info locally
+    await Auth.setSessionToken(sessionToken);
+    await Auth.setUserInfo(userData);
+    // Update state immediately — no API call needed
+    setUser(userData);
+  }, []);
 
   const logout = useCallback(async () => {
-    console.log("[useAuth] logout called");
-    
-    // Mark that user explicitly logged out - prevents background refresh from restoring them
-    isLoggedOutRef.current = true;
-    console.log("[useAuth] Set isLoggedOutRef to true");
-    
-    // Clear local state IMMEDIATELY - this triggers AuthGuard to redirect
-    console.log("[useAuth] Clearing user state");
+    // Clear local state immediately
     setUser(null);
-    setError(null);
-    
-    // Clear storage
+
+    // Clear local storage
     await Auth.removeSessionToken();
     await Auth.clearUserInfo();
-    
-    // FORCE clear localStorage directly to ensure user data is gone
-    if (Platform.OS === "web" && typeof window !== "undefined") {
-      try {
-        window.localStorage.removeItem("user_info");
-        window.localStorage.removeItem("session_token");
-        // Also clear any other auth-related keys
-        const keysToRemove = [];
-        for (let i = 0; i < window.localStorage.length; i++) {
-          const key = window.localStorage.key(i);
-          if (key && (key.includes("user") || key.includes("auth") || key.includes("session"))) {
-            keysToRemove.push(key);
-          }
-        }
-        keysToRemove.forEach(key => window.localStorage.removeItem(key));
-        console.log("[useAuth] Forced localStorage clear, removed keys:", keysToRemove);
-      } catch (err) {
-        console.warn("[useAuth] Failed to clear localStorage:", err);
-      }
-    }
-    
-    console.log("[useAuth] Local state and storage cleared");
-    
-    // Then notify server (best effort)
-    try {
-      console.log("[useAuth] calling Api.logout()...");
-      await Api.logout();
-      console.log("[useAuth] Api.logout() succeeded");
-    } catch (err) {
-      console.error("[useAuth] Logout API call failed (local state already cleared):", err);
-    }
-    
-    console.log("[useAuth] logout complete");
+
+    // Best-effort server logout (don't await — don't let failure block UI)
+    Api.logout().catch((err) => {
+      console.warn("[useAuth] Server logout failed (ignored):", err);
+    });
   }, []);
 
   const isAuthenticated = useMemo(() => Boolean(user), [user]);
 
-  // Initial auth check on mount
-  useEffect(() => {
-    if (!autoFetch) {
-      setLoading(false);
-      return;
-    }
-    // Prevent double-call in React strict mode or re-renders
-    if (initialCheckDone.current) return;
-    initialCheckDone.current = true;
-
-    console.log("[useAuth] Initial auth check, platform:", Platform.OS);
-    fetchUser();
-  }, [autoFetch, fetchUser]);
-
-  // Listen for auth-state-changed events (fired by OAuth callback after storing user)
-  // This ensures useAuth picks up the new user immediately without needing a second login
-  useEffect(() => {
-    if (Platform.OS !== "web" || typeof window === "undefined") return;
-
-    const handleAuthChanged = () => {
-      console.log("[useAuth] Received auth-state-changed event, re-fetching user...");
-      // Reset logout flag when user logs back in
-      isLoggedOutRef.current = false;
-      // After login, just load from cache - don't refresh from API yet
-      // This prevents the redirect loop when API is temporarily unavailable
-      const loadCachedUser = async () => {
-        const cachedUser = await Auth.getUserInfo();
-        if (cachedUser) {
-          console.log("[useAuth] Loaded cached user after login");
-          setUser(cachedUser);
-          setLoading(false);
-          // Optionally refresh from API in background after a delay
-          setTimeout(() => refreshFromApi(), 1000);
-        }
-      };
-      loadCachedUser();
-    };
-
-    window.addEventListener(AUTH_CHANGED_EVENT, handleAuthChanged);
-    return () => {
-      window.removeEventListener(AUTH_CHANGED_EVENT, handleAuthChanged);
-    };
-  }, [refreshFromApi]);
-
   return {
     user,
     loading,
-    error,
     isAuthenticated,
-    refresh: fetchUser,
+    login,
     logout,
+    // Legacy compat
+    refresh: async () => {},
+    error: null,
   };
 }

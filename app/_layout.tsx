@@ -58,34 +58,32 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, loading: isLoading } = useAuth();
   const segments = useSegments();
   const router = useRouter();
+  // Track whether we've done the initial redirect so we don't loop
+  const hasRedirected = useRef(false);
 
   useEffect(() => {
-    // Wait for router to be ready and auth to finish loading
-    if (isLoading) {
-      console.log("[AuthGuard] Still loading, waiting...");
-      return;
-    }
+    // Wait until auth finishes loading from local storage
+    if (isLoading) return;
 
-    const inAuthGroup = segments[0] === "oauth" || segments[0] === "auth" || segments[0] === "login-screen" || segments[0] === "signup-screen";
-    const currentPath = segments.join("/");
+    const inAuthGroup =
+      segments[0] === "oauth" ||
+      segments[0] === "auth" ||
+      segments[0] === "login-screen" ||
+      segments[0] === "signup-screen";
 
-    console.log("[AuthGuard] Auth state check:", {
-      isAuthenticated,
-      inAuthGroup,
-      currentPath,
-    });
-
-    // Always redirect based on current auth state
     if (!isAuthenticated && !inAuthGroup) {
-      // Not logged in and not on auth page - go directly to login-screen
-      console.log("[AuthGuard] Redirecting to login-screen");
+      // Not logged in and not already on an auth screen — go to login
       router.replace("/login-screen");
     } else if (isAuthenticated && inAuthGroup) {
-      // Logged in but on auth page - go to app
-      console.log("[AuthGuard] Redirecting to app");
-      router.replace("/(tabs)");
+      // Just logged in and still on auth screen — go to home
+      // Only do this once per session to avoid looping
+      if (!hasRedirected.current) {
+        hasRedirected.current = true;
+        router.replace("/(tabs)");
+      }
     } else {
-      console.log("[AuthGuard] No redirect needed");
+      // Correct screen for auth state — reset redirect flag
+      hasRedirected.current = false;
     }
   }, [isAuthenticated, isLoading, segments, router]);
 

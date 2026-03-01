@@ -164,3 +164,13 @@
 - [x] notifyAuthChanged() may not be triggering properly - FIXED (now loads cached user on event)
 - [x] useAuth hook may not be refreshing from API - FIXED (API refresh is now background, non-blocking)
 - [x] AuthGuard may be redirecting too aggressively - FIXED (no longer clears user on API failure)
+
+## FULL AUTH REWRITE
+
+- [x] Rewrite useAuth hook - simple token-based, no API round-trips that clear user state
+- [x] Rewrite login-screen to call new auth system
+- [x] Rewrite signup-screen to call new auth system
+- [x] Rewrite AuthGuard - simple stable navigation, no race conditions
+- [x] Test: login persists across app restarts
+- [x] Test: logout clears state and goes to login
+- [x] Test: no redirect loops

@@ -9,17 +9,18 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  Alert,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
-import * as Auth from "@/lib/_core/auth";
-import { notifyAuthChanged } from "@/hooks/use-auth";
+import { useAuth } from "@/hooks/use-auth";
 import { getApiBaseUrl } from "@/constants/oauth";
 
 export default function LoginScreen() {
   const colors = useColors();
   const router = useRouter();
+  const { login } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -39,11 +40,10 @@ export default function LoginScreen() {
       const endpoint = "/api/auth/email-login";
       const url = apiUrl ? `${apiUrl}${endpoint}` : endpoint;
 
-      console.log("[Login] Attempting login to:", url);
-
       const response = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           email: email.trim().toLowerCase(),
           password: password.trim(),
@@ -51,45 +51,40 @@ export default function LoginScreen() {
       });
 
       const data = await response.json();
-      console.log("[Login] Response:", data);
 
       if (!response.ok) {
-        if (data.error?.includes("not found")) {
-          setError("Account not found. Please sign up to create a new account.");
-        } else if (data.error?.includes("not match") || data.error?.includes("incorrect")) {
+        if (data.error?.includes("not found") || data.error?.includes("Invalid")) {
           setError("Email or password is incorrect. Please try again.");
         } else {
-          setError(data.error || "Login failed");
+          setError(data.error || "Login failed. Please try again.");
         }
         setIsLoading(false);
         return;
       }
 
       if (data.sessionToken && data.user) {
-        // Store token and user info
-        await Auth.setSessionToken(data.sessionToken);
-        const userInfo: Auth.User = {
-          id: data.user.id,
-          openId: data.user.openId,
-          name: data.user.name,
-          email: data.user.email,
-          loginMethod: data.user.loginMethod,
-          lastSignedIn: new Date(data.user.lastSignedIn || Date.now()),
-        };
-        await Auth.setUserInfo(userInfo);
+        // Use the login() method from useAuth — stores token + user, sets state immediately
+        await login(
+          {
+            id: data.user.id,
+            openId: data.user.openId,
+            name: data.user.name,
+            email: data.user.email,
+            loginMethod: data.user.loginMethod,
+            lastSignedIn: new Date(data.user.lastSignedIn || Date.now()),
+          },
+          data.sessionToken,
+        );
 
-        console.log("[Login] User logged in successfully");
-        notifyAuthChanged();
-
-        // Navigate to home screen
+        // Navigate to home — user state is already set, no redirect loop possible
         router.replace("/(tabs)");
       } else {
-        setError("Invalid response from server");
+        setError("Invalid response from server. Please try again.");
         setIsLoading(false);
       }
     } catch (err) {
-      console.error("[Login] Error:", err);
-      setError(err instanceof Error ? err.message : "An error occurred");
+      console.error("[LoginScreen] Error:", err);
+      setError("Network error. Please check your connection and try again.");
       setIsLoading(false);
     }
   };
@@ -99,10 +94,12 @@ export default function LoginScreen() {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={{ flex: 1 }}
     >
-      <ScreenContainer edges={["top", "left", "right"]}>
-        <ScrollView contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
+      <ScreenContainer>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+        >
           <View style={styles.container}>
-            {/* Header */}
             <View style={styles.header}>
               <Text style={[styles.title, { color: colors.foreground }]}>Welcome Back</Text>
               <Text style={[styles.subtitle, { color: colors.muted }]}>
@@ -110,88 +107,70 @@ export default function LoginScreen() {
               </Text>
             </View>
 
-            {/* Error Message */}
-            {error ? (
-              <View style={[styles.errorBox, { backgroundColor: colors.error + "20" }]}>
-                <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>
-              </View>
-            ) : null}
-
-            {/* Form */}
             <View style={styles.form}>
-              {/* Email Input */}
-              <View style={styles.inputGroup}>
+              {error ? (
+                <View style={[styles.errorBox, { backgroundColor: colors.error + "20", borderColor: colors.error }]}>
+                  <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>
+                </View>
+              ) : null}
+
+              <View style={styles.field}>
                 <Text style={[styles.label, { color: colors.foreground }]}>Email</Text>
                 <TextInput
-                  style={[
-                    styles.input,
-                    {
-                      backgroundColor: colors.surface,
-                      color: colors.foreground,
-                      borderColor: colors.border,
-                    },
-                  ]}
+                  style={[styles.input, { color: colors.foreground, backgroundColor: colors.surface, borderColor: colors.border }]}
                   placeholder="you@example.com"
                   placeholderTextColor={colors.muted}
                   value={email}
                   onChangeText={setEmail}
-                  editable={!isLoading}
-                  keyboardType="email-address"
                   autoCapitalize="none"
+                  keyboardType="email-address"
                   autoComplete="email"
+                  returnKeyType="next"
+                  editable={!isLoading}
                 />
               </View>
 
-              {/* Password Input */}
-              <View style={styles.inputGroup}>
+              <View style={styles.field}>
                 <Text style={[styles.label, { color: colors.foreground }]}>Password</Text>
                 <TextInput
-                  style={[
-                    styles.input,
-                    {
-                      backgroundColor: colors.surface,
-                      color: colors.foreground,
-                      borderColor: colors.border,
-                    },
-                  ]}
+                  style={[styles.input, { color: colors.foreground, backgroundColor: colors.surface, borderColor: colors.border }]}
                   placeholder="••••••••"
                   placeholderTextColor={colors.muted}
                   value={password}
                   onChangeText={setPassword}
-                  editable={!isLoading}
                   secureTextEntry
-                  autoCapitalize="none"
+                  autoComplete="password"
+                  returnKeyType="done"
+                  onSubmitEditing={handleLogin}
+                  editable={!isLoading}
                 />
               </View>
 
-              {/* Submit Button */}
               <Pressable
-                style={({ pressed }) => [
-                  styles.button,
-                  {
-                    backgroundColor: colors.primary,
-                    opacity: pressed ? 0.8 : 1,
-                  },
-                ]}
                 onPress={handleLogin}
                 disabled={isLoading}
+                style={({ pressed }) => [
+                  styles.button,
+                  { backgroundColor: colors.primary },
+                  pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] },
+                  isLoading && { opacity: 0.6 },
+                ]}
               >
                 {isLoading ? (
-                  <ActivityIndicator color="#FFFFFF" size="small" />
+                  <ActivityIndicator color="#fff" size="small" />
                 ) : (
                   <Text style={styles.buttonText}>Sign In</Text>
                 )}
               </Pressable>
-            </View>
 
-            {/* Sign Up Link */}
-            <View style={styles.signupContainer}>
-              <Text style={[styles.signupText, { color: colors.muted }]}>
-                Don't have an account?{" "}
-              </Text>
-              <Pressable onPress={() => router.push("/signup-screen")} disabled={isLoading}>
-                <Text style={[styles.signupLink, { color: colors.primary }]}>Sign Up</Text>
-              </Pressable>
+              <View style={styles.footer}>
+                <Text style={[styles.footerText, { color: colors.muted }]}>
+                  Don't have an account?{" "}
+                </Text>
+                <Pressable onPress={() => router.push("/signup-screen")}>
+                  <Text style={[styles.linkText, { color: colors.primary }]}>Sign Up</Text>
+                </Pressable>
+              </View>
             </View>
           </View>
         </ScrollView>
@@ -201,11 +180,15 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
+  scrollContent: {
+    flexGrow: 1,
+  },
   container: {
     flex: 1,
     paddingHorizontal: 24,
-    paddingVertical: 32,
-    justifyContent: "flex-start",
+    paddingTop: 48,
+    paddingBottom: 32,
+    justifyContent: "center",
   },
   header: {
     marginBottom: 32,
@@ -213,26 +196,25 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: "700",
-    marginBottom: 8,
+    marginBottom: 6,
   },
   subtitle: {
-    fontSize: 14,
+    fontSize: 15,
+  },
+  form: {
+    gap: 16,
   },
   errorBox: {
-    borderRadius: 8,
+    borderWidth: 1,
+    borderRadius: 10,
     padding: 12,
-    marginBottom: 24,
   },
   errorText: {
     fontSize: 14,
     fontWeight: "500",
   },
-  form: {
-    gap: 20,
-    marginBottom: 32,
-  },
-  inputGroup: {
-    gap: 8,
+  field: {
+    gap: 6,
   },
   label: {
     fontSize: 14,
@@ -240,33 +222,33 @@ const styles = StyleSheet.create({
   },
   input: {
     borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 16,
+    borderRadius: 12,
+    paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 16,
   },
   button: {
-    borderRadius: 8,
-    paddingVertical: 14,
+    borderRadius: 12,
+    paddingVertical: 15,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 8,
+  },
+  buttonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "700",
+  },
+  footer: {
+    flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
     marginTop: 8,
   },
-  buttonText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  signupContainer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 4,
-  },
-  signupText: {
+  footerText: {
     fontSize: 14,
   },
-  signupLink: {
+  linkText: {
     fontSize: 14,
     fontWeight: "600",
   },
