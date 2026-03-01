@@ -1,0 +1,14 @@
+# Exclude Trash and other system files that cause permission issues
+.Trash
+.DS_Store
+.git
+node_modules
+.expo
+dist
+build
+.webdev
+.manus-logs
+__tests__
+*.log
+.env.local
+.env.*.local
