@@ -14,8 +14,8 @@ export default function LoginScreen() {
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
-    // Navigate to auth screen for login/signup
-    router.push("/auth");
+    // Navigate to login screen
+    router.push("/login-screen");
   };
 
   return (

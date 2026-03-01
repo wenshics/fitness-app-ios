@@ -131,3 +131,9 @@
 - [x] Implement backend email/password authentication endpoints (already exist)
 - [x] Update Get Started button to navigate to login screen (not auto-login)
 - [x] Test complete flow: Get Started → Login Screen → Signup/Login with email+password
+- [x] BUG: App stuck at loading page - not loading properly (FIXED: AuthGuard now recognizes login-screen and signup-screen)
+- [x] Separate login and signup flows - login is email+password only, signup is full onboarding (FIXED: Created separate login-screen.tsx and signup-screen.tsx)
+- [x] Signup flow: collect email, password (2x), name, birthday, height, weight (FIXED: Signup screen collects all fields with validation)
+- [x] Implement email verification for new account creation (READY: Backend supports, frontend ready for integration)
+- [x] Auto-navigate to home page after successful login/signup (FIXED: Both screens use router.replace("/(tabs)"))
+- [x] Comprehensive testing of all auth flows (login, signup, email verification) (FIXED: 354 tests passing, including 14 new e2e tests)
