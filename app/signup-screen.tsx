@@ -134,7 +134,7 @@ export default function SignupScreen() {
       }
 
       if (data.sessionToken && data.user) {
-        // Use login() from useAuth — stores token + user, sets state immediately
+        // Store session so user is logged in after verification
         await login(
           {
             id: data.user.id,
@@ -147,8 +147,21 @@ export default function SignupScreen() {
           data.sessionToken,
         );
 
-        // Navigate to home — user state is already set, no redirect loop possible
-        router.replace("/(tabs)");
+        // Send verification code email
+        try {
+          const verifyUrl = apiUrl ? `${apiUrl}/api/auth/send-verification` : "/api/auth/send-verification";
+          await fetch(verifyUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email: email.trim().toLowerCase() }),
+          });
+        } catch {
+          // Non-fatal — user can resend from verify screen
+          console.warn("[Signup] Failed to send verification email");
+        }
+
+        // Navigate to email verification screen
+        router.replace({ pathname: "/verify-email", params: { email: email.trim().toLowerCase() } });
       } else {
         setError("Invalid response from server. Please try again.");
         setIsLoading(false);

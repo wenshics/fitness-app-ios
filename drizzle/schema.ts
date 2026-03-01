@@ -50,3 +50,26 @@ export type EmailUser = typeof emailUsers.$inferSelect;
 export type InsertEmailUser = typeof emailUsers.$inferInsert;
 export type EmailSession = typeof emailSessions.$inferSelect;
 export type InsertEmailSession = typeof emailSessions.$inferInsert;
+
+// Email verification codes (6-digit, expires in 10 min)
+export const emailVerificationCodes = mysqlTable("email_verification_codes", {
+  id: int("id").autoincrement().primaryKey(),
+  email: varchar("email", { length: 320 }).notNull(),
+  code: varchar("code", { length: 6 }).notNull(),
+  expiresAt: timestamp("expiresAt").notNull(),
+  usedAt: timestamp("usedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+// Password reset tokens (hex token, expires in 1 hour)
+export const passwordResetTokens = mysqlTable("password_reset_tokens", {
+  id: int("id").autoincrement().primaryKey(),
+  email: varchar("email", { length: 320 }).notNull(),
+  token: varchar("token", { length: 128 }).notNull().unique(),
+  expiresAt: timestamp("expiresAt").notNull(),
+  usedAt: timestamp("usedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type EmailVerificationCode = typeof emailVerificationCodes.$inferSelect;
+export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;

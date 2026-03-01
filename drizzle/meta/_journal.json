@@ -15,6 +15,13 @@
       "when": 1772406550045,
       "tag": "0001_acoustic_psynapse",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1772407670411,
+      "tag": "0002_wakeful_killer_shrike",
+      "breakpoints": true
     }
   ]
 }

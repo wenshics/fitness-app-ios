@@ -174,4 +174,117 @@ export async function deleteEmailSession(token: string): Promise<void> {
   await db.delete(emailSessions).where(eq(emailSessions.token, token));
 }
 
+// ---- Email Verification Helpers ----
+import { emailVerificationCodes, passwordResetTokens } from "../drizzle/schema";
+import { and, isNull } from "drizzle-orm";
+
+const TEN_MINUTES_MS = 10 * 60 * 1000;
+const ONE_HOUR_MS = 60 * 60 * 1000;
+
+function generateCode(): string {
+  return String(Math.floor(100000 + Math.random() * 900000));
+}
+
+export async function createVerificationCode(email: string): Promise<string> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const code = generateCode();
+  const expiresAt = new Date(Date.now() + TEN_MINUTES_MS);
+  await db.insert(emailVerificationCodes).values({
+    email: email.toLowerCase().trim(),
+    code,
+    expiresAt,
+  });
+  return code;
+}
+
+export async function verifyEmailCode(email: string, code: string): Promise<boolean> {
+  const db = await getDb();
+  if (!db) return false;
+  const rows = await db
+    .select()
+    .from(emailVerificationCodes)
+    .where(
+      and(
+        eq(emailVerificationCodes.email, email.toLowerCase().trim()),
+        eq(emailVerificationCodes.code, code),
+        isNull(emailVerificationCodes.usedAt),
+      ),
+    )
+    .orderBy(emailVerificationCodes.createdAt)
+    .limit(1);
+
+  const row = rows[0];
+  if (!row) return false;
+  if (row.expiresAt < new Date()) return false;
+
+  // Mark as used
+  await db
+    .update(emailVerificationCodes)
+    .set({ usedAt: new Date() })
+    .where(eq(emailVerificationCodes.id, row.id));
+
+  return true;
+}
+
+export async function markEmailVerified(email: string): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db
+    .update(emailUsers)
+    .set({ updatedAt: new Date() })
+    .where(eq(emailUsers.email, email.toLowerCase().trim()));
+}
+
+// ---- Password Reset Helpers ----
+export async function createPasswordResetToken(email: string): Promise<string | null> {
+  const db = await getDb();
+  if (!db) return null;
+  // Check user exists
+  const user = await findEmailUserByEmail(email);
+  if (!user) return null;
+  const token = randomBytes(48).toString("hex");
+  const expiresAt = new Date(Date.now() + ONE_HOUR_MS);
+  await db.insert(passwordResetTokens).values({
+    email: email.toLowerCase().trim(),
+    token,
+    expiresAt,
+  });
+  return token;
+}
+
+export async function resetPasswordWithToken(token: string, newPassword: string): Promise<boolean> {
+  const db = await getDb();
+  if (!db) return false;
+  const rows = await db
+    .select()
+    .from(passwordResetTokens)
+    .where(
+      and(
+        eq(passwordResetTokens.token, token),
+        isNull(passwordResetTokens.usedAt),
+      ),
+    )
+    .limit(1);
+
+  const row = rows[0];
+  if (!row) return false;
+  if (row.expiresAt < new Date()) return false;
+
+  // Update password
+  const passwordHash = hashPassword(newPassword);
+  await db
+    .update(emailUsers)
+    .set({ passwordHash, updatedAt: new Date() })
+    .where(eq(emailUsers.email, row.email));
+
+  // Mark token as used
+  await db
+    .update(passwordResetTokens)
+    .set({ usedAt: new Date() })
+    .where(eq(passwordResetTokens.id, row.id));
+
+  return true;
+}
+
 // TODO: add feature queries here as your schema grows.

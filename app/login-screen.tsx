@@ -131,7 +131,12 @@ export default function LoginScreen() {
               </View>
 
               <View style={styles.field}>
-                <Text style={[styles.label, { color: colors.foreground }]}>Password</Text>
+                <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                  <Text style={[styles.label, { color: colors.foreground }]}>Password</Text>
+                  <Pressable onPress={() => router.push("/forgot-password")}>
+                    <Text style={[styles.linkText, { color: colors.primary, fontSize: 13 }]}>Forgot password?</Text>
+                  </Pressable>
+                </View>
                 <TextInput
                   style={[styles.input, { color: colors.foreground, backgroundColor: colors.surface, borderColor: colors.border }]}
                   placeholder="••••••••"

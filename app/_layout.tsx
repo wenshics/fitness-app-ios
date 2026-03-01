@@ -69,7 +69,10 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
       segments[0] === "oauth" ||
       segments[0] === "auth" ||
       segments[0] === "login-screen" ||
-      segments[0] === "signup-screen";
+      segments[0] === "signup-screen" ||
+      segments[0] === "verify-email" ||
+      segments[0] === "forgot-password" ||
+      segments[0] === "reset-password";
 
     if (!isAuthenticated && !inAuthGroup) {
       // Not logged in and not already on an auth screen — go to login
@@ -185,6 +188,9 @@ export default function RootLayout() {
                     <Stack.Screen name="login-screen" options={{ presentation: "fullScreenModal" }} />
                     <Stack.Screen name="signup-screen" options={{ presentation: "fullScreenModal" }} />
                     <Stack.Screen name="auth" options={{ presentation: "fullScreenModal" }} />
+                    <Stack.Screen name="verify-email" options={{ presentation: "fullScreenModal" }} />
+                    <Stack.Screen name="forgot-password" options={{ presentation: "fullScreenModal" }} />
+                    <Stack.Screen name="reset-password" options={{ presentation: "fullScreenModal" }} />
                     <Stack.Screen name="paywall" options={{ presentation: "fullScreenModal", gestureEnabled: true }} />
                     <Stack.Screen name="payment-info" options={{ presentation: "fullScreenModal", gestureEnabled: true }} />
                     <Stack.Screen name="payment-success" options={{ presentation: "fullScreenModal", gestureEnabled: false }} />

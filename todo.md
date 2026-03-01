@@ -181,3 +181,18 @@
 - [x] Rewrite server auth to use database (not in-memory Maps)
 - [x] Accounts survive server restarts
 - [x] Login works with previously created accounts
+
+## EMAIL VERIFICATION & FORGOT PASSWORD
+
+- [x] Set up Gmail SMTP email sending (nodemailer)
+- [x] Add email_verification_codes and password_reset_tokens tables to DB
+- [x] Server: POST /api/auth/send-verification — send 6-digit code after signup
+- [x] Server: POST /api/auth/verify-email — verify the 6-digit code
+- [x] Server: POST /api/auth/forgot-password — send reset link to email
+- [x] Server: POST /api/auth/reset-password — apply new password with token
+- [x] Screen: EmailVerificationScreen — enter 6-digit code after signup
+- [x] Screen: ForgotPasswordScreen — enter email to receive reset link
+- [x] Screen: ResetPasswordScreen — enter new password after clicking reset link
+- [x] Wire up: signup → email verification screen
+- [x] Wire up: login screen → forgot password link
+- [x] Comprehensive tests for all email auth flows
