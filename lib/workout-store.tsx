@@ -212,6 +212,165 @@ export const AWARDS: Award[] = [
       return morningCount >= 3;
     },
   },
+  {
+    id: "night-owl",
+    name: "Night Owl",
+    description: "Complete 3 evening workouts (after 6 PM)",
+    icon: "moon.stars.fill",
+    requirement: (s) => {
+      const eveningCount = s.history.filter((h) => {
+        const hour = new Date(h.completedAt).getHours();
+        return hour >= 18;
+      }).length;
+      return eveningCount >= 3;
+    },
+  },
+  {
+    id: "workouts-10",
+    name: "Momentum",
+    description: "Complete 10 total workouts",
+    icon: "bolt.circle.fill",
+    requirement: (s) => s.history.length >= 10,
+  },
+  {
+    id: "workouts-75",
+    name: "Three Quarters",
+    description: "Complete 75 total workouts",
+    icon: "target",
+    requirement: (s) => s.history.length >= 75,
+  },
+  {
+    id: "streak-5",
+    name: "Consistency",
+    description: "Achieve a 5-day workout streak",
+    icon: "checkmark.circle.fill",
+    requirement: (s) => s.streak >= 5,
+  },
+  {
+    id: "streak-21",
+    name: "Habit Formed",
+    description: "Achieve a 21-day workout streak",
+    icon: "heart.circle.fill",
+    requirement: (s) => s.streak >= 21,
+  },
+  {
+    id: "streak-60",
+    name: "Legendary",
+    description: "Achieve a 60-day workout streak",
+    icon: "star.fill",
+    requirement: (s) => s.streak >= 60,
+  },
+  {
+    id: "calories-500",
+    name: "Calorie Counter",
+    description: "Burn 500 total estimated calories",
+    icon: "flame",
+    requirement: (s) => {
+      const totalCal = s.history.reduce((sum, h) => {
+        const cal = h.exerciseIds.reduce((c, eid) => {
+          const ex = EXERCISES.find((e) => e.id === eid);
+          return c + (ex ? ex.caloriesPerMinute * (ex.defaultDuration / 60) : 0);
+        }, 0);
+        return sum + cal;
+      }, 0);
+      return totalCal >= 500;
+    },
+  },
+  {
+    id: "calories-2000",
+    name: "Calorie Master",
+    description: "Burn 2,000 total estimated calories",
+    icon: "flame.fill",
+    requirement: (s) => {
+      const totalCal = s.history.reduce((sum, h) => {
+        const cal = h.exerciseIds.reduce((c, eid) => {
+          const ex = EXERCISES.find((e) => e.id === eid);
+          return c + (ex ? ex.caloriesPerMinute * (ex.defaultDuration / 60) : 0);
+        }, 0);
+        return sum + cal;
+      }, 0);
+      return totalCal >= 2000;
+    },
+  },
+  {
+    id: "calories-5000",
+    name: "Inferno",
+    description: "Burn 5,000 total estimated calories",
+    icon: "fire",
+    requirement: (s) => {
+      const totalCal = s.history.reduce((sum, h) => {
+        const cal = h.exerciseIds.reduce((c, eid) => {
+          const ex = EXERCISES.find((e) => e.id === eid);
+          return c + (ex ? ex.caloriesPerMinute * (ex.defaultDuration / 60) : 0);
+        }, 0);
+        return sum + cal;
+      }, 0);
+      return totalCal >= 5000;
+    },
+  },
+  {
+    id: "outdoor-warrior",
+    name: "Outdoor Warrior",
+    description: "Complete 10 outdoor exercises",
+    icon: "tree.fill",
+    requirement: (s) => {
+      let outdoorCount = 0;
+      s.history.forEach((h) =>
+        h.exerciseIds.forEach((eid) => {
+          const ex = EXERCISES.find((e) => e.id === eid);
+          if (ex && ex.category === "outdoor") outdoorCount++;
+        }),
+      );
+      return outdoorCount >= 10;
+    },
+  },
+  {
+    id: "gym-rat",
+    name: "Gym Rat",
+    description: "Complete 10 gym exercises",
+    icon: "dumbbell.fill",
+    requirement: (s) => {
+      let gymCount = 0;
+      s.history.forEach((h) =>
+        h.exerciseIds.forEach((eid) => {
+          const ex = EXERCISES.find((e) => e.id === eid);
+          if (ex && ex.category === "gym") gymCount++;
+        }),
+      );
+      return gymCount >= 10;
+    },
+  },
+  {
+    id: "home-champion",
+    name: "Home Champion",
+    description: "Complete 10 home exercises",
+    icon: "house.fill",
+    requirement: (s) => {
+      let homeCount = 0;
+      s.history.forEach((h) =>
+        h.exerciseIds.forEach((eid) => {
+          const ex = EXERCISES.find((e) => e.id === eid);
+          if (ex && ex.category === "home") homeCount++;
+        }),
+      );
+      return homeCount >= 10;
+    },
+  },
+  {
+    id: "comeback-kid",
+    name: "Comeback Kid",
+    description: "Return to working out after 7+ days off",
+    icon: "arrow.circlepath",
+    requirement: (s) => {
+      if (s.history.length < 2) return false;
+      const sorted = [...s.history].sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime());
+      if (sorted.length < 2) return false;
+      const lastWorkout = new Date(sorted[0].completedAt);
+      const secondLast = new Date(sorted[1].completedAt);
+      const daysDiff = (lastWorkout.getTime() - secondLast.getTime()) / (1000 * 60 * 60 * 24);
+      return daysDiff >= 7;
+    },
+  },
 ];
 
 // ===== TYPES =====
