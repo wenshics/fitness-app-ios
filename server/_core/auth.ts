@@ -15,11 +15,149 @@ const sessions = new Map<
   }
 >();
 
+// Simple in-memory user store for email/password auth
+const users = new Map<
+  string,
+  {
+    id: string;
+    name: string;
+    email: string;
+    passwordHash: string;
+    createdAt: Date;
+  }
+>();
+
+// Simple password hashing (in production, use bcrypt)
+function hashPassword(password: string): string {
+  return Buffer.from(password).toString('base64');
+}
+
+function verifyPassword(password: string, hash: string): boolean {
+  return hashPassword(password) === hash;
+}
+
 function generateSessionToken(): string {
   return randomBytes(32).toString("hex");
 }
 
 export function registerAuthRoutes(app: Express) {
+  // Email/password signup endpoint
+  app.post("/api/auth/email-signup", async (req: Request, res: Response) => {
+    try {
+      const { email, password, name } = req.body;
+
+      if (!email || !password || !name) {
+        res.status(400).json({ error: "Missing required fields" });
+        return;
+      }
+
+      // Check if user already exists
+      const existingUser = Array.from(users.values()).find(u => u.email === email);
+      if (existingUser) {
+        res.status(400).json({ error: "Email already registered" });
+        return;
+      }
+
+      // Create new user
+      const userId = `user-${Date.now()}`;
+      const passwordHash = hashPassword(password);
+      users.set(email, {
+        id: userId,
+        name,
+        email,
+        passwordHash,
+        createdAt: new Date(),
+      });
+
+      // Create session
+      const sessionToken = generateSessionToken();
+      sessions.set(sessionToken, {
+        userId,
+        userName: name,
+        email,
+        createdAt: new Date(),
+      });
+
+      // Set cookie for web
+      const cookieOptions = {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax" as const,
+        maxAge: ONE_YEAR_MS,
+      };
+      res.cookie(COOKIE_NAME, sessionToken, cookieOptions);
+
+      res.json({
+        success: true,
+        sessionToken,
+        user: {
+          id: userId,
+          openId: userId,
+          name,
+          email,
+          loginMethod: "email",
+          lastSignedIn: new Date().toISOString(),
+        },
+      });
+    } catch (error) {
+      console.error("[Auth] Email signup failed", error);
+      res.status(500).json({ error: "Signup failed", success: false });
+    }
+  });
+
+  // Email/password login endpoint
+  app.post("/api/auth/email-login", async (req: Request, res: Response) => {
+    try {
+      const { email, password } = req.body;
+
+      if (!email || !password) {
+        res.status(400).json({ error: "Missing email or password" });
+        return;
+      }
+
+      // Find user
+      const user = Array.from(users.values()).find(u => u.email === email);
+      if (!user || !verifyPassword(password, user.passwordHash)) {
+        res.status(401).json({ error: "Invalid email or password" });
+        return;
+      }
+
+      // Create session
+      const sessionToken = generateSessionToken();
+      sessions.set(sessionToken, {
+        userId: user.id,
+        userName: user.name,
+        email: user.email,
+        createdAt: new Date(),
+      });
+
+      // Set cookie for web
+      const cookieOptions = {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax" as const,
+        maxAge: ONE_YEAR_MS,
+      };
+      res.cookie(COOKIE_NAME, sessionToken, cookieOptions);
+
+      res.json({
+        success: true,
+        sessionToken,
+        user: {
+          id: user.id,
+          openId: user.id,
+          name: user.name,
+          email: user.email,
+          loginMethod: "email",
+          lastSignedIn: new Date().toISOString(),
+        },
+      });
+    } catch (error) {
+      console.error("[Auth] Email login failed", error);
+      res.status(500).json({ error: "Login failed", success: false });
+    }
+  });
+
   // Direct login endpoint for mobile apps (no OAuth, no deep links)
   app.post("/api/auth/login", async (req: Request, res: Response) => {
     try {

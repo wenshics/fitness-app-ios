@@ -9,6 +9,7 @@ import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import * as Haptics from "expo-haptics";
+import { useAuthModal } from "@/lib/auth-modal-context";
 
 export default function HomeScreen() {
   const colors = useColors();
@@ -28,14 +29,16 @@ export default function HomeScreen() {
   // Show login prompt if not authenticated
   const isAuthenticated = Boolean(user);
 
+  const { showAuthModal } = useAuthModal();
+
   const handleStartWorkout = () => {
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
     // Check if user is authenticated first
     if (!user) {
-      console.log('[Home] User not authenticated, redirecting to login');
-      router.push("/login" as any);
+      console.log('[Home] User not authenticated, showing login modal');
+      showAuthModal();
       return;
     }
     if (!subscription.isSubscribed) {

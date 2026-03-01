@@ -108,3 +108,11 @@
 - [x] Redirect unauthenticated users to login when accessing protected features
 - [x] Bug fix: Login button not working after logout (fixed AuthGuard redirect logic)
 - [x] Bug fix: Exercise start not redirecting to login for unauthenticated users (added auth check before subscription check)
+- [x] Create email/password login modal component
+- [x] Create email/password signup modal component
+- [x] Implement backend API endpoints for email/password auth
+- [x] Integrate login/signup modals into app navigation
+- [x] Update Profile "Log In" button to show login modal
+- [x] Update Home "Start Workout" to show login modal when not authenticated
+- [x] Update Exercise "Start" button to show login modal when not authenticated
+- [x] Test email/password login and signup flows

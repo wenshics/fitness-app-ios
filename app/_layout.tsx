@@ -22,6 +22,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { WorkoutProvider, useWorkout } from "@/lib/workout-store";
 import { SubscriptionProvider, useSubscription } from "@/lib/subscription-store";
 import { UserProvider } from "@/lib/user-store";
+import { AuthModalProvider } from "@/lib/auth-modal-context";
 import { setupNotificationHandler, requestNotificationPermissions } from "@/lib/_core/notifications";
 import { initializeStripe } from "@/lib/_core/stripe-payment";
 
@@ -173,11 +174,12 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <trpc.Provider client={trpcClient} queryClient={queryClient}>
         <QueryClientProvider client={queryClient}>
-          <UserProvider>
-            <SubscriptionProvider>
-              <WorkoutProvider>
-                <UserDataSync>
-                <AuthGuard>
+          <AuthModalProvider>
+            <UserProvider>
+              <SubscriptionProvider>
+                <WorkoutProvider>
+                  <UserDataSync>
+                  <AuthGuard>
                   <Stack screenOptions={{ headerShown: false }}>
                     <Stack.Screen name="(tabs)" />
                     <Stack.Screen name="login" options={{ presentation: "fullScreenModal" }} />
@@ -198,7 +200,8 @@ export default function RootLayout() {
               </UserDataSync>
             </WorkoutProvider>
           </SubscriptionProvider>
-          </UserProvider>
+            </UserProvider>
+          </AuthModalProvider>
           <StatusBar style="auto" />
         </QueryClientProvider>
       </trpc.Provider>
