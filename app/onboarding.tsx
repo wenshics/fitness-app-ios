@@ -102,32 +102,44 @@ export default function OnboardingScreen() {
       // Add a small delay to ensure state is updated
       await new Promise((resolve) => setTimeout(resolve, 100));
 
-      Alert.alert("Success", "Your profile has been updated!", [
-        {
-          text: "OK",
-          onPress: () => {
-            router.replace("/(tabs)");
+      if (isEditMode) {
+        // In edit mode, go back to profile without alert
+        router.back();
+      } else {
+        // In onboarding mode, show success alert then navigate to home
+        Alert.alert("Success", "Your profile has been updated!", [
+          {
+            text: "OK",
+            onPress: () => {
+              router.replace("/(tabs)");
+            },
           },
-        },
-      ]);
+        ]);
+      }
     } catch (error) {
       console.error("Error saving profile:", error);
       Alert.alert("Error", "Failed to save profile. Please try again.");
       setIsLoading(false);
     }
-  }, [dateOfBirth, height, weight, validateInputs, updateUserProfile, router]);
+  }, [dateOfBirth, height, weight, validateInputs, updateUserProfile, router, isEditMode]);
 
   const handleSkip = useCallback(() => {
-    Alert.alert("Skip Onboarding?", "You can update this information later in your profile.", [
-      { text: "Cancel", onPress: () => {} },
-      {
-        text: "Skip",
-        onPress: () => {
-          router.replace("/(tabs)");
+    if (isEditMode) {
+      // In edit mode, go back immediately without confirmation
+      router.back();
+    } else {
+      // In onboarding mode, show confirmation alert
+      Alert.alert("Skip Onboarding?", "You can update this information later in your profile.", [
+        { text: "Cancel", onPress: () => {} },
+        {
+          text: "Skip",
+          onPress: () => {
+            router.replace("/(tabs)");
+          },
         },
-      },
-    ]);
-  }, [router]);
+      ]);
+    }
+  }, [router, isEditMode]);
 
   return (
     <ScreenContainer containerClassName={`bg-background`}>
@@ -245,8 +257,8 @@ export default function OnboardingScreen() {
               disabled={isLoading}
             >
               <Text style={[styles.secondaryButtonText, { color: colors.muted }]}>
-                {isEditMode ? "Cancel" : "Skip for now"}
-              </Text>
+              {isEditMode ? "Cancel" : "Skip for now"}
+            </Text>
             </Pressable>
           </View>
         </View>
