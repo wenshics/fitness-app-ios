@@ -74,10 +74,10 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
       redirectedRef: redirectedRef.current,
     });
 
-    // Prevent double redirects
-    if (redirectedRef.current) {
-      console.log("[AuthGuard] Already redirected, skipping");
-      return;
+    // CRITICAL FIX: Reset redirected flag when auth state changes
+    // This ensures that when user logs out, we can redirect to login again
+    if ((isAuthenticated && redirectedRef.current) || (!isAuthenticated && redirectedRef.current && inAuthGroup)) {
+      redirectedRef.current = false;
     }
 
     if (!isAuthenticated && !inAuthGroup) {
@@ -92,8 +92,6 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
       router.replace("/(tabs)");
     } else {
       console.log("[AuthGuard] No redirect needed");
-      // Reset redirect flag when auth state is valid
-      redirectedRef.current = false;
     }
   }, [isAuthenticated, isLoading, segments, router]);
 
