@@ -160,23 +160,24 @@ export function useAuth(options?: UseAuthOptions) {
 
   const logout = useCallback(async () => {
     console.log("[useAuth] logout called");
+    
+    // Clear local state IMMEDIATELY - this triggers AuthGuard to redirect
+    setUser(null);
+    setError(null);
+    await Auth.removeSessionToken();
+    await Auth.clearUserInfo();
+    console.log("[useAuth] Local state cleared immediately");
+    
+    // Then notify server (best effort)
     try {
       console.log("[useAuth] calling Api.logout()...");
       await Api.logout();
       console.log("[useAuth] Api.logout() succeeded");
     } catch (err) {
-      console.error("[useAuth] Logout API call failed (will still clear local state):", err);
+      console.error("[useAuth] Logout API call failed (local state already cleared):", err);
     }
     
-    // Clear all auth data
-    await Auth.removeSessionToken();
-    await Auth.clearUserInfo();
-    
-    // Clear state - this triggers AuthGuard to redirect to login
-    setUser(null);
-    setError(null);
-    
-    console.log("[useAuth] logout complete - user state cleared");
+    console.log("[useAuth] logout complete");
   }, []);
 
   const isAuthenticated = useMemo(() => Boolean(user), [user]);

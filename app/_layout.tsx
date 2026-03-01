@@ -92,6 +92,8 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
       router.replace("/(tabs)");
     } else {
       console.log("[AuthGuard] No redirect needed");
+      // Reset redirect flag when auth state is valid
+      redirectedRef.current = false;
     }
   }, [isAuthenticated, isLoading, segments, router]);
 
