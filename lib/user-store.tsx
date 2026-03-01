@@ -45,29 +45,42 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const updateUserProfile = useCallback(
     async (profile: Partial<UserProfile>) => {
       try {
-        const updated = { ...userProfile, ...profile };
-        setUserProfile(updated);
-        await AsyncStorage.setItem("user_profile", JSON.stringify(updated));
+        // Use functional setState to avoid stale closures
+        setUserProfile((prevProfile) => {
+          const updated = { ...prevProfile, ...profile };
+          // Save to AsyncStorage after state update
+          AsyncStorage.setItem("user_profile", JSON.stringify(updated)).catch((error) => {
+            console.error("Error saving to AsyncStorage:", error);
+          });
+          return updated;
+        });
       } catch (error) {
         console.error("Error updating user profile:", error);
         throw error;
       }
     },
-    [userProfile]
+    []
   );
 
   const clearUserProfile = useCallback(async () => {
     try {
       setUserProfile(null);
-      await AsyncStorage.removeItem("user_profile");
+      await AsyncStorage.removeItem("user_profile").catch((error) => {
+        console.error("Error removing from AsyncStorage:", error);
+      });
     } catch (error) {
       console.error("Error clearing user profile:", error);
       throw error;
     }
   }, []);
 
+  const contextValue = React.useMemo(
+    () => ({ userProfile, updateUserProfile, clearUserProfile, isLoading }),
+    [userProfile, updateUserProfile, clearUserProfile, isLoading]
+  );
+
   return (
-    <UserContext.Provider value={{ userProfile, updateUserProfile, clearUserProfile, isLoading }}>
+    <UserContext.Provider value={contextValue}>
       {children}
     </UserContext.Provider>
   );

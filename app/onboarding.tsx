@@ -2,6 +2,7 @@ import { useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import {
   Alert,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -84,13 +85,20 @@ export default function OnboardingScreen() {
 
     setIsLoading(true);
     try {
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      if (Platform.OS !== "web") {
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      }
 
+      // Update profile
       await updateUserProfile({
         dateOfBirth,
         height: parseFloat(height),
         weight: parseFloat(weight),
+        onboardingCompleted: true,
       });
+
+      // Add a small delay to ensure state is updated
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       Alert.alert("Success", "Your profile has been updated!", [
         {
@@ -101,9 +109,8 @@ export default function OnboardingScreen() {
         },
       ]);
     } catch (error) {
-      Alert.alert("Error", "Failed to save profile. Please try again.");
       console.error("Error saving profile:", error);
-    } finally {
+      Alert.alert("Error", "Failed to save profile. Please try again.");
       setIsLoading(false);
     }
   }, [dateOfBirth, height, weight, validateInputs, updateUserProfile, router]);
@@ -126,7 +133,7 @@ export default function OnboardingScreen() {
         <View style={styles.container}>
           {/* Header */}
           <View style={styles.header}>
-            <Text style={[styles.title, { color: colors.foreground }]}>Welcome to FitLife!</Text>
+            <Text style={[styles.title, { color: colors.foreground }]}>Welcome to Pulse!</Text>
             <Text style={[styles.subtitle, { color: colors.muted }]}>
               Let's get to know you better
             </Text>
