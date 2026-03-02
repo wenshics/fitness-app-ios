@@ -2,6 +2,17 @@ import nodemailer from "nodemailer";
 
 let _transporter: nodemailer.Transporter | null = null;
 
+export function validateEmailConfig(): { valid: boolean; error?: string } {
+  const user = process.env.GMAIL_USER;
+  const pass = process.env.GMAIL_APP_PASSWORD;
+  
+  if (!user) return { valid: false, error: "GMAIL_USER not set" };
+  if (!pass) return { valid: false, error: "GMAIL_APP_PASSWORD not set" };
+  
+  console.log("[Email] Configuration valid. GMAIL_USER:", user);
+  return { valid: true };
+}
+
 function getTransporter() {
   if (!_transporter) {
     const user = process.env.GMAIL_USER;
@@ -57,7 +68,11 @@ export async function sendVerificationCode(email: string, code: string): Promise
 }
 
 export async function sendPasswordResetEmail(email: string, token: string, appUrl: string): Promise<void> {
-  const resetUrl = `${appUrl}/reset-password?token=${token}`;
+  // Web URL for browser
+  const webResetUrl = `${appUrl}/reset-password?token=${token}`;
+  // Deep link URL for mobile app
+  const appResetUrl = `manus20260212000221://reset-password?token=${token}`;
+  
   await sendEmail({
     to: email,
     subject: "Reset your Pulse password",
@@ -68,15 +83,19 @@ export async function sendPasswordResetEmail(email: string, token: string, appUr
           Click the button below to reset your Pulse password.
           This link expires in <strong>1 hour</strong>.
         </p>
-        <a href="${resetUrl}"
-           style="display:inline-block;background:#0d9488;color:#fff;text-decoration:none;
-                  padding:14px 28px;border-radius:8px;font-weight:600;font-size:16px;margin-bottom:24px">
-          Reset Password
+        
+        <!-- Primary button for mobile app -->
+        <a href="${appResetUrl}"
+           style="display:inline-block;background:#0d9488;color:#fff;text-decoration:none;padding:14px 28px;border-radius:8px;font-weight:600;font-size:16px;margin-bottom:16px">
+          Reset Password in App
         </a>
-        <p style="color:#6b7280;font-size:14px">
-          Or copy this link: <a href="${resetUrl}" style="color:#0d9488">${resetUrl}</a>
+        
+        <p style="color:#6b7280;font-size:14px;margin-top:16px">
+          <strong>On a computer?</strong> Copy this link and open it in your browser:<br/>
+          <a href="${webResetUrl}" style="color:#0d9488;word-break:break-all">${webResetUrl}</a>
         </p>
-        <p style="color:#6b7280;font-size:14px">
+        
+        <p style="color:#6b7280;font-size:14px;margin-top:24px">
           If you didn't request a password reset, you can safely ignore this email.
         </p>
       </div>

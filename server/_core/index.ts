@@ -7,6 +7,7 @@ import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { registerOAuthRoutes } from "./oauth";
 import { registerPaymentRoutes } from "./payments";
 import { registerAuthRoutes } from "./auth";
+import { validateEmailConfig } from "./email";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 
@@ -136,6 +137,12 @@ async function startServer() {
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
   app.use(cookieParser());
+
+  // Validate email configuration
+  const emailConfig = validateEmailConfig();
+  if (!emailConfig.valid) {
+    console.warn("[Email] Configuration warning:", emailConfig.error);
+  }
 
   registerOAuthRoutes(app);
   registerPaymentRoutes(app);

@@ -333,19 +333,32 @@ export function registerAuthRoutes(app: Express) {
   app.post("/api/auth/forgot-password", async (req: Request, res: Response) => {
     try {
       const { email } = req.body;
+      console.log("[Auth] forgot-password request for:", email);
+      
       if (!email?.trim()) {
+        console.log("[Auth] forgot-password: missing email");
         res.status(400).json({ error: "Email required" });
         return;
       }
+      
       const token = await createPasswordResetToken(email.trim());
+      console.log("[Auth] forgot-password token created:", token ? "yes" : "no (user not found)");
+      
       if (token) {
-        // Determine app URL for the reset link
         const appUrl =
           process.env.APP_URL ||
           `${req.protocol}://${req.get("host")}`;
-        await sendPasswordResetEmail(email.trim(), token, appUrl);
+        console.log("[Auth] forgot-password appUrl:", appUrl);
+        console.log("[Auth] forgot-password sending email to:", email.trim());
+        
+        try {
+          await sendPasswordResetEmail(email.trim(), token, appUrl);
+          console.log("[Auth] forgot-password email sent successfully");
+        } catch (emailErr) {
+          console.error("[Auth] forgot-password email send FAILED:", emailErr);
+        }
       }
-      // Always respond success to avoid email enumeration
+      
       res.json({ success: true });
     } catch (err) {
       console.error("[Auth] forgot-password error:", err);
