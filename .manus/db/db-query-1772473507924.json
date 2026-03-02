@@ -1,0 +1,14 @@
+{
+  "query": "SELECT COUNT(*) as total_users, GROUP_CONCAT(email) as emails FROM email_users;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2bZZkzbo8ts7Msg.1120ae12998f --database TcKCq6vsXGY366ZGFCDBDp --execute SELECT COUNT(*) as total_users, GROUP_CONCAT(email) as emails FROM email_users;",
+  "rows": [
+    {
+      "total_users": "73",
+      "emails": "bqing1@yahoo.com,e2etest@example.com,lucasxu423@gmail.com,multi-login-1772432819476@example.com,multi-login-1772432834739@example.com,multi-login-1772432851959@example.com,multi-login-1772433544916@example.com,multi-login-1772434915144@example.com,multi-login-1772435515953@example.com,multi-login-1772435686050@example.com,multi-login-1772435997593@example.com,multi-login-1772436562296@example.com,multi-login-1772437083087@example.com,multi-login-1772437653807@example.com,multi-login-1772438781029@example.com,multi-login-1772438962418@example.com,multi-login-1772439294824@example.com,multi-login-1772440838159@example.com,newuser@example.com,payment-test-1772432622031@example.com,payment-test-1772432677287@example.com,payment-test-1772432704634@example.com,payment-test-1772432715699@example.com,payment-test-1772432725322@example.com,payment-test-1772432748051@example.com,payment-test-1772432758212@example.com,payment-test-1772432786515@example.com,payment-test-1772432831438@example.com,paytest_1772422599@test.c"
+    }
+  ],
+  "messages": [],
+  "stdout": "total_users\temails\n73\tbqing1@yahoo.com,e2etest@example.com,lucasxu423@gmail.com,multi-login-1772432819476@example.com,multi-login-1772432834739@example.com,multi-login-1772432851959@example.com,multi-login-1772433544916@example.com,multi-login-1772434915144@example.com,multi-login-1772435515953@example.com,multi-login-1772435686050@example.com,multi-login-1772435997593@example.com,multi-login-1772436562296@example.com,multi-login-1772437083087@example.com,multi-login-1772437653807@example.com,multi-login-1772438781029@example.com,multi-login-1772438962418@example.com,multi-login-1772439294824@example.com,multi-login-1772440838159@example.com,newuser@example.com,payment-test-1772432622031@example.com,payment-test-1772432677287@example.com,payment-test-1772432704634@example.com,payment-test-1772432715699@example.com,payment-test-1772432725322@example.com,payment-test-1772432748051@example.com,payment-test-1772432758212@example.com,payment-test-1772432786515@example.com,payment-test-1772432831438@example.com,paytest_1772422599@test.c\n",
+  "stderr": "",
+  "execution_time_ms": 54
+}

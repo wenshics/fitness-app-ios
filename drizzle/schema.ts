@@ -79,3 +79,18 @@ export const passwordResetTokens = mysqlTable("password_reset_tokens", {
 
 export type EmailVerificationCode = typeof emailVerificationCodes.$inferSelect;
 export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
+
+// User Awards/Badges - tracks achievements earned by users
+export const userAwards = mysqlTable("user_awards", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  awardId: varchar("awardId", { length: 64 }).notNull(),
+  awardName: varchar("awardName", { length: 128 }).notNull(),
+  awardDescription: text("awardDescription"),
+  awardIcon: varchar("awardIcon", { length: 128 }),
+  unlockedAt: timestamp("unlockedAt").defaultNow().notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type UserAward = typeof userAwards.$inferSelect;
+export type InsertUserAward = typeof userAwards.$inferInsert;

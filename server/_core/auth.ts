@@ -12,6 +12,9 @@ import {
   verifyEmailCode,
   createPasswordResetToken,
   resetPasswordWithToken,
+  saveUserAward,
+  getUserAwards,
+  hasUserAward,
 } from "../db";
 import { getDb } from "../db";
 import { emailUsers } from "../../drizzle/schema";
@@ -371,6 +374,97 @@ export function registerAuthRoutes(app: Express) {
     } catch (err) {
       console.error("[Auth] reset-password error:", err);
       res.status(500).json({ error: "Password reset failed" });
+    }
+  });
+
+  // ── Save user award ────────────────────────────────────────────────────────
+  app.post("/api/awards/save", async (req: Request, res: Response) => {
+    try {
+      const token =
+        req.headers.authorization?.replace("Bearer ", "") ||
+        req.cookies[COOKIE_NAME];
+
+      if (!token) {
+        res.status(401).json({ error: "Unauthorized" });
+        return;
+      }
+
+      const session = await findEmailSessionUser(token);
+      if (!session) {
+        res.status(401).json({ error: "Invalid session" });
+        return;
+      }
+
+      const { awardId, awardName, awardDescription, awardIcon } = req.body;
+      if (!awardId || !awardName) {
+        res.status(400).json({ error: "Missing award data" });
+        return;
+      }
+
+      const saved = await saveUserAward(session.userId, {
+        id: awardId,
+        name: awardName,
+        description: awardDescription || "",
+        icon: awardIcon || "",
+      });
+
+      res.json({ success: saved, message: saved ? "Award saved" : "Award already exists" });
+    } catch (err) {
+      console.error("[Awards] save error:", err);
+      res.status(500).json({ error: "Failed to save award" });
+    }
+  });
+
+  // ── Get user awards ────────────────────────────────────────────────────────
+  app.get("/api/awards/list", async (req: Request, res: Response) => {
+    try {
+      const token =
+        req.headers.authorization?.replace("Bearer ", "") ||
+        req.cookies[COOKIE_NAME];
+
+      if (!token) {
+        res.status(401).json({ error: "Unauthorized" });
+        return;
+      }
+
+      const session = await findEmailSessionUser(token);
+      if (!session) {
+        res.status(401).json({ error: "Invalid session" });
+        return;
+      }
+
+      const awards = await getUserAwards(session.userId);
+      res.json({ awards });
+    } catch (err) {
+      console.error("[Awards] list error:", err);
+      res.status(500).json({ error: "Failed to retrieve awards" });
+    }
+  });
+
+  // ── Check if user has specific award ────────────────────────────────────────
+  app.get("/api/awards/check/:awardId", async (req: Request, res: Response) => {
+    try {
+      const token =
+        req.headers.authorization?.replace("Bearer ", "") ||
+        req.cookies[COOKIE_NAME];
+
+      if (!token) {
+        res.status(401).json({ error: "Unauthorized" });
+        return;
+      }
+
+      const session = await findEmailSessionUser(token);
+      if (!session) {
+        res.status(401).json({ error: "Invalid session" });
+        return;
+      }
+
+      const { awardId } = req.params;
+      const hasAward = await hasUserAward(session.userId, awardId);
+      res.json({ hasAward });
+    } catch (err) {
+      console.error("[Awards] check error:", err);
+      res.status(500).json({ error: "Failed to check award" });
     }
   });
 }

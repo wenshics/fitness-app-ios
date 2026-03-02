@@ -436,3 +436,107 @@ export async function findUserByStripeCustomerId(stripeCustomerId: string) {
     .limit(1);
   return rows[0] ?? null;
 }
+
+
+// ---- User Awards/Badges Helpers ----
+import { userAwards } from "../drizzle/schema";
+
+/**
+ * Save a user award to the database.
+ * Returns true if the award was newly saved, false if it already existed.
+ */
+export async function saveUserAward(
+  userId: number,
+  award: {
+    id: string;
+    name: string;
+    description: string;
+    icon: string;
+  }
+): Promise<boolean> {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[DB] saveUserAward: database not available");
+    return false;
+  }
+
+  try {
+    // Check if award already exists for this user
+    const existing = await db
+      .select()
+      .from(userAwards)
+      .where(
+        and(
+          eq(userAwards.userId, userId),
+          eq(userAwards.awardId, award.id)
+        )
+      )
+      .limit(1);
+
+    if (existing.length > 0) {
+      console.log(`[DB] Award ${award.id} already exists for user ${userId}`);
+      return false;
+    }
+
+    // Insert new award
+    await db.insert(userAwards).values({
+      userId,
+      awardId: award.id,
+      awardName: award.name,
+      awardDescription: award.description,
+      awardIcon: award.icon,
+      unlockedAt: new Date(),
+    });
+
+    console.log(`[DB] Saved award ${award.id} for user ${userId}`);
+    return true;
+  } catch (error) {
+    console.error("[DB] saveUserAward error:", error);
+    return false;
+  }
+}
+
+/**
+ * Get all awards for a user.
+ */
+export async function getUserAwards(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+
+  try {
+    const awards = await db
+      .select()
+      .from(userAwards)
+      .where(eq(userAwards.userId, userId))
+      .orderBy(userAwards.unlockedAt);
+    return awards;
+  } catch (error) {
+    console.error("[DB] getUserAwards error:", error);
+    return [];
+  }
+}
+
+/**
+ * Check if a user has a specific award.
+ */
+export async function hasUserAward(userId: number, awardId: string): Promise<boolean> {
+  const db = await getDb();
+  if (!db) return false;
+
+  try {
+    const rows = await db
+      .select()
+      .from(userAwards)
+      .where(
+        and(
+          eq(userAwards.userId, userId),
+          eq(userAwards.awardId, awardId)
+        )
+      )
+      .limit(1);
+    return rows.length > 0;
+  } catch (error) {
+    console.error("[DB] hasUserAward error:", error);
+    return false;
+  }
+}

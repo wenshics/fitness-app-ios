@@ -29,6 +29,13 @@
       "when": 1772421588960,
       "tag": "0003_high_demogoblin",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1772474378150,
+      "tag": "0004_swift_elektra",
+      "breakpoints": true
     }
   ]
 }

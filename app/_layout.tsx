@@ -20,6 +20,7 @@ import type { EdgeInsets, Metrics, Rect } from "react-native-safe-area-context";
 import { trpc, createTRPCClient } from "@/lib/trpc";
 import { initManusRuntime, subscribeSafeAreaInsets } from "@/lib/_core/manus-runtime";
 import { useAuth } from "@/hooks/use-auth";
+import { useAwardSync } from "@/hooks/use-award-sync";
 import { WorkoutProvider, useWorkout } from "@/lib/workout-store";
 import { SubscriptionProvider, useSubscription } from "@/lib/subscription-store";
 import { UserProvider } from "@/lib/user-store";
@@ -62,6 +63,8 @@ function UserDataSync({ children }: { children: React.ReactNode }) {
   const { setUserId: setSubUserId } = useSubscription();
   const { setUserId: setWorkoutUserId } = useWorkout();
 
+  // Sync awards to backend when user logs in
+  useAwardSync();
   useEffect(() => {
     const userId = user?.id ?? null;
     console.log("[UserDataSync] User changed:", userId, "isAuthenticated:", isAuthenticated);
