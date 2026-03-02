@@ -1,0 +1,45 @@
+{
+  "query": "SELECT id, token, userId, expiresAt, createdAt FROM email_sessions ORDER BY createdAt DESC LIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2bZZkzbo8ts7Msg.1120ae12998f --database TcKCq6vsXGY366ZGFCDBDp --execute SELECT id, token, userId, expiresAt, createdAt FROM email_sessions ORDER BY createdAt DESC LIMIT 5;",
+  "rows": [
+    {
+      "id": "210002",
+      "token": "e1892027f8aa84c4853d4e1da13c22f6995d7b33830c23878c3ee814b775a5096ee94c570cd6bb07c5a7a328c04ccc78",
+      "userId": "30002",
+      "expiresAt": "2027-03-02 04:58:16",
+      "createdAt": "2026-03-02 04:58:15"
+    },
+    {
+      "id": "210001",
+      "token": "0d3f09c07ca277535b5441153d0070ea3728bbd6467ead89044cf58947ed76dabaa072e8c658e15b2a111dc3625d7370",
+      "userId": "30002",
+      "expiresAt": "2027-03-02 04:57:44",
+      "createdAt": "2026-03-02 04:57:43"
+    },
+    {
+      "id": "180009",
+      "token": "fdb1b8c296f3b24bd4ecfee25727c5aab811b2df086352a3db9a4919d7d89af9beb9bca85f221b053ee16f2cf413e3cf",
+      "userId": "120006",
+      "expiresAt": "2027-03-02 04:11:19",
+      "createdAt": "2026-03-02 04:11:18"
+    },
+    {
+      "id": "180007",
+      "token": "575d8c5a157fd383c94110756199669bc57ac40347b8a28d1706dfec48b0fec353f56ca58e664c67fb5ad4174c2cf0aa",
+      "userId": "120005",
+      "expiresAt": "2027-03-02 04:10:29",
+      "createdAt": "2026-03-02 04:10:29"
+    },
+    {
+      "id": "180008",
+      "token": "473332d268f68f9aa92a3dfe5e0fe47710a5734869b23ee165a04817a2520a83a8a19318c331e7b900fb75369f2ec739",
+      "userId": "120005",
+      "expiresAt": "2027-03-02 04:10:29",
+      "createdAt": "2026-03-02 04:10:29"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\ttoken\tuserId\texpiresAt\tcreatedAt\n210002\te1892027f8aa84c4853d4e1da13c22f6995d7b33830c23878c3ee814b775a5096ee94c570cd6bb07c5a7a328c04ccc78\t30002\t2027-03-02 04:58:16\t2026-03-02 04:58:15\n210001\t0d3f09c07ca277535b5441153d0070ea3728bbd6467ead89044cf58947ed76dabaa072e8c658e15b2a111dc3625d7370\t30002\t2027-03-02 04:57:44\t2026-03-02 04:57:43\n180009\tfdb1b8c296f3b24bd4ecfee25727c5aab811b2df086352a3db9a4919d7d89af9beb9bca85f221b053ee16f2cf413e3cf\t120006\t2027-03-02 04:11:19\t2026-03-02 04:11:18\n180007\t575d8c5a157fd383c94110756199669bc57ac40347b8a28d1706dfec48b0fec353f56ca58e664c67fb5ad4174c2cf0aa\t120005\t2027-03-02 04:10:29\t2026-03-02 04:10:29\n180008\t473332d268f68f9aa92a3dfe5e0fe47710a5734869b23ee165a04817a2520a83a8a19318c331e7b900fb75369f2ec739\t120005\t2027-03-02 04:10:29\t2026-03-02 04:10:29\n",
+  "stderr": "",
+  "execution_time_ms": 249
+}

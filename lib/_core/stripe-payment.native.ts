@@ -94,6 +94,51 @@ export async function cancelSubscription(): Promise<void> {
 }
 
 /**
+ * Confirm a payment with a card payment method.
+ * Sends the payment method ID to the server to complete the payment.
+ */
+export async function confirmPaymentWithCard(
+  clientSecret: string,
+  paymentMethodId: string,
+): Promise<{
+  success: boolean;
+  message?: string;
+  error?: string;
+}> {
+  try {
+    const result = await apiCall<{
+      success: boolean;
+      message?: string;
+      error?: string;
+    }>("/api/payments/confirm-payment", {
+      method: "POST",
+      body: JSON.stringify({
+        clientSecret,
+        paymentMethodId,
+      }),
+    });
+
+    if (!result.success) {
+      return {
+        success: false,
+        message: result.error ?? result.message ?? "Payment confirmation failed",
+      };
+    }
+
+    return {
+      success: true,
+      message: "Payment successful",
+    };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Payment confirmation failed";
+    return {
+      success: false,
+      message,
+    };
+  }
+}
+
+/**
  * Validate card number using Luhn algorithm.
  */
 export function validateCardNumber(cardNumber: string): boolean {

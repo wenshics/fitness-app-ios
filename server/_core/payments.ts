@@ -370,6 +370,63 @@ export function registerPaymentRoutes(app: Express) {
     res.json({ received: true });
   });
 
+  // ── 5. Confirm payment with card payment method ────────────────────────────
+  // Called by the custom credit card form to confirm the payment intent
+  app.post("/api/payments/confirm-payment", async (req: Request, res: Response) => {
+    try {
+      const user = await getAuthenticatedUser(req);
+      if (!user) {
+        return res.status(401).json({ success: false, error: "Authentication required" });
+      }
+
+      const { clientSecret, paymentMethodId } = req.body as {
+        clientSecret?: string;
+        paymentMethodId?: string;
+      };
+
+      if (!clientSecret || !paymentMethodId) {
+        return res.status(400).json({
+          success: false,
+          error: "clientSecret and paymentMethodId are required",
+        });
+      }
+
+      const stripe = getStripe();
+
+      // Confirm the payment intent with the payment method
+      const paymentIntent = await stripe.paymentIntents.confirm(clientSecret, {
+        payment_method: paymentMethodId,
+      });
+
+      console.log(`[Stripe] Payment intent confirmed: ${paymentIntent.id}, status: ${paymentIntent.status}`);
+
+      if (paymentIntent.status === "succeeded") {
+        // Payment succeeded — subscription should now be active
+        res.json({
+          success: true,
+          message: "Payment successful",
+          paymentIntentId: paymentIntent.id,
+        });
+      } else if (paymentIntent.status === "requires_action") {
+        // Additional authentication required (3D Secure, etc.)
+        res.status(402).json({
+          success: false,
+          error: "Additional authentication required",
+          clientSecret: paymentIntent.client_secret,
+        });
+      } else {
+        res.status(402).json({
+          success: false,
+          error: `Payment failed: ${paymentIntent.status}`,
+        });
+      }
+    } catch (error) {
+      console.error("[Stripe] confirm-payment error:", error);
+      const message = error instanceof Error ? error.message : "Payment confirmation failed";
+      res.status(500).json({ success: false, error: message });
+    }
+  });
+
   // ── Legacy endpoint kept for backward compatibility ────────────────────────
   // The old payment-info.tsx screen called /api/payments/subscribe.
   // We redirect it to the new flow.

@@ -140,7 +140,7 @@ export async function getMe(): Promise<{
     console.log("[API] getMe: calling /api/auth/me");
     const sessionToken = await Auth.getSessionToken();
     console.log("[API] getMe: sessionToken exists?", !!sessionToken);
-    const result = await apiCall<{ user: any }>("/api/auth/me");
+    const result = await apiCall<{ user: any }>("/api/auth/me", { method: "GET" });
     console.log("[API] getMe: response", { hasUser: !!result.user, userId: result.user?.id });
     return result.user || null;
   } catch (error) {

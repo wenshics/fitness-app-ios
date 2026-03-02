@@ -1,11 +1,12 @@
-import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useColors } from "@/hooks/use-colors";
 import { useAuth } from "@/hooks/use-auth";
 import { PLANS, type PlanType, useSubscription } from "@/lib/subscription-store";
-import { createSubscriptionIntent } from "@/lib/_core/stripe-payment";
+import { createSubscriptionIntent, confirmPaymentWithCard } from "@/lib/_core/stripe-payment";
 import * as Auth from "@/lib/_core/auth";
 import * as Api from "@/lib/_core/api";
+import { CreditCardForm } from "@/components/credit-card-form";
+import { ScreenContainer } from "@/components/screen-container";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
@@ -19,14 +20,12 @@ import {
   View,
 } from "react-native";
 import * as Haptics from "expo-haptics";
-import { useStripePaymentSheet } from "@/hooks/use-stripe-payment-sheet";
 
 export default function PaymentInfoScreen() {
   const colors = useColors();
   const router = useRouter();
   const { plan: planId } = useLocalSearchParams<{ plan: PlanType }>();
   const { subscribe } = useSubscription();
-  const { initPaymentSheet, presentPaymentSheet } = useStripePaymentSheet();
   // Wait for auth to hydrate before making API calls — prevents 401 on first mount
   const { loading: authLoading, isAuthenticated, logout } = useAuth();
 
@@ -36,10 +35,11 @@ export default function PaymentInfoScreen() {
   const [trialEndDate, setTrialEndDate] = useState<Date | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [initKey, setInitKey] = useState(0); // increment to retry
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
 
   const selectedPlan = PLANS.find((p) => p.id === planId);
 
-  // Initialise the Payment Sheet when the screen mounts (or on retry)
+  // Initialise payment when the screen mounts (or on retry)
   // Wait for auth to finish loading so the session token is available in SecureStore
   useEffect(() => {
     if (!selectedPlan) return;
@@ -47,11 +47,12 @@ export default function PaymentInfoScreen() {
     if (authLoading) return;
     let cancelled = false;
 
-    const initSheet = async () => {
+    const initPayment = async () => {
       try {
         setIsLoading(true);
         setLoadError(null);
         setPaymentReady(false);
+        setClientSecret(null);
 
         // 0. Proactively validate the session token before making payment calls
         //    This catches stale tokens early and gives a clear error message
@@ -72,12 +73,12 @@ export default function PaymentInfoScreen() {
         }
 
         // 1. Create a Stripe Subscription on the server → get client_secret
-        let clientSecret: string | null;
+        let clientSecretValue: string | null;
         let trialEnd: number;
         let upgraded: boolean | undefined;
         try {
           const result = await createSubscriptionIntent(selectedPlan.id);
-          clientSecret = result.clientSecret;
+          clientSecretValue = result.clientSecret;
           trialEnd = result.trialEnd;
           upgraded = result.upgraded;
         } catch (err) {
@@ -106,29 +107,15 @@ export default function PaymentInfoScreen() {
           return;
         }
 
-        if (!clientSecret) {
+        if (!clientSecretValue) {
           // Subscription created with trial — no payment required yet
           await subscribe(selectedPlan.id as PlanType);
           router.replace("/payment-success");
           return;
         }
 
-        // 2. Initialise the Stripe Payment Sheet with the client_secret
-        const { error: initError } = await initPaymentSheet(clientSecret, {
-          primary: colors.primary,
-          background: colors.background,
-          surface: colors.surface,
-          border: colors.border,
-          foreground: colors.foreground,
-          muted: colors.muted,
-        });
-
-        if (cancelled) return;
-
-        if (initError) {
-          setLoadError(initError);
-          return;
-        }
+        // Store the client secret for later use
+        setClientSecret(clientSecretValue);
 
         if (trialEnd) {
           setTrialEndDate(new Date(trialEnd * 1000));
@@ -138,13 +125,13 @@ export default function PaymentInfoScreen() {
         if (cancelled) return;
         const message = err instanceof Error ? err.message : "Failed to initialise payment";
         setLoadError(message);
-        console.error("[PaymentInfo] initSheet error:", err);
+        console.error("[PaymentInfo] initPayment error:", err);
       } finally {
         if (!cancelled) setIsLoading(false);
       }
     };
 
-    initSheet();
+    initPayment();
     return () => {
       cancelled = true;
     };
@@ -168,24 +155,22 @@ export default function PaymentInfoScreen() {
     );
   }
 
-  const handleStartTrial = async () => {
-    if (!paymentReady) return;
-
-    if (Platform.OS !== "web") {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+  const handlePaymentSuccess = async (paymentMethodId: string) => {
+    if (!clientSecret) {
+      Alert.alert("Error", "Payment information is missing. Please try again.");
+      return;
     }
 
     setIsProcessing(true);
     try {
-      // Present the Stripe Payment Sheet — Stripe handles card collection securely
-      const result = await presentPaymentSheet();
+      if (Platform.OS !== "web") {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      }
+
+      // Confirm the payment with the card token
+      const result = await confirmPaymentWithCard(clientSecret, paymentMethodId);
 
       if (!result.success) {
-        if (result.canceled) {
-          // User dismissed the sheet — not an error
-          return;
-        }
-        // Payment failed
         if (Platform.OS !== "web") {
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
         }
@@ -204,11 +189,19 @@ export default function PaymentInfoScreen() {
       await subscribe(selectedPlan.id as PlanType);
       router.replace("/payment-success");
     } catch (err) {
-      console.error("[PaymentInfo] presentPaymentSheet error:", err);
+      console.error("[PaymentInfo] Payment error:", err);
+      if (Platform.OS !== "web") {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      }
       Alert.alert("Error", "An unexpected error occurred. Please try again.");
     } finally {
       setIsProcessing(false);
     }
+  };
+
+  const handlePaymentError = (error: string) => {
+    console.error("[PaymentInfo] Payment form error:", error);
+    Alert.alert("Payment Error", error);
   };
 
   const formatTrialEnd = (date: Date) => {
@@ -258,7 +251,7 @@ export default function PaymentInfoScreen() {
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.foreground }]}>How it works</Text>
           {[
-            "Enter your payment details securely via Stripe",
+            "Enter your payment details securely",
             "Enjoy 7 days of full access — completely free",
             `After your trial, you'll be charged ${selectedPlan.price}${selectedPlan.period}`,
             "Cancel anytime from your profile settings",
@@ -270,8 +263,6 @@ export default function PaymentInfoScreen() {
           ))}
         </View>
 
-        <View style={{ flex: 1 }} />
-
         {/* Loading state */}
         {isLoading && (
           <View style={styles.loadingContainer}>
@@ -280,7 +271,7 @@ export default function PaymentInfoScreen() {
           </View>
         )}
 
-        {/* Error state — shown instead of CTA when init fails */}
+        {/* Error state — shown instead of form when init fails */}
         {loadError && !isLoading ? (
           <View style={styles.errorBlock}>
             <View style={[styles.errorBanner, { backgroundColor: colors.error + "18", borderColor: colors.error + "40" }]}>
@@ -327,30 +318,17 @@ export default function PaymentInfoScreen() {
               <Text style={[styles.cancelButtonText, { color: colors.foreground }]}>Cancel</Text>
             </Pressable>
           </View>
-        ) : (
+        ) : paymentReady && !isLoading ? (
           <>
-            {/* CTA Button */}
-            <Pressable
-              onPress={handleStartTrial}
-              disabled={!paymentReady || isProcessing || isLoading}
-              style={({ pressed }) => [
-                styles.ctaButton,
-                { backgroundColor: colors.primary },
-                (!paymentReady || isLoading) && { opacity: 0.5 },
-                pressed && paymentReady && { transform: [{ scale: 0.97 }], opacity: 0.9 },
-              ]}
-            >
-              {isProcessing ? (
-                <View style={styles.ctaLoadingRow}>
-                  <ActivityIndicator size="small" color="#FFFFFF" />
-                  <Text style={styles.ctaButtonText}>Processing…</Text>
-                </View>
-              ) : (
-                <Text style={styles.ctaButtonText}>
-                  {isLoading ? "Loading…" : "Start Free Trial"}
-                </Text>
-              )}
-            </Pressable>
+            {/* Credit Card Form */}
+            <View style={styles.formSection}>
+              <CreditCardForm
+                onPaymentSuccess={handlePaymentSuccess}
+                onPaymentError={handlePaymentError}
+                isProcessing={isProcessing}
+                buttonText="Start Free Trial"
+              />
+            </View>
 
             {/* Cancel */}
             <Pressable
@@ -365,7 +343,7 @@ export default function PaymentInfoScreen() {
               <Text style={[styles.cancelButtonText, { color: colors.foreground }]}>Cancel</Text>
             </Pressable>
           </>
-        )}
+        ) : null}
 
         {/* Security note */}
         <View style={styles.securityNote}>
@@ -398,21 +376,18 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   backButtonText: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "600",
   },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    marginBottom: 8,
+    marginBottom: 20,
   },
   title: {
-    fontSize: 22,
+    fontSize: 28,
     fontWeight: "700",
-    letterSpacing: -0.3,
   },
   closeButton: {
     padding: 8,
@@ -421,50 +396,46 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginHorizontal: 20,
-    padding: 16,
-    borderRadius: 14,
     borderWidth: 1,
-    marginBottom: 14,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
   },
   planCardLeft: {
-    flex: 1,
-  },
-  planCardRight: {
-    flexDirection: "row",
-    alignItems: "baseline",
-    gap: 2,
+    gap: 4,
   },
   planCardLabel: {
     fontSize: 12,
-    marginBottom: 4,
+    fontWeight: "500",
     textTransform: "uppercase",
     letterSpacing: 0.5,
   },
   planCardName: {
     fontSize: 18,
-    fontWeight: "700",
+    fontWeight: "600",
+  },
+  planCardRight: {
+    alignItems: "flex-end",
   },
   planCardPrice: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: "700",
   },
   planCardInterval: {
-    fontSize: 13,
+    fontSize: 12,
   },
   trialBanner: {
     flexDirection: "row",
     alignItems: "flex-start",
-    gap: 12,
-    marginHorizontal: 20,
-    padding: 14,
-    borderRadius: 12,
     borderWidth: 1,
+    borderRadius: 12,
+    padding: 16,
     marginBottom: 20,
+    gap: 12,
   },
   trialBannerTitle: {
-    fontSize: 14,
-    fontWeight: "700",
+    fontSize: 16,
+    fontWeight: "600",
     marginBottom: 4,
   },
   trialBannerDesc: {
@@ -472,118 +443,83 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   section: {
-    marginHorizontal: 20,
     marginBottom: 24,
-    paddingTop: 4,
   },
   sectionTitle: {
-    fontSize: 15,
-    fontWeight: "700",
+    fontSize: 16,
+    fontWeight: "600",
     marginBottom: 12,
   },
   stepRow: {
     flexDirection: "row",
     alignItems: "flex-start",
-    gap: 10,
-    marginBottom: 10,
+    marginBottom: 12,
+    gap: 12,
   },
   stepDot: {
-    width: 7,
-    height: 7,
+    width: 8,
+    height: 8,
     borderRadius: 4,
     marginTop: 6,
-    flexShrink: 0,
   },
   stepText: {
+    flex: 1,
     fontSize: 14,
     lineHeight: 20,
-    flex: 1,
   },
   loadingContainer: {
-    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    gap: 10,
-    paddingVertical: 12,
-    marginHorizontal: 20,
-    marginBottom: 12,
+    gap: 12,
+    paddingVertical: 24,
   },
   loadingText: {
     fontSize: 14,
   },
   errorBlock: {
-    marginBottom: 4,
+    gap: 12,
   },
   errorBanner: {
-    marginHorizontal: 20,
-    padding: 14,
-    borderRadius: 10,
     borderWidth: 1,
-    marginBottom: 12,
+    borderRadius: 8,
+    padding: 12,
   },
   errorBannerText: {
-    fontSize: 13,
-    lineHeight: 18,
+    fontSize: 14,
+    lineHeight: 20,
   },
   retryButton: {
-    marginHorizontal: 20,
-    paddingVertical: 14,
-    borderRadius: 14,
+    paddingVertical: 12,
+    borderRadius: 8,
     alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    marginBottom: 12,
   },
   retryButtonText: {
     fontSize: 16,
-    fontWeight: "700",
-    letterSpacing: 0.2,
+    fontWeight: "600",
   },
-  ctaButton: {
-    marginHorizontal: 20,
-    paddingVertical: 16,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 12,
-  },
-  ctaLoadingRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  ctaButtonText: {
-    fontSize: 17,
-    fontWeight: "700",
-    color: "#FFFFFF",
-    letterSpacing: 0.2,
+  formSection: {
+    marginVertical: 20,
   },
   cancelButton: {
-    marginHorizontal: 20,
-    paddingVertical: 14,
-    borderRadius: 14,
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingVertical: 12,
     alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1.5,
-    marginBottom: 16,
+    marginBottom: 12,
   },
   cancelButtonText: {
     fontSize: 16,
     fontWeight: "600",
-    letterSpacing: 0.2,
   },
   securityNote: {
     flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 20,
-    paddingBottom: 24,
-    justifyContent: "center",
+    alignItems: "flex-start",
+    gap: 8,
+    paddingVertical: 12,
+    marginTop: 16,
   },
   securityText: {
+    flex: 1,
     fontSize: 12,
     lineHeight: 16,
-    flex: 1,
-    textAlign: "center",
   },
 });
