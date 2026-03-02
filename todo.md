@@ -279,3 +279,21 @@
 - [x] BUG: Black boxes visible throughout all 4 tabs — root cause was dark mode (zinc-900 surfaces #18181B). Fixed by locking app to light mode.
 - [x] Audit every tab screen for hardcoded dark background/surface colors
 - [x] Fix all screens to use theme tokens instead of hardcoded dark values
+
+## BUG - FULL COLOR AUDIT ALL SCREENS
+
+- [ ] BUG: Black colors and unreadable light text throughout all screens
+- [ ] Audit and fix theme.config.js light palette for proper contrast
+- [ ] Audit and fix all tab screens: index, exercises, my-plan, profile
+- [ ] Audit and fix all standalone screens: login, signup, onboarding, exercise detail, paywall, etc.
+- [ ] Ensure all text is readable (dark text on light backgrounds)
+
+## BUG - COMPREHENSIVE COLOR AUDIT (ALL SCREENS)
+
+- [x] BUG: Black boxes visible throughout all 4 tabs after dark mode lock
+- [x] Full audit of all screens: index, exercises, my-plan, profile, exercise/[id], workout-session, onboarding, payment-info, verify-email, auth, login-screen, signup-screen, forgot-password, reset-password
+- [x] Fixed: calorie badge on exercise image (rgba(0,0,0,0.6) → colors.primary teal)
+- [x] Fixed: Start Workout button (colors.foreground near-black → colors.primary teal)
+- [x] Fixed: startButtonSub text color (colors.background → rgba(255,255,255,0.75))
+- [x] Fixed: TypeScript error - state.totalCalories does not exist (calculated from history instead)
+- [x] All modal overlays (rgba(0,0,0,0.5)) are intentional dimmer backdrops - correct as-is

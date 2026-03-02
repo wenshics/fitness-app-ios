@@ -89,16 +89,16 @@ export default function HomeScreen() {
             onPress={handleStartWorkout}
             style={({ pressed }) => [
               styles.startButton,
-              { backgroundColor: colors.foreground },
+              { backgroundColor: colors.primary },
               pressed && { transform: [{ scale: 0.97 }], opacity: 0.9 },
             ]}
           >
-            <IconSymbol name="play.fill" size={24} color={colors.background} />
+            <IconSymbol name="play.fill" size={24} color="#FFFFFF" />
             <View>
-              <Text style={[styles.startButtonText, { color: colors.background }]}>
+              <Text style={[styles.startButtonText, { color: "#FFFFFF" }]}>
                 Start Workout
               </Text>
-              <Text style={[styles.startButtonSub, { color: colors.background + "99" }]}>
+              <Text style={[styles.startButtonSub, { color: "rgba(255,255,255,0.75)" }]}>
                 {planCount} exercises · {formatDuration(totalDuration)}
               </Text>
             </View>

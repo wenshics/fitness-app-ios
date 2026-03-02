@@ -263,7 +263,7 @@ export default function ProfileScreen() {
             <Text style={[styles.statLabel, { color: colors.muted }]}>Day Streak</Text>
           </View>
           <View style={[styles.statCard, { backgroundColor: colors.surface }]}>
-            <Text style={[styles.statValue, { color: colors.primary }]}>{state.totalCalories || 0}</Text>
+            <Text style={[styles.statValue, { color: colors.primary }]}>{Math.round(state.history?.reduce((total, h) => total + h.exerciseIds.length * 5, 0) || 0)}</Text>
             <Text style={[styles.statLabel, { color: colors.muted }]}>Calories</Text>
           </View>
         </View>

@@ -148,7 +148,7 @@ export default function ExerciseDetailScreen() {
             transition={300}
           />
           <View style={styles.imageOverlay}>
-            <View style={[styles.calBadge, { backgroundColor: "rgba(0,0,0,0.6)" }]}>
+            <View style={[styles.calBadge, { backgroundColor: colors.primary }]}>
               <IconSymbol name="flame.fill" size={14} color="#FF6B35" />
               <Text style={styles.calText}>~{exercise.caloriesPerMinute} cal/min</Text>
             </View>
