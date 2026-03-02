@@ -14,7 +14,22 @@ import { describe, it, expect, beforeAll } from "vitest";
 import Stripe from "stripe";
 
 const STRIPE_SK = process.env.STRIPE_SK || process.env.STRIPE_SECRET_KEY;
-const API_BASE = process.env.EXPO_PUBLIC_API_BASE_URL || "http://localhost:3000";
+
+// Dynamically find the running server port (may be 3000, 3001, etc.)
+async function findServerBase(): Promise<string> {
+  if (process.env.EXPO_PUBLIC_API_BASE_URL) return process.env.EXPO_PUBLIC_API_BASE_URL;
+  for (const port of [3000, 3001, 3002, 3003]) {
+    try {
+      const r = await fetch(`http://localhost:${port}/api/health`, {
+        signal: AbortSignal.timeout(1000),
+      });
+      if (r.ok) return `http://localhost:${port}`;
+    } catch { /* try next */ }
+  }
+  return "http://localhost:3000";
+}
+const API_BASE = await findServerBase();
+console.log(`[Test Setup] Using API base: ${API_BASE}`);
 
 // Skip tests if no Stripe key is configured
 const describeIfStripe = STRIPE_SK ? describe : describe.skip;

@@ -1,6 +1,7 @@
 import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useColors } from "@/hooks/use-colors";
+import { useAuth } from "@/hooks/use-auth";
 import { PLANS, type PlanType, useSubscription } from "@/lib/subscription-store";
 import { createSubscriptionIntent } from "@/lib/_core/stripe-payment";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -24,6 +25,8 @@ export default function PaymentInfoScreen() {
   const { plan: planId } = useLocalSearchParams<{ plan: PlanType }>();
   const { subscribe } = useSubscription();
   const { initPaymentSheet, presentPaymentSheet } = useStripePaymentSheet();
+  // Wait for auth to hydrate before making API calls — prevents 401 on first mount
+  const { loading: authLoading, isAuthenticated } = useAuth();
 
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -35,8 +38,11 @@ export default function PaymentInfoScreen() {
   const selectedPlan = PLANS.find((p) => p.id === planId);
 
   // Initialise the Payment Sheet when the screen mounts (or on retry)
+  // Wait for auth to finish loading so the session token is available in SecureStore
   useEffect(() => {
     if (!selectedPlan) return;
+    // Don't fire until auth hydration is complete
+    if (authLoading) return;
     let cancelled = false;
 
     const initSheet = async () => {
@@ -99,7 +105,15 @@ export default function PaymentInfoScreen() {
     return () => {
       cancelled = true;
     };
-  }, [selectedPlan?.id, initKey]);
+  }, [selectedPlan?.id, initKey, authLoading]);
+
+  // Redirect to login if not authenticated (should not happen in normal flow)
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      console.warn("[PaymentInfo] User not authenticated, redirecting to login");
+      router.replace("/login-screen");
+    }
+  }, [authLoading, isAuthenticated]);
 
   if (!selectedPlan) {
     return (
@@ -229,54 +243,72 @@ export default function PaymentInfoScreen() {
           </View>
         )}
 
-        {/* Error state */}
-        {loadError && !isLoading && (
-          <View style={[styles.errorBanner, { backgroundColor: colors.error + "18", borderColor: colors.error + "40" }]}>
-            <Text style={[styles.errorBannerText, { color: colors.error }]}>{loadError}</Text>
+        {/* Error state — shown instead of CTA when init fails */}
+        {loadError && !isLoading ? (
+          <View style={styles.errorBlock}>
+            <View style={[styles.errorBanner, { backgroundColor: colors.error + "18", borderColor: colors.error + "40" }]}>
+              <Text style={[styles.errorBannerText, { color: colors.error }]}>{loadError}</Text>
+            </View>
             <Pressable
               onPress={() => setInitKey((k) => k + 1)}
-              style={({ pressed }) => [styles.retryButton, { borderColor: colors.error }, pressed && { opacity: 0.7 }]}
+              style={({ pressed }) => [
+                styles.retryButton,
+                { backgroundColor: colors.error, borderColor: colors.error },
+                pressed && { opacity: 0.75 },
+              ]}
             >
-              <Text style={[styles.retryButtonText, { color: colors.error }]}>Retry</Text>
+              <Text style={[styles.retryButtonText, { color: "#FFFFFF" }]}>Retry</Text>
+            </Pressable>
+            <Pressable
+              onPress={() => router.back()}
+              style={({ pressed }) => [
+                styles.cancelButton,
+                { borderColor: colors.border },
+                pressed && { opacity: 0.6 },
+              ]}
+            >
+              <Text style={[styles.cancelButtonText, { color: colors.foreground }]}>Cancel</Text>
             </Pressable>
           </View>
+        ) : (
+          <>
+            {/* CTA Button */}
+            <Pressable
+              onPress={handleStartTrial}
+              disabled={!paymentReady || isProcessing || isLoading}
+              style={({ pressed }) => [
+                styles.ctaButton,
+                { backgroundColor: colors.primary },
+                (!paymentReady || isLoading) && { opacity: 0.5 },
+                pressed && paymentReady && { transform: [{ scale: 0.97 }], opacity: 0.9 },
+              ]}
+            >
+              {isProcessing ? (
+                <View style={styles.ctaLoadingRow}>
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                  <Text style={styles.ctaButtonText}>Processing…</Text>
+                </View>
+              ) : (
+                <Text style={styles.ctaButtonText}>
+                  {isLoading ? "Loading…" : "Start Free Trial"}
+                </Text>
+              )}
+            </Pressable>
+
+            {/* Cancel */}
+            <Pressable
+              onPress={() => router.back()}
+              disabled={isProcessing}
+              style={({ pressed }) => [
+                styles.cancelButton,
+                { borderColor: colors.border },
+                pressed && { opacity: 0.6 },
+              ]}
+            >
+              <Text style={[styles.cancelButtonText, { color: colors.foreground }]}>Cancel</Text>
+            </Pressable>
+          </>
         )}
-
-        {/* CTA Button */}
-        <Pressable
-          onPress={handleStartTrial}
-          disabled={!paymentReady || isProcessing || isLoading}
-          style={({ pressed }) => [
-            styles.ctaButton,
-            { backgroundColor: colors.primary },
-            (!paymentReady || isLoading) && { opacity: 0.5 },
-            pressed && paymentReady && { transform: [{ scale: 0.97 }], opacity: 0.9 },
-          ]}
-        >
-          {isProcessing ? (
-            <View style={styles.ctaLoadingRow}>
-              <ActivityIndicator size="small" color="#FFFFFF" />
-              <Text style={styles.ctaButtonText}>Processing…</Text>
-            </View>
-          ) : (
-            <Text style={styles.ctaButtonText}>
-              {isLoading ? "Loading…" : "Start Free Trial"}
-            </Text>
-          )}
-        </Pressable>
-
-        {/* Cancel */}
-        <Pressable
-          onPress={() => router.back()}
-          disabled={isProcessing}
-          style={({ pressed }) => [
-            styles.cancelButton,
-            { borderColor: colors.border },
-            pressed && { opacity: 0.6 },
-          ]}
-        >
-          <Text style={[styles.cancelButtonText, { color: colors.foreground }]}>Cancel</Text>
-        </Pressable>
 
         {/* Security note */}
         <View style={styles.securityNote}>
@@ -422,28 +454,33 @@ const styles = StyleSheet.create({
   loadingText: {
     fontSize: 14,
   },
+  errorBlock: {
+    marginBottom: 4,
+  },
   errorBanner: {
     marginHorizontal: 20,
     padding: 14,
     borderRadius: 10,
     borderWidth: 1,
     marginBottom: 12,
-    gap: 8,
   },
   errorBannerText: {
     fontSize: 13,
     lineHeight: 18,
   },
   retryButton: {
-    alignSelf: "flex-start",
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 6,
+    marginHorizontal: 20,
+    paddingVertical: 14,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
     borderWidth: 1,
+    marginBottom: 12,
   },
   retryButtonText: {
-    fontSize: 13,
-    fontWeight: "600",
+    fontSize: 16,
+    fontWeight: "700",
+    letterSpacing: 0.2,
   },
   ctaButton: {
     marginHorizontal: 20,

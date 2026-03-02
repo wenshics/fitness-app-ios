@@ -337,3 +337,9 @@
 - [x] Frontend: platform-split all Stripe imports so web bundle is not broken
 - [x] Test full e2e flow: 464 tests pass, live Stripe API authenticated (acct_1T5jNrE1e8K1wkrS)
 - [x] Verified: Customer creation, Subscription with trial, cancellation all work against live Stripe API
+
+## BUG - PAYMENT SCREEN AUTH + RETRY BUTTON
+
+- [x] BUG: Payment screen shows "Authentication required" error — FIXED: added cookie-parser middleware to Express server; payment-info.tsx now waits for auth hydration (authLoading guard) before calling API
+- [x] BUG: Retry button on payment error screen is not tappable — FIXED: restructured error state to show full-width Retry button outside the ScrollView flex spacer; button is now always visible and tappable
+- [x] Added unauthenticated redirect guard in payment-info.tsx — redirects to login if user is not authenticated
