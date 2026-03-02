@@ -5,7 +5,7 @@ import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import * as Auth from "@/lib/_core/auth";
 import { notifyAuthChanged } from "@/hooks/use-auth";
-import { getApiBaseUrl } from "@/constants/oauth";
+// Removed getApiBaseUrl import - using dynamic URL construction instead
 
 type AuthMode = "login" | "signup";
 
@@ -28,9 +28,17 @@ export default function AuthScreen() {
     setError("");
 
     try {
-      const apiUrl = getApiBaseUrl();
+      // Always construct the full API URL on web
+      let url: string;
       const endpoint = mode === "signup" ? "/api/auth/email-signup" : "/api/auth/email-login";
-      const url = apiUrl ? `${apiUrl}${endpoint}` : endpoint;
+      if (typeof window !== "undefined" && window.location) {
+        const { protocol, hostname } = window.location;
+        const apiHostname = hostname.replace(/^8081-/, "3000-");
+        url = `${protocol}//${apiHostname}${endpoint}`;
+      } else {
+        // Fallback for non-web platforms - use relative URL
+        url = endpoint;
+      }
 
       console.log(`[Auth] ${mode} to:`, url);
 

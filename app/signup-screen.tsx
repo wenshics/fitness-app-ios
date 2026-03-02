@@ -14,7 +14,7 @@ import { useRouter } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { useAuth } from "@/hooks/use-auth";
-import { getApiBaseUrl } from "@/constants/oauth";
+// Removed getApiBaseUrl import - using dynamic URL construction instead
 import { IconSymbol } from "@/components/ui/icon-symbol";
 
 export default function SignupScreen() {
@@ -103,9 +103,16 @@ export default function SignupScreen() {
     setError("");
 
     try {
-      const apiUrl = getApiBaseUrl();
-      const endpoint = "/api/auth/email-signup";
-      const url = apiUrl ? `${apiUrl}${endpoint}` : endpoint;
+      // Always construct the full API URL on web
+      let url: string;
+      if (typeof window !== "undefined" && window.location) {
+        const { protocol, hostname } = window.location;
+        const apiHostname = hostname.replace(/^8081-/, "3000-");
+        url = `${protocol}//${apiHostname}/api/auth/email-signup`;
+      } else {
+        // Fallback for non-web platforms - use relative URL
+        url = "/api/auth/email-signup";
+      }
 
       console.log("[Signup] Attempting signup to:", url);
 
@@ -154,7 +161,14 @@ export default function SignupScreen() {
 
         // Send verification code email
         try {
-          const verifyUrl = apiUrl ? `${apiUrl}/api/auth/send-verification` : "/api/auth/send-verification";
+          let verifyUrl: string;
+          if (typeof window !== "undefined" && window.location) {
+            const { protocol, hostname } = window.location;
+            const apiHostname = hostname.replace(/^8081-/, "3000-");
+            verifyUrl = `${protocol}//${apiHostname}/api/auth/send-verification`;
+          } else {
+            verifyUrl = "/api/auth/send-verification";
+          }
           await fetch(verifyUrl, {
             method: "POST",
             headers: { "Content-Type": "application/json" },

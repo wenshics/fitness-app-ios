@@ -13,7 +13,7 @@ import {
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
-import { getApiBaseUrl } from "@/constants/oauth";
+// Removed getApiBaseUrl import - using dynamic URL construction instead
 import { useAuth } from "@/hooks/use-auth";
 
 export default function VerifyEmailScreen() {
@@ -78,8 +78,17 @@ export default function VerifyEmailScreen() {
     setLoading(true);
     setError("");
     try {
-      const base = getApiBaseUrl();
-      const res = await fetch(`${base}/api/auth/verify-email`, {
+      // Always construct the full API URL on web
+      let url: string;
+      if (typeof window !== "undefined" && window.location) {
+        const { protocol, hostname } = window.location;
+        const apiHostname = hostname.replace(/^8081-/, "3000-");
+        url = `${protocol}//${apiHostname}/api/auth/verify-email`;
+      } else {
+        // Fallback for non-web platforms - use relative URL
+        url = "/api/auth/verify-email";
+      }
+      const res = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, code: codeToVerify }),
@@ -110,8 +119,17 @@ export default function VerifyEmailScreen() {
     setResending(true);
     setError("");
     try {
-      const base = getApiBaseUrl();
-      const res = await fetch(`${base}/api/auth/send-verification`, {
+      // Always construct the full API URL on web
+      let url: string;
+      if (typeof window !== "undefined" && window.location) {
+        const { protocol, hostname } = window.location;
+        const apiHostname = hostname.replace(/^8081-/, "3000-");
+        url = `${protocol}//${apiHostname}/api/auth/send-verification`;
+      } else {
+        // Fallback for non-web platforms - use relative URL
+        url = "/api/auth/send-verification";
+      }
+      const res = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
