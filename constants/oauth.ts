@@ -49,11 +49,10 @@ export function getApiBaseUrl(): string {
     return result;
   }
 
-  // On mobile, return empty string to use relative URLs
-  // This allows the app to use the same domain as the Metro bundler
-  // The fetch will be made to the same host that served the app
-  console.log("[getApiBaseUrl] Returning empty string (mobile or no hostname)");
-  return "";
+  // On mobile, fall back to the hardcoded Railway production URL
+  const fallback = "https://fitness-app-ios-production.up.railway.app";
+  console.log("[getApiBaseUrl] Mobile fallback URL:", fallback);
+  return fallback;
 }
 
 export const SESSION_TOKEN_KEY = "app_session_token";

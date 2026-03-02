@@ -129,6 +129,7 @@ const config: ExpoConfig = {
     eas: {
       projectId: "47e40652-23b7-41e5-b201-770e8807aca5",
     },
+    apiBaseUrl: "https://fitness-app-ios-production.up.railway.app",
   },
 };
 

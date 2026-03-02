@@ -145,15 +145,32 @@ export async function createEmailUser(
     return null;
   }
   const passwordHash = hashPassword(password);
-  const result = await db.insert(emailUsers).values({
-    email: email.toLowerCase().trim(),
-    name: name.trim(),
-    passwordHash,
-    birthday: birthday ?? null,
-    heightCm: heightCm ?? null,
-    weightKg: weightKg ?? null,
-  });
-  return { id: Number(result[0].insertId), email, name };
+  try {
+    console.log("[DB] Inserting user:", email);
+    const result = await db.insert(emailUsers).values({
+      email: email.toLowerCase().trim(),
+      name: name.trim(),
+      passwordHash,
+      birthday: birthday ?? null,
+      heightCm: heightCm ?? null,
+      weightKg: weightKg ?? null,
+    });
+    
+    console.log("[DB] Insert result:", result);
+    
+    const inserted = await findEmailUserByEmail(email);
+    if (inserted) {
+      console.log("[DB] User created successfully:", inserted.id, inserted.email);
+      return { id: inserted.id, email: inserted.email, name: inserted.name };
+    }
+    
+    console.error("[DB] User insert returned but could not find user");
+    return null;
+  } catch (err) {
+    console.error("[DB] createEmailUser error:", err);
+    return null;
+  }
+
 }
 
 export async function findEmailUserByEmail(email: string) {
