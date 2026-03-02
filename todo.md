@@ -257,3 +257,14 @@
 
 - [x] BUG: Confirm Password field on reset-password screen has no show/hide toggle (only New Password has one)
 - [x] Add independent showConfirmPassword state and eye toggle button to Confirm Password field
+
+## BUG - LOGIN SCREEN COLOR CHANGED TO BLACK
+
+- [ ] BUG: Login screen background/colors changed to black — user wants original colors restored
+- [ ] Identify what introduced the color change (ScreenContainer, StyleSheet, or theme)
+- [ ] Revert login screen to original light/white color scheme
+
+## BUG - THEME COLORS CHANGED
+
+- [x] BUG: Dark mode background changed from original #151718 to near-black #0C0C0E — restore original theme palette
+- [x] Revert theme.config.js to original colors from initial checkpoint
