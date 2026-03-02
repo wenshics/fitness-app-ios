@@ -45,6 +45,25 @@ export default function SignupScreen() {
     return password.length >= 6;
   };
 
+  // Format birthday input automatically: "20000101" -> "2000-01-01"
+  const formatBirthday = (text: string): string => {
+    // Remove any non-numeric characters
+    const cleaned = text.replace(/\D/g, "");
+    
+    // Add dashes at the right positions
+    if (cleaned.length <= 4) {
+      return cleaned;
+    } else if (cleaned.length <= 6) {
+      return `${cleaned.slice(0, 4)}-${cleaned.slice(4)}`;
+    } else {
+      return `${cleaned.slice(0, 4)}-${cleaned.slice(4, 6)}-${cleaned.slice(6, 8)}`;
+    }
+  };
+
+  const handleBirthdayChange = (text: string) => {
+    setBirthday(formatBirthday(text));
+  };
+
   const validateForm = (): boolean => {
     if (!email.trim()) {
       setError("Please enter your email");
@@ -324,9 +343,10 @@ export default function SignupScreen() {
                   placeholder="YYYY-MM-DD"
                   placeholderTextColor={colors.muted}
                   value={birthday}
-                  onChangeText={setBirthday}
+                  onChangeText={handleBirthdayChange}
                   editable={!isLoading}
                   keyboardType="numeric"
+                  maxLength={10}
                 />
               </View>
 
