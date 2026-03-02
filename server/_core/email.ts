@@ -25,9 +25,16 @@ function getTransporter() {
     if (!user || !pass) {
       throw new Error("GMAIL_USER or GMAIL_APP_PASSWORD not configured");
     }
+    // Use explicit SMTP settings instead of "service: gmail"
+    // This works better on cloud platforms like Railway
     _transporter = nodemailer.createTransport({
-      service: "gmail",
+      host: "smtp.gmail.com",
+      port: 587,
+      secure: false, // Use STARTTLS
       auth: { user, pass },
+      connectionTimeout: 30000, // 30 seconds
+      greetingTimeout: 30000,
+      socketTimeout: 30000,
     });
   }
   return _transporter;
