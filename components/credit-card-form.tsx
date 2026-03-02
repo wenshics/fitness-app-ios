@@ -1,4 +1,3 @@
-import { useStripe, CardField } from "@stripe/stripe-react-native";
 import { useState } from "react";
 import {
   View,
@@ -7,8 +6,7 @@ import {
   ActivityIndicator,
   StyleSheet,
   ScrollView,
-  KeyboardAvoidingView,
-  Platform,
+  Alert,
 } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 
@@ -20,8 +18,9 @@ interface CreditCardFormProps {
 }
 
 /**
- * Custom credit card form for collecting payment details directly in the app.
- * Uses Stripe's CardField component to securely collect card information.
+ * Web stub for CreditCardForm.
+ * On web, we show a message that payment is not available.
+ * The real implementation is in credit-card-form.native.tsx for iOS/Android.
  */
 export function CreditCardForm({
   onPaymentSuccess,
@@ -30,45 +29,18 @@ export function CreditCardForm({
   buttonText = "Pay Now",
 }: CreditCardFormProps) {
   const colors = useColors();
-  const { createPaymentMethod } = useStripe();
-  const [cardValid, setCardValid] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handlePayment = async () => {
-    if (!cardValid) {
-      onPaymentError("Please enter a valid card");
-      return;
-    }
-
     setIsSubmitting(true);
     try {
-      // Create a payment method from the card details
-      const { paymentMethod, error } = await createPaymentMethod({
-        billingDetails: {},
-      } as any);
-
-      if (error) {
-        console.error("[CreditCardForm] Payment method creation error:", error);
-        onPaymentError(error.message || "Failed to process card");
-        setIsSubmitting(false);
-        return;
-      }
-
-      if (!paymentMethod) {
-        onPaymentError("Failed to create payment method");
-        setIsSubmitting(false);
-        return;
-      }
-
-      console.log("[CreditCardForm] Payment method created:", paymentMethod.id);
-
-      // Call the success handler with the payment method ID
-      // The parent component will use this to confirm the payment on the server
-      await onPaymentSuccess(paymentMethod.id);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Payment failed";
-      console.error("[CreditCardForm] Payment error:", message);
-      onPaymentError(message);
+      // On web, we can't use the native Stripe CardField
+      // In a real app, you'd use Stripe.js Elements or Stripe Payment Element
+      Alert.alert(
+        "Payment Not Available on Web",
+        "Please use the mobile app (iOS/Android) to complete your payment.",
+        [{ text: "OK" }]
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -77,77 +49,48 @@ export function CreditCardForm({
   const isLoading = isProcessing || isSubmitting;
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={{ flex: 1 }}
+    <ScrollView
+      contentContainerStyle={styles.scrollContent}
+      keyboardShouldPersistTaps="handled"
     >
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
-      >
-        <View style={styles.container}>
-          {/* Card Input */}
-          <View style={styles.cardSection}>
-            <Text style={[styles.label, { color: colors.foreground }]}>
-              Card Details
-            </Text>
-            <View
-              style={[
-                styles.cardFieldContainer,
-                {
-                  borderColor: colors.border,
-                  backgroundColor: colors.surface,
-                },
-              ]}
-            >
-              <CardField
-                onCardChange={(cardDetails) => {
-                  setCardValid(cardDetails.complete);
-                }}
-                postalCodeEnabled={true}
-                placeholders={{
-                  number: "4242 4242 4242 4242",
-                }}
-                style={styles.cardField}
-              />
-            </View>
-          </View>
-
-          {/* Security Notice */}
-          <View
-            style={[
-              styles.securityNotice,
-              { backgroundColor: colors.surface, borderColor: colors.border },
-            ]}
-          >
-            <Text style={[styles.securityText, { color: colors.muted }]}>
-              🔒 Your card details are securely processed by Stripe and never stored on our servers.
-            </Text>
-          </View>
-
-          {/* Pay Button */}
-          <Pressable
-            onPress={handlePayment}
-            disabled={!cardValid || isLoading}
-            style={({ pressed }) => [
-              styles.payButton,
-              {
-                backgroundColor: cardValid && !isLoading ? colors.primary : colors.border,
-                opacity: pressed && cardValid && !isLoading ? 0.8 : 1,
-              },
-            ]}
-          >
-            {isLoading ? (
-              <ActivityIndicator color={colors.background} size="small" />
-            ) : (
-              <Text style={[styles.payButtonText, { color: colors.background }]}>
-                {buttonText}
-              </Text>
-            )}
-          </Pressable>
+      <View style={styles.container}>
+        {/* Info Message */}
+        <View
+          style={[
+            styles.infoBox,
+            { backgroundColor: colors.surface, borderColor: colors.border },
+          ]}
+        >
+          <Text style={[styles.infoText, { color: colors.foreground }]}>
+            💳 Payment Collection
+          </Text>
+          <Text style={[styles.infoDescription, { color: colors.muted }]}>
+            To enter your payment details securely, please use the mobile app on iOS or Android.
+          </Text>
         </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+
+        {/* Placeholder Button */}
+        <Pressable
+          onPress={handlePayment}
+          disabled={isLoading}
+          style={({ pressed }) => [
+            styles.payButton,
+            {
+              backgroundColor: colors.primary,
+              opacity: pressed ? 0.8 : 1,
+            },
+          ]}
+        >
+          {isLoading ? (
+            <ActivityIndicator color={colors.background} size="small" />
+          ) : (
+            <Text style={[styles.payButtonText, { color: colors.background }]}>
+              {buttonText}
+            </Text>
+          )}
+        </Pressable>
+      </View>
+    </ScrollView>
   );
 }
 
@@ -160,31 +103,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     gap: 24,
   },
-  cardSection: {
-    gap: 8,
+  infoBox: {
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 16,
   },
-  label: {
+  infoText: {
     fontSize: 16,
     fontWeight: "600",
+    marginBottom: 8,
   },
-  cardFieldContainer: {
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    minHeight: 50,
-  },
-  cardField: {
-    height: 50,
-  },
-  securityNotice: {
-    borderWidth: 1,
-    borderRadius: 8,
-    padding: 12,
-  },
-  securityText: {
-    fontSize: 12,
-    lineHeight: 18,
+  infoDescription: {
+    fontSize: 14,
+    lineHeight: 20,
   },
   payButton: {
     borderRadius: 8,
