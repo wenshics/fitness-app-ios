@@ -318,3 +318,78 @@ export async function resetPasswordWithToken(token: string, newPassword: string)
 }
 
 // TODO: add feature queries here as your schema grows.
+
+// ---- Stripe Billing Helpers ----
+
+/**
+ * Get or create a Stripe customer ID for a user.
+ * Returns the existing stripeCustomerId if set, otherwise null.
+ */
+export async function getStripeCustomerId(userId: number): Promise<string | null> {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db
+    .select({ stripeCustomerId: emailUsers.stripeCustomerId })
+    .from(emailUsers)
+    .where(eq(emailUsers.id, userId))
+    .limit(1);
+  return rows[0]?.stripeCustomerId ?? null;
+}
+
+/**
+ * Save Stripe customer and subscription info for a user.
+ */
+export async function saveStripeSubscription(
+  userId: number,
+  data: {
+    stripeCustomerId?: string;
+    stripeSubscriptionId?: string;
+    stripePriceId?: string;
+    stripeSubscriptionStatus?: string;
+    stripeTrialEnd?: Date | null;
+  }
+): Promise<void> {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[DB] saveStripeSubscription: database not available");
+    return;
+  }
+  await db
+    .update(emailUsers)
+    .set({ ...data, updatedAt: new Date() })
+    .where(eq(emailUsers.id, userId));
+}
+
+/**
+ * Get Stripe subscription info for a user.
+ */
+export async function getStripeSubscription(userId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db
+    .select({
+      stripeCustomerId: emailUsers.stripeCustomerId,
+      stripeSubscriptionId: emailUsers.stripeSubscriptionId,
+      stripePriceId: emailUsers.stripePriceId,
+      stripeSubscriptionStatus: emailUsers.stripeSubscriptionStatus,
+      stripeTrialEnd: emailUsers.stripeTrialEnd,
+    })
+    .from(emailUsers)
+    .where(eq(emailUsers.id, userId))
+    .limit(1);
+  return rows[0] ?? null;
+}
+
+/**
+ * Find a user by their Stripe customer ID (used in webhooks).
+ */
+export async function findUserByStripeCustomerId(stripeCustomerId: string) {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db
+    .select()
+    .from(emailUsers)
+    .where(eq(emailUsers.stripeCustomerId, stripeCustomerId))
+    .limit(1);
+  return rows[0] ?? null;
+}

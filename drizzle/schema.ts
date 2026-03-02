@@ -34,6 +34,12 @@ export const emailUsers = mysqlTable("email_users", {
   birthday: varchar("birthday", { length: 20 }),
   heightCm: int("heightCm"),
   weightKg: int("weightKg"),
+  // Stripe billing fields
+  stripeCustomerId: varchar("stripeCustomerId", { length: 64 }),
+  stripeSubscriptionId: varchar("stripeSubscriptionId", { length: 64 }),
+  stripePriceId: varchar("stripePriceId", { length: 64 }),
+  stripeSubscriptionStatus: varchar("stripeSubscriptionStatus", { length: 32 }),
+  stripeTrialEnd: timestamp("stripeTrialEnd"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

@@ -1,13 +1,9 @@
 /**
- * Stripe payment integration using @stripe/stripe-react-native.
- *
- * Architecture:
- *  - StripeProvider wraps the app in app/_layout.tsx
- *  - createSubscriptionIntent() creates a Stripe Subscription on the server
- *    and returns the PaymentIntent client_secret for the Payment Sheet
- *  - The Payment Sheet collects and tokenises card data natively (PCI-compliant)
- *  - On success, the subscription is activated in Stripe
+ * Native-only Stripe payment integration.
+ * Uses @stripe/stripe-react-native for PCI-compliant Payment Sheet.
+ * This file is only bundled on iOS/Android by Metro's platform resolution.
  */
+import { initStripe } from "@stripe/stripe-react-native";
 import { apiCall } from "@/lib/_core/api";
 
 const PUBLISHABLE_KEY = process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? "";
@@ -16,17 +12,21 @@ const PUBLISHABLE_KEY = process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? "";
  * Initialize the Stripe SDK.
  * Called once at app startup from app/_layout.tsx.
  */
-/**
- * Web stub — Stripe React Native SDK is not available on web.
- * The real implementation lives in stripe-payment.native.ts.
- */
 export async function initializeStripe(): Promise<void> {
-  console.log("[Stripe] Web environment — Stripe React Native SDK not loaded");
+  if (!PUBLISHABLE_KEY) {
+    console.warn("[Stripe] EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY is not set — payment sheet will not work");
+    return;
+  }
+  await initStripe({
+    publishableKey: PUBLISHABLE_KEY,
+    merchantIdentifier: "merchant.space.manus.fitness.app.ios",
+    urlScheme: "manus20260212000221",
+  });
+  console.log("[Stripe] SDK initialized with key:", PUBLISHABLE_KEY.slice(0, 20) + "...");
 }
 
 /**
  * Create a Stripe Subscription on the server and return the PaymentIntent client_secret.
- * The client_secret is used to present the Payment Sheet.
  */
 export async function createSubscriptionIntent(planId: string): Promise<{
   clientSecret: string | null;
@@ -94,7 +94,7 @@ export async function cancelSubscription(): Promise<void> {
 }
 
 /**
- * Validate card number using Luhn algorithm (kept for any local validation needs).
+ * Validate card number using Luhn algorithm.
  */
 export function validateCardNumber(cardNumber: string): boolean {
   const digits = cardNumber.replace(/\D/g, "");

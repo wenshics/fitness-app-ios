@@ -2,8 +2,7 @@ import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useColors } from "@/hooks/use-colors";
 import { PLANS, type PlanType, useSubscription } from "@/lib/subscription-store";
-import { processSubscriptionPayment } from "@/lib/_core/stripe-payment";
-import { saveCard, getSavedCards, type SavedCard } from "@/lib/_core/card-storage";
+import { createSubscriptionIntent } from "@/lib/_core/stripe-payment";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
@@ -14,49 +13,102 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import * as Haptics from "expo-haptics";
+import { useStripePaymentSheet } from "@/hooks/use-stripe-payment-sheet";
 
 export default function PaymentInfoScreen() {
   const colors = useColors();
   const router = useRouter();
   const { plan: planId } = useLocalSearchParams<{ plan: PlanType }>();
   const { subscribe } = useSubscription();
+  const { initPaymentSheet, presentPaymentSheet } = useStripePaymentSheet();
 
-  const [cardNumber, setCardNumber] = useState("");
-  const [cardName, setCardName] = useState("");
-  const [expiry, setExpiry] = useState("");
-  const [cvv, setCvv] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [saveCardForFuture, setSaveCardForFuture] = useState(false);
-  const [savedCards, setSavedCards] = useState<SavedCard[]>([]);
-  const [selectedSavedCardId, setSelectedSavedCardId] = useState<string | null>(null);
-  const [showSavedCards, setShowSavedCards] = useState(false);
+  const [paymentReady, setPaymentReady] = useState(false);
+  const [trialEndDate, setTrialEndDate] = useState<Date | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [initKey, setInitKey] = useState(0); // increment to retry
 
   const selectedPlan = PLANS.find((p) => p.id === planId);
 
-  // Load saved cards on mount
+  // Initialise the Payment Sheet when the screen mounts (or on retry)
   useEffect(() => {
-    const loadCards = async () => {
-      if (Platform.OS !== "web") {
-        const cards = await getSavedCards();
-        setSavedCards(cards);
+    if (!selectedPlan) return;
+    let cancelled = false;
+
+    const initSheet = async () => {
+      try {
+        setIsLoading(true);
+        setLoadError(null);
+        setPaymentReady(false);
+
+        // 1. Create a Stripe Subscription on the server → get client_secret
+        const { clientSecret, trialEnd, upgraded } = await createSubscriptionIntent(selectedPlan.id);
+
+        if (cancelled) return;
+
+        // If the plan was upgraded without needing a new payment method, navigate directly
+        if (upgraded) {
+          await subscribe(selectedPlan.id as PlanType);
+          router.replace("/payment-success");
+          return;
+        }
+
+        if (!clientSecret) {
+          // Subscription created with trial — no payment required yet
+          await subscribe(selectedPlan.id as PlanType);
+          router.replace("/payment-success");
+          return;
+        }
+
+        // 2. Initialise the Stripe Payment Sheet with the client_secret
+        const { error: initError } = await initPaymentSheet(clientSecret, {
+          primary: colors.primary,
+          background: colors.background,
+          surface: colors.surface,
+          border: colors.border,
+          foreground: colors.foreground,
+          muted: colors.muted,
+        });
+
+        if (cancelled) return;
+
+        if (initError) {
+          setLoadError(initError);
+          return;
+        }
+
+        if (trialEnd) {
+          setTrialEndDate(new Date(trialEnd * 1000));
+        }
+        setPaymentReady(true);
+      } catch (err) {
+        if (cancelled) return;
+        const message = err instanceof Error ? err.message : "Failed to initialise payment";
+        setLoadError(message);
+        console.error("[PaymentInfo] initSheet error:", err);
+      } finally {
+        if (!cancelled) setIsLoading(false);
       }
     };
-    loadCards();
-  }, []);
+
+    initSheet();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedPlan?.id, initKey]);
 
   if (!selectedPlan) {
     return (
       <ScreenContainer>
-        <View style={styles.errorContainer}>
+        <View style={styles.centeredContainer}>
           <Text style={[styles.errorText, { color: colors.error }]}>Invalid plan selected</Text>
           <Pressable
             onPress={() => router.back()}
-            style={({ pressed }) => [styles.backButton, pressed && { opacity: 0.7 }]}
+            style={({ pressed }) => [styles.backButton, { backgroundColor: colors.surface }, pressed && { opacity: 0.7 }]}
           >
             <Text style={[styles.backButtonText, { color: colors.primary }]}>Go Back</Text>
           </Pressable>
@@ -65,427 +117,155 @@ export default function PaymentInfoScreen() {
     );
   }
 
-  const formatCardNumber = (text: string) => {
-    const cleaned = text.replace(/\D/g, "").slice(0, 16);
-    const formatted = cleaned.replace(/(\d{4})/g, "$1 ").trim();
-    setCardNumber(formatted);
-    
-    // Clear error when user starts typing
-    if (errors.cardNumber) {
-      setErrors((prev) => ({ ...prev, cardNumber: "" }));
-    }
-  };
+  const handleStartTrial = async () => {
+    if (!paymentReady) return;
 
-  const formatExpiry = (text: string) => {
-    const cleaned = text.replace(/\D/g, "").slice(0, 4);
-    let formatted = cleaned;
-    
-    if (cleaned.length >= 2) {
-      formatted = `${cleaned.slice(0, 2)}/${cleaned.slice(2, 4)}`;
-    }
-    
-    setExpiry(formatted);
-    
-    // Clear error when user starts typing
-    if (errors.expiry) {
-      setErrors((prev) => ({ ...prev, expiry: "" }));
-    }
-  };
-
-  const formatCvv = (text: string) => {
-    const cleaned = text.replace(/\D/g, "").slice(0, 4);
-    setCvv(cleaned);
-    
-    // Clear error when user starts typing
-    if (errors.cvv) {
-      setErrors((prev) => ({ ...prev, cvv: "" }));
-    }
-  };
-
-  const validateForm = () => {
-    const newErrors: Record<string, string> = {};
-
-    // Validate card number
-    const cardNumberClean = cardNumber.replace(/\s/g, "");
-    if (!cardNumberClean) {
-      newErrors.cardNumber = "Card number is required";
-    } else if (cardNumberClean.length !== 16) {
-      newErrors.cardNumber = "Card number must be 16 digits";
-    } else if (!luhnCheck(cardNumberClean)) {
-      newErrors.cardNumber = "Invalid card number";
-    }
-
-    // Validate cardholder name
-    if (!cardName.trim()) {
-      newErrors.cardName = "Cardholder name is required";
-    }
-
-    // Validate expiry
-    const expiryClean = expiry.replace(/\D/g, "");
-    if (!expiryClean) {
-      newErrors.expiry = "Expiry date is required";
-    } else if (expiryClean.length !== 4) {
-      newErrors.expiry = "Expiry must be MM/YY format";
-    } else {
-      const month = parseInt(expiryClean.slice(0, 2), 10);
-      if (month < 1 || month > 12) {
-        newErrors.expiry = "Invalid month (01-12)";
-      }
-    }
-
-    // Validate CVV
-    if (!cvv) {
-      newErrors.cvv = "CVV is required";
-    } else if (cvv.length < 3 || cvv.length > 4) {
-      newErrors.cvv = "CVV must be 3-4 digits";
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  // Luhn algorithm for card validation
-  const luhnCheck = (num: string) => {
-    let sum = 0;
-    let isEven = false;
-
-    for (let i = num.length - 1; i >= 0; i--) {
-      let digit = parseInt(num[i], 10);
-
-      if (isEven) {
-        digit *= 2;
-        if (digit > 9) {
-          digit -= 9;
-        }
-      }
-
-      sum += digit;
-      isEven = !isEven;
-    }
-
-    return sum % 10 === 0;
-  };
-
-  const handleConfirm = async () => {
-    if (!validateForm()) {
-      if (Platform.OS !== "web") {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      }
-      return;
+    if (Platform.OS !== "web") {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     }
 
     setIsProcessing(true);
-    if (Platform.OS !== "web") {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    }
-
     try {
-      // Parse expiry date
-      const expiryClean = expiry.replace(/\D/g, "");
-      const expiryMonth = parseInt(expiryClean.slice(0, 2), 10);
-      const expiryYear = parseInt(expiryClean.slice(2, 4), 10);
+      // Present the Stripe Payment Sheet — Stripe handles card collection securely
+      const result = await presentPaymentSheet();
 
-      // Process payment
-      const cardNumberClean = cardNumber.replace(/\s/g, "");
-      console.log("[PaymentInfo] Processing payment for plan:", planId);
-      
-      const paymentResult = await processSubscriptionPayment(
-        planId,
-        cardNumberClean,
-        expiryMonth,
-        expiryYear,
-        cvv,
-        cardName
-      );
-
-      console.log("[PaymentInfo] Payment processed:", paymentResult);
-
-      if (!paymentResult.success) {
-        throw new Error(paymentResult.message || "Payment failed");
-      }
-
-      // Save card if user opted in
-      if (saveCardForFuture && Platform.OS !== "web") {
-        try {
-          await saveCard(cardNumberClean, expiryMonth, expiryYear, cvv, cardName);
-          console.log("[PaymentInfo] Card saved successfully");
-        } catch (error) {
-          console.warn("[PaymentInfo] Failed to save card:", error);
-          // Don't fail the payment if card saving fails
+      if (!result.success) {
+        if (result.canceled) {
+          // User dismissed the sheet — not an error
+          return;
         }
+        // Payment failed
+        if (Platform.OS !== "web") {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        }
+        Alert.alert(
+          "Payment Failed",
+          result.message || "Your payment could not be processed. Please try again.",
+          [{ text: "OK" }]
+        );
+        return;
       }
 
-      // Subscribe to the selected plan
-      console.log("[PaymentInfo] Subscribing to plan:", planId);
-      await subscribe(planId);
-      console.log("[PaymentInfo] Subscription successful");
-
+      // Payment succeeded — activate subscription locally
       if (Platform.OS !== "web") {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
-
-      // Navigate to success screen
-      setIsProcessing(false);
-      console.log("[PaymentInfo] Navigating to success screen with transactionId:", paymentResult.transactionId);
-      
-      // Use replace to prevent back navigation issues
-      router.replace({
-        pathname: "/payment-success",
-        params: {
-          plan: planId,
-          transactionId: paymentResult.transactionId || "",
-        },
-      });
+      await subscribe(selectedPlan.id as PlanType);
+      router.replace("/payment-success");
     } catch (err) {
-      console.error("[PaymentInfo] Error:", err);
-      if (Platform.OS !== "web") {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      }
-      const errorMessage = err instanceof Error ? err.message : "There was an error processing your payment. Please try again.";
-      Alert.alert("Payment Failed", errorMessage);
+      console.error("[PaymentInfo] presentPaymentSheet error:", err);
+      Alert.alert("Error", "An unexpected error occurred. Please try again.");
+    } finally {
       setIsProcessing(false);
     }
   };
 
+  const formatTrialEnd = (date: Date) => {
+    return date.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+  };
+
   return (
-    <ScreenContainer edges={["top", "bottom", "left", "right"]}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
+    <ScreenContainer>
+      <ScrollView contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
-          <Pressable onPress={() => router.back()} style={({ pressed }) => [pressed && { opacity: 0.6 }]}>
-            <IconSymbol name="chevron.left" size={24} color={colors.foreground} />
+          <Text style={[styles.title, { color: colors.foreground }]}>Start Your Free Trial</Text>
+          <Pressable
+            onPress={() => router.back()}
+            style={({ pressed }) => [styles.closeButton, pressed && { opacity: 0.6 }]}
+          >
+            <IconSymbol name="chevron.right" size={20} color={colors.muted} />
           </Pressable>
-          <Text style={[styles.title, { color: colors.foreground }]}>Payment Information</Text>
-          <View style={{ width: 24 }} />
         </View>
 
         {/* Plan Summary */}
-        <View style={[styles.planSummary, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <View style={styles.planSummaryLeft}>
-            <Text style={[styles.planSummaryLabel, { color: colors.muted }]}>You're subscribing to</Text>
-            <Text style={[styles.planSummaryName, { color: colors.foreground }]}>{selectedPlan.label}</Text>
+        <View style={[styles.planCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <View style={styles.planCardLeft}>
+            <Text style={[styles.planCardLabel, { color: colors.muted }]}>Selected Plan</Text>
+            <Text style={[styles.planCardName, { color: colors.foreground }]}>{selectedPlan.label}</Text>
           </View>
-          <View style={styles.planSummaryRight}>
-            <Text style={[styles.planSummaryPrice, { color: colors.foreground }]}>
-              {selectedPlan.price}
-              <Text style={{ fontSize: 13, color: colors.muted }}>{selectedPlan.period}</Text>
-            </Text>
-            <Text style={[styles.planSummaryPerWeek, { color: colors.muted }]}>{selectedPlan.perWeek}</Text>
+          <View style={styles.planCardRight}>
+            <Text style={[styles.planCardPrice, { color: colors.primary }]}>{selectedPlan.price}</Text>
+            <Text style={[styles.planCardInterval, { color: colors.muted }]}>/{selectedPlan.id}</Text>
           </View>
         </View>
 
-        {/* Trial Info */}
-        <View style={[styles.trialInfo, { backgroundColor: colors.primary + "10", borderColor: colors.primary + "30" }]}>
-          <IconSymbol name="info.circle.fill" size={20} color={colors.primary} />
+        {/* Trial Banner */}
+        <View style={[styles.trialBanner, { backgroundColor: colors.primary + "18", borderColor: colors.primary + "40" }]}>
+          <IconSymbol name="paperplane.fill" size={20} color={colors.primary} />
           <View style={{ flex: 1 }}>
-            <Text style={[styles.trialTitle, { color: colors.primary }]}>7-Day Free Trial</Text>
-            <Text style={[styles.trialDesc, { color: colors.muted }]}>
-              Your free trial starts today. You won't be charged until after 7 days.
+            <Text style={[styles.trialBannerTitle, { color: colors.primary }]}>7-Day Free Trial</Text>
+            <Text style={[styles.trialBannerDesc, { color: colors.muted }]}>
+              {trialEndDate
+                ? `Your card will not be charged until ${formatTrialEnd(trialEndDate)}. Cancel anytime before then.`
+                : "Your card will not be charged for 7 days. Cancel anytime."}
             </Text>
           </View>
         </View>
 
-        {/* Saved Cards Section */}
-        {savedCards.length > 0 && (
-          <View style={styles.formSection}>
-            <Text style={[styles.formLabel, { color: colors.foreground }]}>Use Saved Card</Text>
+        {/* How it works */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>How it works</Text>
+          {[
+            "Enter your payment details securely via Stripe",
+            "Enjoy 7 days of full access — completely free",
+            `After your trial, you'll be charged ${selectedPlan.price}${selectedPlan.period}`,
+            "Cancel anytime from your profile settings",
+          ].map((text, i) => (
+            <View key={i} style={styles.stepRow}>
+              <View style={[styles.stepDot, { backgroundColor: colors.primary }]} />
+              <Text style={[styles.stepText, { color: colors.foreground }]}>{text}</Text>
+            </View>
+          ))}
+        </View>
+
+        <View style={{ flex: 1 }} />
+
+        {/* Loading state */}
+        {isLoading && (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="small" color={colors.primary} />
+            <Text style={[styles.loadingText, { color: colors.muted }]}>Preparing secure checkout…</Text>
+          </View>
+        )}
+
+        {/* Error state */}
+        {loadError && !isLoading && (
+          <View style={[styles.errorBanner, { backgroundColor: colors.error + "18", borderColor: colors.error + "40" }]}>
+            <Text style={[styles.errorBannerText, { color: colors.error }]}>{loadError}</Text>
             <Pressable
-              onPress={() => setShowSavedCards(!showSavedCards)}
-              style={[styles.savedCardsToggle, { backgroundColor: colors.surface, borderColor: colors.border }]}
+              onPress={() => setInitKey((k) => k + 1)}
+              style={({ pressed }) => [styles.retryButton, { borderColor: colors.error }, pressed && { opacity: 0.7 }]}
             >
-              <Text style={[styles.savedCardsToggleText, { color: colors.foreground }]}>
-                {selectedSavedCardId ? `•••• ${savedCards.find(c => c.id === selectedSavedCardId)?.lastFour}` : "Select a saved card"}
-              </Text>
-              <IconSymbol name="chevron.down" size={20} color={colors.muted} />
+              <Text style={[styles.retryButtonText, { color: colors.error }]}>Retry</Text>
             </Pressable>
-            {showSavedCards && (
-              <View style={[styles.savedCardsList, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-                <Pressable
-                  onPress={() => {
-                    setSelectedSavedCardId(null);
-                    setShowSavedCards(false);
-                  }}
-                  style={styles.savedCardOption}
-                >
-                  <Text style={[styles.savedCardOptionText, { color: colors.foreground }]}>Enter New Card</Text>
-                </Pressable>
-                {savedCards.map((card) => (
-                  <Pressable
-                    key={card.id}
-                    onPress={() => {
-                      setSelectedSavedCardId(card.id);
-                      setShowSavedCards(false);
-                    }}
-                    style={styles.savedCardOption}
-                  >
-                    <View style={styles.savedCardInfo}>
-                      <Text style={[styles.savedCardOptionText, { color: colors.foreground }]}>
-                        {card.brand.toUpperCase()} •••• {card.lastFour}
-                      </Text>
-                      <Text style={[styles.savedCardExpiry, { color: colors.muted }]}>
-                        {card.expiryMonth}/{card.expiryYear}
-                      </Text>
-                    </View>
-                  </Pressable>
-                ))}
-              </View>
-            )}
           </View>
         )}
 
-        {/* Payment Form */}
-        {!selectedSavedCardId && (
-        <View style={styles.formSection}>
-          {/* Cardholder Name */}
-          <View>
-            <Text style={[styles.formLabel, { color: colors.foreground }]}>Cardholder Name</Text>
-            <TextInput
-              style={[
-                styles.input,
-                {
-                  borderColor: errors.cardName ? colors.error : colors.border,
-                  color: colors.foreground,
-                },
-              ]}
-              placeholder="John Doe"
-              placeholderTextColor={colors.muted}
-              value={cardName}
-              onChangeText={(text) => {
-                setCardName(text);
-                if (errors.cardName) {
-                  setErrors((prev) => ({ ...prev, cardName: "" }));
-                }
-              }}
-              editable={!isProcessing}
-            />
-            {errors.cardName && <Text style={[styles.errorMessage, { color: colors.error }]}>{errors.cardName}</Text>}
-          </View>
-
-          {/* Card Number */}
-          <View style={{ marginTop: 16 }}>
-            <Text style={[styles.formLabel, { color: colors.foreground }]}>Card Number</Text>
-            <TextInput
-              style={[
-                styles.input,
-                {
-                  borderColor: errors.cardNumber ? colors.error : colors.border,
-                  color: colors.foreground,
-                },
-              ]}
-              placeholder="1234 5678 9012 3456"
-              placeholderTextColor={colors.muted}
-              value={cardNumber}
-              onChangeText={formatCardNumber}
-              keyboardType="numeric"
-              maxLength={19}
-              editable={!isProcessing}
-            />
-            {errors.cardNumber && <Text style={[styles.errorMessage, { color: colors.error }]}>{errors.cardNumber}</Text>}
-          </View>
-
-          {/* Expiry and CVV */}
-          <View style={styles.rowInputs}>
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.formLabel, { color: colors.foreground }]}>Expiry (MM/YY)</Text>
-              <TextInput
-                style={[
-                  styles.input,
-                  {
-                    borderColor: errors.expiry ? colors.error : colors.border,
-                    color: colors.foreground,
-                  },
-                ]}
-                placeholder="12/25"
-                placeholderTextColor={colors.muted}
-                value={expiry}
-                onChangeText={formatExpiry}
-                keyboardType="numeric"
-                maxLength={5}
-                editable={!isProcessing}
-              />
-              {errors.expiry && <Text style={[styles.errorMessage, { color: colors.error }]}>{errors.expiry}</Text>}
-            </View>
-            <View style={{ flex: 1, marginLeft: 12 }}>
-              <Text style={[styles.formLabel, { color: colors.foreground }]}>CVV</Text>
-              <TextInput
-                style={[
-                  styles.input,
-                  {
-                    borderColor: errors.cvv ? colors.error : colors.border,
-                    color: colors.foreground,
-                  },
-                ]}
-                placeholder="123"
-                placeholderTextColor={colors.muted}
-                value={cvv}
-                onChangeText={formatCvv}
-                keyboardType="numeric"
-                maxLength={4}
-                secureTextEntry
-                editable={!isProcessing}
-              />
-              {errors.cvv && <Text style={[styles.errorMessage, { color: colors.error }]}>{errors.cvv}</Text>}
-            </View>
-          </View>
-        </View>
-        )}
-
-        {/* Security Note */}
-        <View style={styles.securityNote}>
-          <IconSymbol name="lock.fill" size={16} color={colors.success} />
-          <Text style={[styles.securityText, { color: colors.muted }]}>
-            Your payment information is encrypted and secure
-          </Text>
-        </View>
-
-        {/* Save Card Checkbox */}
+        {/* CTA Button */}
         <Pressable
-          onPress={() => setSaveCardForFuture(!saveCardForFuture)}
-          disabled={isProcessing}
+          onPress={handleStartTrial}
+          disabled={!paymentReady || isProcessing || isLoading}
           style={({ pressed }) => [
-            styles.checkboxRow,
-            pressed && { opacity: 0.6 },
-          ]}
-        >
-          <View
-            style={[
-              styles.checkbox,
-              {
-                borderColor: colors.primary,
-                backgroundColor: saveCardForFuture ? colors.primary : "transparent",
-              },
-            ]}
-          >
-            {saveCardForFuture && (
-              <IconSymbol name="checkmark" size={16} color={colors.background} />
-            )}
-          </View>
-          <Text style={[styles.checkboxLabel, { color: colors.foreground }]}>
-            Save card for future payments
-          </Text>
-        </Pressable>
-
-        {/* Confirm Button */}
-        <Pressable
-          onPress={handleConfirm}
-          disabled={isProcessing}
-          style={({ pressed }) => [
-            styles.confirmButton,
+            styles.ctaButton,
             { backgroundColor: colors.primary },
-            (pressed || isProcessing) && { opacity: 0.7 },
+            (!paymentReady || isLoading) && { opacity: 0.5 },
+            pressed && paymentReady && { transform: [{ scale: 0.97 }], opacity: 0.9 },
           ]}
         >
           {isProcessing ? (
-            <View style={styles.loadingRow}>
+            <View style={styles.ctaLoadingRow}>
               <ActivityIndicator size="small" color="#FFFFFF" />
-              <Text style={styles.confirmButtonText}>Processing...</Text>
+              <Text style={styles.ctaButtonText}>Processing…</Text>
             </View>
           ) : (
-            <Text style={styles.confirmButtonText}>Start Free Trial</Text>
+            <Text style={styles.ctaButtonText}>
+              {isLoading ? "Loading…" : "Start Free Trial"}
+            </Text>
           )}
         </Pressable>
 
-        {/* Cancel Button */}
+        {/* Cancel */}
         <Pressable
           onPress={() => router.back()}
           disabled={isProcessing}
@@ -498,150 +278,30 @@ export default function PaymentInfoScreen() {
           <Text style={[styles.cancelButtonText, { color: colors.foreground }]}>Cancel</Text>
         </Pressable>
 
-        {/* Terms */}
-        <Text style={[styles.termsText, { color: colors.muted }]}>
-          By confirming, you agree to our Terms of Service and Privacy Policy. Your subscription will automatically renew after the free trial ends.
-        </Text>
+        {/* Security note */}
+        <View style={styles.securityNote}>
+          <IconSymbol name="chevron.left.forwardslash.chevron.right" size={14} color={colors.muted} />
+          <Text style={[styles.securityText, { color: colors.muted }]}>
+            Payments are processed securely by Stripe. We never store your card details.
+          </Text>
+        </View>
       </ScrollView>
     </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    marginBottom: 20,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: "700",
-    letterSpacing: -0.2,
-  },
-  planSummary: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginHorizontal: 20,
-    padding: 16,
-    borderRadius: 14,
-    borderWidth: 1,
-    marginBottom: 16,
-  },
-  planSummaryLeft: {
-    flex: 1,
-  },
-  planSummaryRight: {
-    alignItems: "flex-end",
-  },
-  planSummaryLabel: {
-    fontSize: 13,
-    marginBottom: 4,
-  },
-  planSummaryName: {
-    fontSize: 18,
-    fontWeight: "700",
-  },
-  planSummaryPrice: {
-    fontSize: 18,
-    fontWeight: "700",
-  },
-  planSummaryPerWeek: {
-    fontSize: 12,
-    marginTop: 2,
-  },
-  trialInfo: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 12,
-    marginHorizontal: 20,
-    padding: 14,
-    borderRadius: 12,
-    borderWidth: 1,
-    marginBottom: 24,
-  },
-  trialTitle: {
-    fontSize: 14,
-    fontWeight: "700",
-    marginBottom: 2,
-  },
-  trialDesc: {
-    fontSize: 12,
-    lineHeight: 16,
-  },
-  formSection: {
-    paddingHorizontal: 20,
-    marginBottom: 20,
-  },
-  formLabel: {
-    fontSize: 14,
-    fontWeight: "600",
-    marginBottom: 8,
-    letterSpacing: 0.2,
-  },
-  input: {
-    borderWidth: 1,
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 16,
-  },
-  errorMessage: {
-    fontSize: 12,
-    marginTop: 6,
-    fontWeight: "500",
-  },
-  rowInputs: {
-    flexDirection: "row",
-    marginTop: 16,
-  },
-  securityNote: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    paddingHorizontal: 20,
-    marginBottom: 24,
-  },
-  securityText: {
-    fontSize: 12,
-  },
-  confirmButton: {
-    marginHorizontal: 20,
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 16,
-  },
-  loadingRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  confirmButtonText: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#FFFFFF",
-    letterSpacing: 0.2,
-  },
-  termsText: {
-    fontSize: 12,
-    lineHeight: 18,
-    textAlign: "center",
-    paddingHorizontal: 20,
-  },
-  errorContainer: {
+  centeredContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
     gap: 16,
+    padding: 24,
   },
   errorText: {
     fontSize: 16,
     fontWeight: "600",
+    textAlign: "center",
   },
   backButton: {
     paddingHorizontal: 20,
@@ -652,10 +312,162 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
   },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    marginBottom: 8,
+  },
+  title: {
+    fontSize: 22,
+    fontWeight: "700",
+    letterSpacing: -0.3,
+  },
+  closeButton: {
+    padding: 8,
+  },
+  planCard: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginHorizontal: 20,
+    padding: 16,
+    borderRadius: 14,
+    borderWidth: 1,
+    marginBottom: 14,
+  },
+  planCardLeft: {
+    flex: 1,
+  },
+  planCardRight: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    gap: 2,
+  },
+  planCardLabel: {
+    fontSize: 12,
+    marginBottom: 4,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  planCardName: {
+    fontSize: 18,
+    fontWeight: "700",
+  },
+  planCardPrice: {
+    fontSize: 20,
+    fontWeight: "700",
+  },
+  planCardInterval: {
+    fontSize: 13,
+  },
+  trialBanner: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 12,
+    marginHorizontal: 20,
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 20,
+  },
+  trialBannerTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    marginBottom: 4,
+  },
+  trialBannerDesc: {
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  section: {
+    marginHorizontal: 20,
+    marginBottom: 24,
+    paddingTop: 4,
+  },
+  sectionTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    marginBottom: 12,
+  },
+  stepRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 10,
+    marginBottom: 10,
+  },
+  stepDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    marginTop: 6,
+    flexShrink: 0,
+  },
+  stepText: {
+    fontSize: 14,
+    lineHeight: 20,
+    flex: 1,
+  },
+  loadingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    paddingVertical: 12,
+    marginHorizontal: 20,
+    marginBottom: 12,
+  },
+  loadingText: {
+    fontSize: 14,
+  },
+  errorBanner: {
+    marginHorizontal: 20,
+    padding: 14,
+    borderRadius: 10,
+    borderWidth: 1,
+    marginBottom: 12,
+    gap: 8,
+  },
+  errorBannerText: {
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  retryButton: {
+    alignSelf: "flex-start",
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 6,
+    borderWidth: 1,
+  },
+  retryButtonText: {
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  ctaButton: {
+    marginHorizontal: 20,
+    paddingVertical: 16,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 12,
+  },
+  ctaLoadingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  ctaButtonText: {
+    fontSize: 17,
+    fontWeight: "700",
+    color: "#FFFFFF",
+    letterSpacing: 0.2,
+  },
   cancelButton: {
     marginHorizontal: 20,
     paddingVertical: 14,
-    borderRadius: 12,
+    borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1.5,
@@ -666,59 +478,18 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     letterSpacing: 0.2,
   },
-  checkboxRow: {
+  securityNote: {
     flexDirection: "row",
     alignItems: "center",
+    gap: 6,
     paddingHorizontal: 20,
-    marginBottom: 20,
-    gap: 12,
-  },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: 6,
-    borderWidth: 2,
+    paddingBottom: 24,
     justifyContent: "center",
-    alignItems: "center",
   },
-  checkboxLabel: {
-    fontSize: 14,
-    fontWeight: "500",
-    flex: 1,
-  },
-  savedCardsToggle: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    marginBottom: 12,
-  },
-  savedCardsToggleText: {
-    fontSize: 14,
-    fontWeight: "500",
-  },
-  savedCardsList: {
-    borderRadius: 8,
-    borderWidth: 1,
-    marginBottom: 12,
-    overflow: "hidden",
-  },
-  savedCardOption: {
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-  },
-  savedCardInfo: {
-    gap: 4,
-  },
-  savedCardOptionText: {
-    fontSize: 14,
-    fontWeight: "500",
-  },
-  savedCardExpiry: {
+  securityText: {
     fontSize: 12,
+    lineHeight: 16,
+    flex: 1,
+    textAlign: "center",
   },
 });

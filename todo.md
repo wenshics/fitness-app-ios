@@ -321,3 +321,19 @@
 - [x] Fix: replaced raw fetch with apiCall() from api.ts for proper URL resolution and session token inclusion
 - [x] Verified: payment endpoint returns mock success response when no Stripe key is configured
 - [x] All 445 tests still passing after fix
+
+## REAL STRIPE PAYMENT INTEGRATION (PRODUCTION)
+
+- [x] Research @stripe/stripe-react-native Payment Sheet integration
+- [x] Collect Stripe publishable key (pk_live_...) and secret key (sk_live_...) from user
+- [x] Install @stripe/stripe-react-native package
+- [x] Backend: create Stripe Customer on signup/first payment
+- [x] Backend: create PaymentIntent via Subscription with 7-day trial
+- [x] Backend: create Stripe Subscription with recurring billing and trial_end
+- [x] Backend: implement webhook endpoint (customer.subscription.*, invoice.payment_*)
+- [x] Frontend: replace manual card form with Stripe Payment Sheet
+- [x] Frontend: wrap app with StripeProvider (platform-split: native only)
+- [x] Frontend: handle payment success/failure/cancel from Payment Sheet
+- [x] Frontend: platform-split all Stripe imports so web bundle is not broken
+- [x] Test full e2e flow: 464 tests pass, live Stripe API authenticated (acct_1T5jNrE1e8K1wkrS)
+- [x] Verified: Customer creation, Subscription with trial, cancellation all work against live Stripe API

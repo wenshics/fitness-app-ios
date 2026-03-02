@@ -22,6 +22,13 @@
       "when": 1772407670411,
       "tag": "0002_wakeful_killer_shrike",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1772421588960,
+      "tag": "0003_high_demogoblin",
+      "breakpoints": true
     }
   ]
 }

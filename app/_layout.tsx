@@ -26,6 +26,7 @@ import { UserProvider } from "@/lib/user-store";
 import { AuthModalProvider } from "@/lib/auth-modal-context";
 import { setupNotificationHandler, requestNotificationPermissions } from "@/lib/_core/notifications";
 import { initializeStripe } from "@/lib/_core/stripe-payment";
+import { StripeProviderWrapper } from "@/components/stripe-provider-wrapper";
 import * as Auth from "@/lib/_core/auth";
 
 const DEFAULT_WEB_INSETS: EdgeInsets = { top: 0, right: 0, bottom: 0, left: 0 };
@@ -190,6 +191,7 @@ export default function RootLayout() {
   }, [initialInsets, initialFrame]);
 
   const content = (
+    <StripeProviderWrapper>
     <GestureHandlerRootView style={{ flex: 1 }}>
       <trpc.Provider client={trpcClient} queryClient={queryClient}>
         <QueryClientProvider client={queryClient}>
@@ -231,6 +233,7 @@ export default function RootLayout() {
         </QueryClientProvider>
       </trpc.Provider>
     </GestureHandlerRootView>
+    </StripeProviderWrapper>
   );
 
   const shouldOverrideSafeArea = Platform.OS === "web";
