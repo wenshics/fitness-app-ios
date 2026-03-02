@@ -146,9 +146,10 @@ export function registerAuthRoutes(app: Express) {
   // ── Get current user (/api/auth/me) ───────────────────────────────────────
   app.get("/api/auth/me", async (req: Request, res: Response) => {
     try {
-      const token =
+      const token = (
         req.headers.authorization?.replace("Bearer ", "") ||
-        req.cookies?.[COOKIE_NAME];
+        req.cookies?.[COOKIE_NAME]
+      )?.trim();
 
       if (!token) {
         res.status(401).json({ error: "Not authenticated", user: null });
@@ -183,9 +184,10 @@ export function registerAuthRoutes(app: Express) {
   // ── Logout ─────────────────────────────────────────────────────────────────
   app.post("/api/auth/logout", async (req: Request, res: Response) => {
     try {
-      const token =
+      const token = (
         req.headers.authorization?.replace("Bearer ", "") ||
-        req.cookies?.[COOKIE_NAME];
+        req.cookies?.[COOKIE_NAME]
+      )?.trim();
 
       if (token) {
         await deleteEmailSession(token).catch(() => {});

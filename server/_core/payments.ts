@@ -98,8 +98,8 @@ async function getOrCreateStripePriceId(planId: string): Promise<string> {
 async function getAuthenticatedUser(req: Request) {
   const authHeader = req.headers.authorization;
   const cookieToken = req.cookies?.[COOKIE_NAME];
-  const bearerToken = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
-  const token = bearerToken || cookieToken;
+  const bearerToken = authHeader?.startsWith("Bearer ") ? authHeader.slice(7).trim() : null;
+  const token = bearerToken?.trim() || cookieToken?.trim();
 
   console.log("[Payments] getAuthenticatedUser:", {
     hasAuthHeader: !!authHeader,

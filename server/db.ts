@@ -180,7 +180,8 @@ export async function findEmailSessionUser(token: string) {
   const db = await getDb();
   if (!db) return null;
   
-  console.log("[DB] findEmailSessionUser searching for token:", token.slice(0, 20) + "...", "(length:", token.length + ")");
+  const cleanToken = token.trim();
+  console.log("[DB] findEmailSessionUser searching for token:", cleanToken.slice(0, 20) + "...", "(length:", cleanToken.length + ")");
   
   const rows = await db
     .select({
@@ -194,7 +195,7 @@ export async function findEmailSessionUser(token: string) {
     })
     .from(emailSessions)
     .innerJoin(emailUsers, eq(emailSessions.userId, emailUsers.id))
-    .where(eq(emailSessions.token, token))
+    .where(eq(emailSessions.token, cleanToken))
     .limit(1);
   
   if (!rows[0]) {
