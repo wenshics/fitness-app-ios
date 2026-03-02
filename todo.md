@@ -244,3 +244,11 @@
 - [x] Investigate profile data fetch — likely not scoped to authenticated user's session
 - [x] Fix profile fetch to use session token / current user ID
 - [x] Test with wenshi.bme@gmail.com to confirm correct data loads
+
+## BUG - FORGOT PASSWORD EMAIL NOT RECEIVED
+
+- [x] BUG: User does not receive password reset email after clicking "Forgot password?" — email was in Spam/Promotions folder; flow works correctly
+- [x] Check the forgot-password API endpoint and email sending logic
+- [x] Check email service configuration (SMTP / transactional email provider)
+- [x] Fix and verify email delivery works for wenshi.bme@gmail.com
+- [x] Add spam/promotions folder hint to forgot-password screen after email is sent

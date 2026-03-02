@@ -1,0 +1,15 @@
+{
+  "query": "SELECT token, expiresAt, usedAt FROM password_reset_tokens WHERE email = 'wenshi.bme@gmail.com' AND usedAt IS NULL ORDER BY createdAt DESC LIMIT 1;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2bZZkzbo8ts7Msg.1120ae12998f --database TcKCq6vsXGY366ZGFCDBDp --execute SELECT token, expiresAt, usedAt FROM password_reset_tokens WHERE email = 'wenshi.bme@gmail.com' AND usedAt IS NULL ORDER BY createdAt DESC LIMIT 1;",
+  "rows": [
+    {
+      "token": "eb28e2ccf7792856740e7e3d884ccaba82bc75ac43f46b64a4bee2b10e08e687920e9e4a9e24fe4fbfd7ba5ed72b9f8f",
+      "expiresAt": "2026-03-02 02:53:39",
+      "usedAt": "NULL"
+    }
+  ],
+  "messages": [],
+  "stdout": "token\texpiresAt\tusedAt\neb28e2ccf7792856740e7e3d884ccaba82bc75ac43f46b64a4bee2b10e08e687920e9e4a9e24fe4fbfd7ba5ed72b9f8f\t2026-03-02 02:53:39\tNULL\n",
+  "stderr": "",
+  "execution_time_ms": 62
+}

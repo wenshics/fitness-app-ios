@@ -150,6 +150,8 @@ export default function ForgotPasswordScreen() {
             <Text style={styles.successEmail}>{email.trim()}</Text>.
             {"\n\n"}
             Click the link in the email to reset your password. The link expires in 1 hour.
+            {" "}
+            {"\n\n"}If you don’t see it, check your Spam or Promotions folder.
           </Text>
           <TouchableOpacity
             style={styles.doneButton}
