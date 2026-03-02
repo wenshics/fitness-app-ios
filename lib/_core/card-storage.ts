@@ -13,8 +13,8 @@ export interface SavedCard {
   savedAt: string; // ISO date
 }
 
-const STORAGE_KEY_PREFIX = "fitlife_card_";
-const CARDS_LIST_KEY = "fitlife_saved_cards";
+const STORAGE_KEY_PREFIX = "pulse_card_";
+const CARDS_LIST_KEY = "pulse_saved_cards";
 
 /**
  * Save a credit card securely

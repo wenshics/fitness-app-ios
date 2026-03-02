@@ -70,7 +70,7 @@ describeIfStripe("Stripe Plan Configuration", () => {
   ];
 
   it.each(plans)("should be able to look up or create price for plan: $id", async (plan) => {
-    const lookupKey = `fitlife_${plan.id}`;
+    const lookupKey = `pulse_${plan.id}`;
     const existing = await stripe.prices.list({ lookup_keys: [lookupKey], active: true, limit: 1 });
     if (existing.data.length > 0) {
       const price = existing.data[0];
@@ -106,14 +106,14 @@ describeIfStripe("Stripe Customer & Subscription Creation", () => {
 
   it("should create a Subscription with 7-day trial", async () => {
     // Get or create a price for the weekly plan
-    const lookupKey = "fitlife_weekly";
+    const lookupKey = "pulse_weekly";
     let priceId: string;
 
     const existing = await stripe.prices.list({ lookup_keys: [lookupKey], active: true, limit: 1 });
     if (existing.data.length > 0) {
       priceId = existing.data[0].id;
     } else {
-      const product = await stripe.products.create({ name: "FitLife Weekly (Test)" });
+      const product = await stripe.products.create({ name: "Pulse Weekly (Test)" });
       const price = await stripe.prices.create({
         product: product.id,
         unit_amount: 599,

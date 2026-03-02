@@ -157,7 +157,7 @@ export function registerOAuthRoutes(app: Express) {
       const demoUser = {
         openId: `demo-${Date.now()}`,
         name: "Demo User",
-        email: "demo@fitlife.app",
+        email: "demo@pulse.app",
         loginMethod: "demo",
         platform: "mobile",
       };

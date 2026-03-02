@@ -39,7 +39,7 @@ export function useStripePaymentSheet(): UseStripePaymentSheetReturn {
     const { error } = await stripeInit({
       paymentIntentClientSecret: clientSecret,
       returnURL: "manus20260212000221://stripe-redirect",
-      merchantDisplayName: "FitLife",
+      merchantDisplayName: "Pulse",
       allowsDelayedPaymentMethods: false,
       appearance: {
         colors: {

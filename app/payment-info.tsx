@@ -72,7 +72,14 @@ export default function PaymentInfoScreen() {
         if (cancelled) return;
         const msg = err instanceof Error ? err.message : String(err);
         console.error("[PaymentInfo] initPayment error:", msg);
-        setLoadError(msg || "Failed to initialize payment");
+        // Convert technical errors to user-friendly messages
+        let userMessage = msg;
+        if (msg.includes("Authentication required") || msg.includes("401") || msg.includes("unauthorized")) {
+          userMessage = "Your session has expired. Please log in again.";
+        } else if (msg.includes("network") || msg.includes("fetch")) {
+          userMessage = "Network error. Please check your connection and try again.";
+        }
+        setLoadError(userMessage || "Failed to initialize payment");
       } finally {
         if (!cancelled) setIsLoading(false);
       }
@@ -165,6 +172,7 @@ export default function PaymentInfoScreen() {
 
   // Show error state
   if (loadError) {
+    const isAuthError = loadError.includes("session has expired") || loadError.includes("log in again");
     return (
       <ScreenContainer>
         <ScrollView contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
@@ -182,16 +190,31 @@ export default function PaymentInfoScreen() {
             <Text style={[styles.errorText, { color: colors.error }]}>{loadError}</Text>
           </View>
 
-          <Pressable
-            onPress={() => setInitKey((k) => k + 1)}
-            style={({ pressed }) => [
-              styles.retryButton,
-              { backgroundColor: colors.primary },
-              pressed && { opacity: 0.8 },
-            ]}
-          >
-            <Text style={[styles.retryButtonText, { color: colors.background }]}>Try Again</Text>
-          </Pressable>
+          <View style={styles.buttonContainer}>
+            {isAuthError && (
+              <Pressable
+                onPress={() => router.replace("/login-screen")}
+                style={({ pressed }) => [
+                  styles.retryButton,
+                  { backgroundColor: colors.primary },
+                  pressed && { opacity: 0.8 },
+                ]}
+              >
+                <Text style={[styles.retryButtonText, { color: colors.background }]}>Log In Again</Text>
+              </Pressable>
+            )}
+            <Pressable
+              onPress={() => setInitKey((k) => k + 1)}
+              style={({ pressed }) => [
+                styles.retryButton,
+                { backgroundColor: colors.primary },
+                pressed && { opacity: 0.8 },
+                isAuthError && { marginTop: 12 },
+              ]}
+            >
+              <Text style={[styles.retryButtonText, { color: colors.background }]}>Try Again</Text>
+            </Pressable>
+          </View>
         </ScrollView>
       </ScreenContainer>
     );
@@ -269,8 +292,13 @@ export default function PaymentInfoScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  centeredContainer: {
+  const styles = StyleSheet.create({
+    buttonContainer: {
+      marginHorizontal: 16,
+      marginBottom: 32,
+      gap: 12,
+    },
+    centeredContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",

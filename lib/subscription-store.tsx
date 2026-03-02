@@ -66,8 +66,8 @@ export interface SubscriptionState {
 
 // Storage key is scoped to user ID
 function getStorageKey(userId: string | number | null): string {
-  if (!userId) return "fitlife_subscription_anonymous";
-  return `fitlife_subscription_${userId}`;
+  if (!userId) return "pulse_subscription_anonymous";
+  return `pulse_subscription_${userId}`;
 }
 
 interface SubscriptionContextType {

@@ -431,7 +431,7 @@ type WorkoutAction =
 
 // Storage keys are scoped to user ID
 function getStorageKeys(userId: string | number | null) {
-  const prefix = userId ? `fitlife_${userId}` : "fitlife";
+  const prefix = userId ? `pulse_${userId}` : "pulse";
   return {
     PLAN: `${prefix}_plan`,
     DAILY_PLAN: `${prefix}_daily_plan`,

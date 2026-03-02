@@ -7,7 +7,7 @@ export interface ReminderSchedule {
   time: string; // Format: "HH:MM" (24-hour)
 }
 
-const REMINDERS_STORAGE_KEY = "fitlife_workout_reminders";
+const REMINDERS_STORAGE_KEY = "pulse_workout_reminders";
 
 /**
  * Hook for managing workout reminders
