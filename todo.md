@@ -306,3 +306,10 @@
 - [x] Replace all rgba(0,0,0,...) including modal overlays with dark grey/teal alternatives
 - [x] Replace all near-black text colors with dark grey (#374151)
 - [x] Verify zero black colors remain across all screens — confirmed clean
+
+## BUG - PROFILE INFO NOT AUTO-FILLED AFTER LOGIN
+
+- [x] BUG: Height, weight, birthday show "Not set" after login even though user entered them during signup
+- [x] Investigate: server correctly returns birthday/heightCm/weightKg in login response
+- [x] Investigate: UserProvider was not seeding local profile from server data
+- [x] Fix: UserProvider now accepts serverUser prop and seeds local profile from server data on first login

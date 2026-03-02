@@ -9,6 +9,13 @@ export interface UserProfile {
   onboardingCompleted?: boolean;
 }
 
+/** Minimal shape of the server User object we need for seeding */
+export interface ServerUserSeed {
+  birthday?: string | null;
+  heightCm?: number | null;
+  weightKg?: number | null;
+}
+
 interface UserContextType {
   userProfile: UserProfile | null;
   updateUserProfile: (profile: Partial<UserProfile>) => Promise<void>;
@@ -35,9 +42,15 @@ interface UserProviderProps {
   /** The ID of the currently authenticated user.  Pass null/undefined when
    *  the user is logged out so the provider clears its in-memory state. */
   userId?: string | number | null;
+  /**
+   * The full server User object returned at login.  When provided, its
+   * birthday / heightCm / weightKg are used to seed the local profile if
+   * the stored profile doesn't already have those values.
+   */
+  serverUser?: ServerUserSeed | null;
 }
 
-export function UserProvider({ children, userId }: UserProviderProps) {
+export function UserProvider({ children, userId, serverUser }: UserProviderProps) {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -59,9 +72,37 @@ export function UserProvider({ children, userId }: UserProviderProps) {
 
         const key = profileKey(userId);
         const stored = await AsyncStorage.getItem(key);
+        const localProfile: UserProfile = stored ? JSON.parse(stored) : {};
+
+        // Seed from server data if local profile is missing these fields
+        let seeded = false;
+        if (serverUser) {
+          if (!localProfile.dateOfBirth && serverUser.birthday) {
+            localProfile.dateOfBirth = serverUser.birthday;
+            seeded = true;
+          }
+          if (!localProfile.height && serverUser.heightCm) {
+            localProfile.height = serverUser.heightCm;
+            seeded = true;
+          }
+          if (!localProfile.weight && serverUser.weightKg) {
+            localProfile.weight = serverUser.weightKg;
+            seeded = true;
+          }
+        }
+
+        // Persist back if we seeded new values
+        if (seeded) {
+          await AsyncStorage.setItem(key, JSON.stringify(localProfile)).catch((e) =>
+            console.error("[UserStore] Error persisting seeded profile:", e)
+          );
+        }
 
         if (!cancelled) {
-          setUserProfile(stored ? JSON.parse(stored) : null);
+          // Only set if there's actual data, otherwise null so "Not set" shows correctly
+          const hasData =
+            localProfile.dateOfBirth || localProfile.height || localProfile.weight || localProfile.onboardingCompleted;
+          setUserProfile(hasData ? localProfile : null);
           setIsLoading(false);
         }
       } catch (error) {
@@ -75,7 +116,7 @@ export function UserProvider({ children, userId }: UserProviderProps) {
     return () => {
       cancelled = true;
     };
-  }, [userId]);
+  }, [userId, serverUser]);
 
   const updateUserProfile = useCallback(
     async (profile: Partial<UserProfile>) => {

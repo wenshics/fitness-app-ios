@@ -36,12 +36,20 @@ export const unstable_settings = {
 };
 
 /**
- * Wraps UserProvider with the current authenticated user's ID so that
- * profile data is scoped per account.  Must be rendered inside AuthProvider.
+ * Wraps UserProvider with the current authenticated user's ID and server user
+ * data so that profile data is scoped per account and auto-seeded from the
+ * server on first login.  Must be rendered inside AuthProvider.
  */
 function UserProviderWithAuth({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
-  return <UserProvider userId={user?.id ?? null}>{children}</UserProvider>;
+  return (
+    <UserProvider
+      userId={user?.id ?? null}
+      serverUser={user ?? null}
+    >
+      {children}
+    </UserProvider>
+  );
 }
 
 /**
