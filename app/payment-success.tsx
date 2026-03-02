@@ -16,9 +16,10 @@ import * as Haptics from "expo-haptics";
 export default function PaymentSuccessScreen() {
   const colors = useColors();
   const router = useRouter();
-  const { plan: planId, transactionId } = useLocalSearchParams<{
+  const { plan: planId, transactionId, from } = useLocalSearchParams<{
     plan: PlanType;
     transactionId: string;
+    from?: string;
   }>();
   const { subscription, getCurrentPlan } = useSubscription();
   const [isNavigating, setIsNavigating] = useState(false);
@@ -34,9 +35,21 @@ export default function PaymentSuccessScreen() {
   const handleConfirm = async () => {
     setIsNavigating(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    // Navigate back twice: first from payment-success to payment-info, then from payment-info to previous screen
-    router.back();
-    router.back();
+    // Navigate back to the origin screen (profile, exercise, etc)
+    if (from === "profile") {
+      router.replace({
+        pathname: "/(tabs)/profile",
+      });
+    } else if (from === "exercises") {
+      router.replace({
+        pathname: "/(tabs)/exercises",
+      });
+    } else {
+      // Default to profile if origin is not specified
+      router.replace({
+        pathname: "/(tabs)/profile",
+      });
+    }
   };
 
   if (!selectedPlan) {

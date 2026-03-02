@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { PLANS, type PlanType, useSubscription } from "@/lib/subscription-store";
 import { getSessionToken } from "@/lib/_core/auth";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { useState, useEffect } from "react";
 import {
   ActivityIndicator,
@@ -23,6 +23,7 @@ export default function PaywallScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const { subscribe } = useSubscription();
+  const { from } = useLocalSearchParams<{ from?: string }>();
   const [selectedPlan, setSelectedPlan] = useState<PlanType>("monthly");
   const [isProcessing, setIsProcessing] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
@@ -47,7 +48,10 @@ export default function PaywallScreen() {
 
     try {
       // Navigate to payment info screen to collect card details
-      router.push(`/payment-info?plan=${selectedPlan}`);
+      router.push({
+        pathname: "/payment-info",
+        params: { plan: selectedPlan, from },
+      });
     } catch (err) {
       console.error("[Paywall] Navigation failed:", err);
     } finally {

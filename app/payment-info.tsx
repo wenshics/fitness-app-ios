@@ -22,7 +22,7 @@ import * as Haptics from "expo-haptics";
 export default function PaymentInfoScreen() {
   const colors = useColors();
   const router = useRouter();
-  const { plan: planId } = useLocalSearchParams<{ plan: PlanType }>();
+  const { plan: planId, from } = useLocalSearchParams<{ plan: PlanType; from?: string }>();
   const { subscribe } = useSubscription();
   const { loading: authLoading } = useAuth();
 
@@ -69,10 +69,10 @@ export default function PaymentInfoScreen() {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
     console.log("[PaymentInfo] Navigating to payment-card with plan:", selectedPlan.id);
-    router.push({
-      pathname: "/payment-card",
-      params: { plan: selectedPlan.id },
-    });
+      router.push({
+        pathname: "/payment-card",
+        params: { plan: planId, from },
+      });
   };
 
   const handlePaymentError = (error: string) => {

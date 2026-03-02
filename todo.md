@@ -383,3 +383,5 @@
 ## BUGS - PAYMENT CARD INPUT
 
 - [x] Bug: Expiry date input only accepts MM, should accept MM/YY format - FIXED: Combined to single field with auto-formatting
+
+- [x] Bug: After confirming payment, should return to the screen where user entered the flow (Profile, Exercise, etc), not back to paywall - FIXED: Added origin parameter through payment flow

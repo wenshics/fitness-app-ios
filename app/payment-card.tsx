@@ -18,7 +18,7 @@ import * as Haptics from "expo-haptics";
 export default function PaymentCardScreen() {
   const colors = useColors();
   const router = useRouter();
-  const { plan: planId } = useLocalSearchParams<{ plan: PlanType }>();
+  const { plan: planId, from } = useLocalSearchParams<{ plan: PlanType; from?: string }>();
   const { getCurrentPlan } = useSubscription();
 
   const selectedPlan = PLANS.find((p) => p.id === planId);
@@ -111,6 +111,8 @@ export default function PaymentCardScreen() {
           plan: planId,
           cardLast4,
           cardName,
+          expiry,
+          from,
         },
       });
     } catch (err) {

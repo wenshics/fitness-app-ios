@@ -266,7 +266,10 @@ export default function ProfileScreen() {
             </View>
           </View>
           <Pressable
-            onPress={() => router.push("/paywall")}
+            onPress={() => router.push({
+              pathname: "/paywall",
+              params: { from: "profile" },
+            })}
             style={({ pressed }) => [{
               backgroundColor: colors.primary,
               paddingHorizontal: 16,
