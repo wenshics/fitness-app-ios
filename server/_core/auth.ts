@@ -19,7 +19,7 @@ import {
 import { getDb } from "../db";
 import { emailUsers } from "../../drizzle/schema";
 import { eq } from "drizzle-orm";
-import { sendVerificationCode, sendPasswordResetEmail } from "./email";
+import { sendVerificationCode, sendPasswordResetEmail, validateEmailConfig } from "./email";
 
 const COOKIE_NAME = "app_session_id";
 const ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
@@ -341,13 +341,21 @@ export function registerAuthRoutes(app: Express) {
         return;
       }
       
+      // Check if email is configured
+      const emailConfig = validateEmailConfig();
+      if (!emailConfig.valid) {
+        console.warn("[Auth] forgot-password: Email not configured -", emailConfig.error);
+        // In development, still return success but log the issue
+        console.log("[Auth] forgot-password: Would send reset email to:", email.trim());
+        res.json({ success: true, warning: "Email service not configured (dev mode)" });
+        return;
+      }
+      
       const token = await createPasswordResetToken(email.trim());
       console.log("[Auth] forgot-password token created:", token ? "yes" : "no (user not found)");
       
       if (token) {
-        const appUrl =
-          process.env.APP_URL ||
-          `${req.protocol}://${req.get("host")}`;
+        const appUrl = process.env.APP_URL || `${req.protocol}://${req.get("host")}`;
         console.log("[Auth] forgot-password appUrl:", appUrl);
         console.log("[Auth] forgot-password sending email to:", email.trim());
         
@@ -356,9 +364,11 @@ export function registerAuthRoutes(app: Express) {
           console.log("[Auth] forgot-password email sent successfully");
         } catch (emailErr) {
           console.error("[Auth] forgot-password email send FAILED:", emailErr);
+          // Don't fail the request - still return success to avoid email enumeration
         }
       }
       
+      // Always respond success to avoid email enumeration
       res.json({ success: true });
     } catch (err) {
       console.error("[Auth] forgot-password error:", err);

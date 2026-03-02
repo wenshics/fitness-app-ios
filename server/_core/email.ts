@@ -2,6 +2,11 @@ import nodemailer from "nodemailer";
 
 let _transporter: nodemailer.Transporter | null = null;
 
+// Check if we're in development mode without email config
+function isEmailConfigured(): boolean {
+  return !!(process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD);
+}
+
 export function validateEmailConfig(): { valid: boolean; error?: string } {
   const user = process.env.GMAIL_USER;
   const pass = process.env.GMAIL_APP_PASSWORD;
@@ -34,6 +39,15 @@ export async function sendEmail(opts: {
   html: string;
   text?: string;
 }): Promise<void> {
+  // DEVELOPMENT FALLBACK: If email not configured, log and return success
+  if (!isEmailConfigured()) {
+    console.log("[Email] DEV MODE - Email not configured, simulating send:");
+    console.log("[Email] To:", opts.to);
+    console.log("[Email] Subject:", opts.subject);
+    console.log("[Email] Would have sent HTML email");
+    return; // Return success without actually sending
+  }
+
   const transporter = getTransporter();
   const from = `"Pulse" <${process.env.GMAIL_USER}>`;
   await transporter.sendMail({
