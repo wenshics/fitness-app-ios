@@ -15,6 +15,7 @@ import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { useAuth } from "@/hooks/use-auth";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { getApiBaseUrl } from "@/constants/oauth";
 
 export default function LoginScreen() {
   const colors = useColors("light");
@@ -36,17 +37,9 @@ export default function LoginScreen() {
     setError("");
 
     try {
-      // Always construct the full API URL on web
-      let url: string;
-      if (typeof window !== "undefined" && window.location) {
-        const { protocol, hostname } = window.location;
-        const apiHostname = hostname.replace(/^8081-/, "3000-");
-        url = `${protocol}//${apiHostname}/api/auth/email-login`;
-      } else {
-        // Fallback for non-web platforms - use relative URL
-        url = "/api/auth/email-login";
-      }
-
+      // Use getApiBaseUrl which handles both web and native platforms
+      const apiBaseUrl = getApiBaseUrl();
+      const url = `${apiBaseUrl}/api/auth/email-login`;
       console.log("[LoginScreen] Fetching from:", url);
 
       const response = await fetch(url, {

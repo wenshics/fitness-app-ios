@@ -13,7 +13,7 @@ import {
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
-// Removed getApiBaseUrl import - using dynamic URL construction instead
+import { getApiBaseUrl } from "@/constants/oauth";
 
 export default function ResetPasswordScreen() {
   const router = useRouter();
@@ -49,16 +49,8 @@ export default function ResetPasswordScreen() {
     setLoading(true);
     setError("");
     try {
-      // Always construct the full API URL on web
-      let url: string;
-      if (typeof window !== "undefined" && window.location) {
-        const { protocol, hostname } = window.location;
-        const apiHostname = hostname.replace(/^8081-/, "3000-");
-        url = `${protocol}//${apiHostname}/api/auth/reset-password`;
-      } else {
-        // Fallback for non-web platforms - use relative URL
-        url = "/api/auth/reset-password";
-      }
+      const apiBaseUrl = getApiBaseUrl();
+      const url = `${apiBaseUrl}/api/auth/reset-password`;
       const res = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },

@@ -14,7 +14,7 @@ import { useRouter } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { useAuth } from "@/hooks/use-auth";
-// Removed getApiBaseUrl import - using dynamic URL construction instead
+import { getApiBaseUrl } from "@/constants/oauth";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 
 export default function SignupScreen() {
@@ -103,17 +103,9 @@ export default function SignupScreen() {
     setError("");
 
     try {
-      // Always construct the full API URL on web
-      let url: string;
-      if (typeof window !== "undefined" && window.location) {
-        const { protocol, hostname } = window.location;
-        const apiHostname = hostname.replace(/^8081-/, "3000-");
-        url = `${protocol}//${apiHostname}/api/auth/email-signup`;
-      } else {
-        // Fallback for non-web platforms - use relative URL
-        url = "/api/auth/email-signup";
-      }
-
+      // Use getApiBaseUrl which handles both web and native platforms
+      const apiBaseUrl = getApiBaseUrl();
+      const url = `${apiBaseUrl}/api/auth/email-signup`;
       console.log("[Signup] Attempting signup to:", url);
 
       const response = await fetch(url, {
