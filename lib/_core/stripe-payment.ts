@@ -35,6 +35,7 @@ export async function createSubscriptionIntent(planId: string): Promise<{
   planId: string;
   upgraded?: boolean;
 }> {
+  console.log("[Stripe] createSubscriptionIntent called with planId:", planId);
   const result = await apiCall<{
     success: boolean;
     clientSecret: string | null;
@@ -47,10 +48,13 @@ export async function createSubscriptionIntent(planId: string): Promise<{
     method: "POST",
     body: JSON.stringify({ planId }),
   });
+  console.log("[Stripe] createSubscriptionIntent response:", result);
 
   if (!result.success && !result.upgraded) {
+    console.error("[Stripe] createSubscriptionIntent failed:", result.error);
     throw new Error(result.error ?? "Failed to create subscription");
   }
+  console.log("[Stripe] createSubscriptionIntent success");
 
   return {
     clientSecret: result.clientSecret,
@@ -72,14 +76,18 @@ export async function getSubscriptionStatus(): Promise<{
   currentPeriodEnd?: number;
 }> {
   try {
-    return await apiCall<{
+    console.log("[Stripe] getSubscriptionStatus called");
+    const result = await apiCall<{
       hasSubscription: boolean;
       status?: string;
       planId?: string;
       trialEnd?: number;
       currentPeriodEnd?: number;
     }>("/api/payments/subscription-status", { method: "GET" });
-  } catch {
+    console.log("[Stripe] getSubscriptionStatus response:", result);
+    return result;
+  } catch (err) {
+    console.error("[Stripe] getSubscriptionStatus error:", err);
     return { hasSubscription: false };
   }
 }
