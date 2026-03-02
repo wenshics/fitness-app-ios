@@ -70,6 +70,9 @@ export function registerAuthRoutes(app: Express) {
           email: user.email,
           loginMethod: "email",
           lastSignedIn: new Date().toISOString(),
+          birthday: birthday?.trim() || null,
+          heightCm: height ? Math.round(parseFloat(height)) : null,
+          weightKg: weight ? Math.round(parseFloat(weight)) : null,
         },
       });
     } catch (err) {
@@ -107,6 +110,9 @@ export function registerAuthRoutes(app: Express) {
           email: user.email,
           loginMethod: "email",
           lastSignedIn: new Date().toISOString(),
+          birthday: user.birthday ?? null,
+          heightCm: user.heightCm ?? null,
+          weightKg: user.weightKg ?? null,
         },
       });
     } catch (err) {
@@ -141,6 +147,9 @@ export function registerAuthRoutes(app: Express) {
           email: session.email,
           loginMethod: "email",
           lastSignedIn: new Date().toISOString(),
+          birthday: session.birthday ?? null,
+          heightCm: session.heightCm ?? null,
+          weightKg: session.weightKg ?? null,
         },
       });
     } catch (err) {
@@ -196,6 +205,9 @@ export function registerAuthRoutes(app: Express) {
           email: session.email,
           loginMethod: "email",
           lastSignedIn: new Date().toISOString(),
+          birthday: session.birthday ?? null,
+          heightCm: session.heightCm ?? null,
+          weightKg: session.weightKg ?? null,
         },
       });
     } catch (err) {
@@ -270,6 +282,9 @@ export function registerAuthRoutes(app: Express) {
           email: user.email,
           loginMethod: "email",
           lastSignedIn: new Date().toISOString(),
+          birthday: user.birthday ?? null,
+          heightCm: user.heightCm ?? null,
+          weightKg: user.weightKg ?? null,
         },
       });
     } catch (err) {

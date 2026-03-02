@@ -126,9 +126,9 @@ export default function ProfileScreen() {
     console.log('[Profile] Logout button tapped');
     try {
       await logout();
-      console.log('[Profile] Logout successful, redirecting to login');
-      // Force redirect to login after logout
-      router.replace('/login');
+      console.log('[Profile] Logout successful, redirecting to login-screen');
+      // Force redirect to login-screen after logout
+      router.replace('/login-screen');
     } catch (error) {
       console.error('[Profile] Logout error:', error);
       Alert.alert('Error', 'Failed to logout');
@@ -183,19 +183,19 @@ export default function ProfileScreen() {
             <View style={styles.infoItem}>
               <Text style={[styles.infoLabel, { color: colors.muted }]}>Height</Text>
               <Text style={[styles.infoValue, { color: colors.foreground }]}>
-                {userProfile?.height ? `${userProfile.height} cm` : "Not set"}
+                {user?.heightCm ? `${user.heightCm} cm` : (userProfile?.height ? `${userProfile.height} cm` : "Not set")}
               </Text>
             </View>
             <View style={styles.infoItem}>
               <Text style={[styles.infoLabel, { color: colors.muted }]}>Weight</Text>
               <Text style={[styles.infoValue, { color: colors.foreground }]}>
-                {userProfile?.weight ? `${userProfile.weight} kg` : "Not set"}
+                {user?.weightKg ? `${user.weightKg} kg` : (userProfile?.weight ? `${userProfile.weight} kg` : "Not set")}
               </Text>
             </View>
             <View style={styles.infoItem}>
               <Text style={[styles.infoLabel, { color: colors.muted }]}>Date of Birth</Text>
               <Text style={[styles.infoValue, { color: colors.foreground }]}>
-                {userProfile?.dateOfBirth || "Not set"}
+                {user?.birthday || userProfile?.dateOfBirth || "Not set"}
               </Text>
             </View>
           </View>

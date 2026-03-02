@@ -158,6 +158,9 @@ export async function findEmailSessionUser(token: string) {
       expiresAt: emailSessions.expiresAt,
       email: emailUsers.email,
       name: emailUsers.name,
+      birthday: emailUsers.birthday,
+      heightCm: emailUsers.heightCm,
+      weightKg: emailUsers.weightKg,
     })
     .from(emailSessions)
     .innerJoin(emailUsers, eq(emailSessions.userId, emailUsers.id))

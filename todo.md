@@ -216,3 +216,8 @@
 - [x] BUG: Account not saved to database — actually was saved correctly; login failed due to wrong password entered
 - [x] Fix verify-email screen to auto-login user and navigate to home — FIXED
 - [x] Fix signup to ensure account is persisted to database before navigating to verification — confirmed working
+
+## BUGS - PROFILE & LOGOUT
+
+- [x] BUG: Profile page shows empty birthday/height/weight — FIXED: server now returns birthday/heightCm/weightKg in all auth responses; profile reads from user object
+- [x] BUG: After logout, navigates to unmatched route — FIXED: router.replace('/login-screen') instead of '/login'
