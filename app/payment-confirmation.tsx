@@ -20,10 +20,11 @@ import * as Haptics from "expo-haptics";
 export default function PaymentConfirmationScreen() {
   const colors = useColors();
   const router = useRouter();
-  const { plan: planId, cardLast4, cardName } = useLocalSearchParams<{
+  const { plan: planId, cardLast4, cardName, expiry } = useLocalSearchParams<{
     plan: PlanType;
     cardLast4: string;
     cardName: string;
+    expiry: string;
   }>();
   const { subscribe } = useSubscription();
 

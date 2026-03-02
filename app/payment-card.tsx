@@ -25,8 +25,7 @@ export default function PaymentCardScreen() {
 
   const [cardNumber, setCardNumber] = useState("");
   const [cardName, setCardName] = useState("");
-  const [expiryMonth, setExpiryMonth] = useState("");
-  const [expiryYear, setExpiryYear] = useState("");
+  const [expiry, setExpiry] = useState("");
   const [cvc, setCvc] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -62,11 +61,12 @@ export default function PaymentCardScreen() {
     }
 
     // Expiry validation
-    if (!expiryMonth || !expiryYear) {
-      newErrors.expiry = "Expiry date is required";
+    if (!expiry || !expiry.includes("/")) {
+      newErrors.expiry = "Expiry date is required (MM/YY)";
     } else {
-      const month = parseInt(expiryMonth);
-      const year = parseInt(expiryYear);
+      const parts = expiry.split("/");
+      const month = parseInt(parts[0]);
+      const year = parseInt(parts[1]);
       if (month < 1 || month > 12) {
         newErrors.expiry = "Invalid month (01-12)";
       } else {
@@ -129,12 +129,17 @@ export default function PaymentCardScreen() {
     setCardNumber(formatted.slice(0, 23)); // Max 19 digits + 4 spaces
   };
 
-  const formatExpiry = (text: string, type: "month" | "year") => {
+  const formatExpiry = (text: string) => {
     const cleaned = text.replace(/\D/g, "");
-    if (type === "month") {
-      setExpiryMonth(cleaned.slice(0, 2));
-    } else {
-      setExpiryYear(cleaned.slice(0, 2));
+    if (cleaned.length <= 4) {
+      if (cleaned.length <= 2) {
+        setExpiry(cleaned);
+      } else {
+        // Auto-format to MM/YY
+        const month = cleaned.slice(0, 2);
+        const year = cleaned.slice(2, 4);
+        setExpiry(`${month}/${year}`);
+      }
     }
   };
 
@@ -253,43 +258,23 @@ export default function PaymentCardScreen() {
                 <Text style={[styles.label, { color: colors.foreground }]}>
                   Expiry (MM/YY)
                 </Text>
-                <View style={styles.expiryRow}>
-                  <TextInput
-                    style={[
-                      styles.expiryInput,
-                      {
-                        backgroundColor: colors.background,
-                        borderColor: errors.expiry ? colors.error : colors.border,
-                        color: colors.foreground,
-                      },
-                    ]}
-                    placeholder="MM"
-                    placeholderTextColor={colors.muted}
-                    value={expiryMonth}
-                    onChangeText={(text) => formatExpiry(text, "month")}
-                    keyboardType="numeric"
-                    maxLength={2}
-                    editable={!isProcessing}
-                  />
-                  <Text style={[styles.slash, { color: colors.foreground }]}>/</Text>
-                  <TextInput
-                    style={[
-                      styles.expiryInput,
-                      {
-                        backgroundColor: colors.background,
-                        borderColor: errors.expiry ? colors.error : colors.border,
-                        color: colors.foreground,
-                      },
-                    ]}
-                    placeholder="YY"
-                    placeholderTextColor={colors.muted}
-                    value={expiryYear}
-                    onChangeText={(text) => formatExpiry(text, "year")}
-                    keyboardType="numeric"
-                    maxLength={2}
-                    editable={!isProcessing}
-                  />
-                </View>
+                <TextInput
+                  style={[
+                    styles.input,
+                    {
+                      backgroundColor: colors.background,
+                      borderColor: errors.expiry ? colors.error : colors.border,
+                      color: colors.foreground,
+                    },
+                  ]}
+                  placeholder="MM/YY"
+                  placeholderTextColor={colors.muted}
+                  value={expiry}
+                  onChangeText={formatExpiry}
+                  keyboardType="numeric"
+                  maxLength={5}
+                  editable={!isProcessing}
+                />
                 {errors.expiry && (
                   <Text style={[styles.error, { color: colors.error }]}>
                     {errors.expiry}

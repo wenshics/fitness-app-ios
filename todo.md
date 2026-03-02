@@ -379,3 +379,7 @@
 - [x] Bug: Subscription is created in payment-info.tsx before user enters card details - FIXED: Moved to payment-confirmation
 - [x] Bug: Need to defer subscription creation until payment-confirmation.tsx - FIXED: Now creates subscription only on confirmation
 - [x] Question: Verify Stripe configuration will work when app is published to App Store - CONFIRMED: Stripe Secret Key configured and tested
+
+## BUGS - PAYMENT CARD INPUT
+
+- [x] Bug: Expiry date input only accepts MM, should accept MM/YY format - FIXED: Combined to single field with auto-formatting
