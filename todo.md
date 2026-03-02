@@ -273,3 +273,9 @@
 
 - [x] BUG: Login, signup, forgot-password, reset-password screens show black background and dark inputs in dark mode
 - [x] Force all auth screens to always use light color scheme (white background, light inputs)
+
+## BUG - BLACK BOXES THROUGHOUT ALL 4 TABS
+
+- [x] BUG: Black boxes visible throughout all 4 tabs — root cause was dark mode (zinc-900 surfaces #18181B). Fixed by locking app to light mode.
+- [x] Audit every tab screen for hardcoded dark background/surface colors
+- [x] Fix all screens to use theme tokens instead of hardcoded dark values
