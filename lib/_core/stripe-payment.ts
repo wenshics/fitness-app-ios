@@ -3,7 +3,7 @@
  * This uses a server-side payment API for processing
  */
 
-import { getApiBaseUrl } from "@/constants/oauth";
+import { apiCall } from "@/lib/_core/api";
 
 /**
  * Initialize payment system (no-op since we use server-side processing)
@@ -26,17 +26,15 @@ export async function processSubscriptionPayment(
   cardholder: string
 ) {
   try {
-    // In production, validate card details on the backend
-    // For now, we'll send directly to the server
+    console.log("[Payment] Processing payment for plan:", planId);
 
-    // Send to server for processing
-    const apiUrl = getApiBaseUrl();
-    const endpoint = apiUrl ? `${apiUrl}/api/payments/subscribe` : "/api/payments/subscribe";
-    const response = await fetch(endpoint, {
+    // Use apiCall for proper URL resolution on native and automatic session token inclusion
+    const result = await apiCall<{
+      success: boolean;
+      message?: string;
+      transactionId?: string;
+    }>("/api/payments/subscribe", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
       body: JSON.stringify({
         planId,
         cardNumber,
@@ -47,12 +45,6 @@ export async function processSubscriptionPayment(
       }),
     });
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || "Payment processing failed");
-    }
-
-    const result = await response.json();
     console.log("[Payment] Payment processed successfully:", result);
     return result;
   } catch (error) {

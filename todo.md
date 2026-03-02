@@ -313,3 +313,11 @@
 - [x] Investigate: server correctly returns birthday/heightCm/weightKg in login response
 - [x] Investigate: UserProvider was not seeding local profile from server data
 - [x] Fix: UserProvider now accepts serverUser prop and seeds local profile from server data on first login
+
+## BUG - PAYMENT FLOW BROKEN ON NATIVE IOS
+
+- [x] BUG: Clicking "Start Free Trial" on payment screen does nothing on native iOS
+- [x] Root cause: stripe-payment.ts used raw fetch() with getApiBaseUrl() which returns empty string on native
+- [x] Fix: replaced raw fetch with apiCall() from api.ts for proper URL resolution and session token inclusion
+- [x] Verified: payment endpoint returns mock success response when no Stripe key is configured
+- [x] All 445 tests still passing after fix
