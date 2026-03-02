@@ -232,3 +232,8 @@
 - [x] Investigate password hashing algorithm and salt handling in signup vs login
 - [x] Fix password verification logic so stored hash matches entered password
 - [x] Test login end-to-end with the real account
+
+## NEW BUGS - UI FIXES
+
+- [x] BUG: Achievement badge shows raw text "star.fill" instead of the icon graphic
+- [x] BUG: Password fields on login/signup screens have no show/hide toggle

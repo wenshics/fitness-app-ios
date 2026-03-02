@@ -9,13 +9,13 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-  Alert,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { useAuth } from "@/hooks/use-auth";
 import { getApiBaseUrl } from "@/constants/oauth";
+import { IconSymbol } from "@/components/ui/icon-symbol";
 
 export default function SignupScreen() {
   const colors = useColors();
@@ -30,6 +30,8 @@ export default function SignupScreen() {
   const [birthday, setBirthday] = useState("");
   const [height, setHeight] = useState("");
   const [weight, setWeight] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -224,45 +226,57 @@ export default function SignupScreen() {
               {/* Password Input */}
               <View style={styles.inputGroup}>
                 <Text style={[styles.label, { color: colors.foreground }]}>Password</Text>
-                <TextInput
-                  style={[
-                    styles.input,
-                    {
-                      backgroundColor: colors.surface,
-                      color: colors.foreground,
-                      borderColor: colors.border,
-                    },
-                  ]}
-                  placeholder="••••••••"
-                  placeholderTextColor={colors.muted}
-                  value={password}
-                  onChangeText={setPassword}
-                  editable={!isLoading}
-                  secureTextEntry
-                  autoCapitalize="none"
-                />
+                <View style={[styles.inputWrapper, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                  <TextInput
+                    style={[styles.inputInner, { color: colors.foreground }]}
+                    placeholder="••••••••"
+                    placeholderTextColor={colors.muted}
+                    value={password}
+                    onChangeText={setPassword}
+                    editable={!isLoading}
+                    secureTextEntry={!showPassword}
+                    autoCapitalize="none"
+                  />
+                  <Pressable
+                    onPress={() => setShowPassword((v) => !v)}
+                    style={styles.eyeButton}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <IconSymbol
+                      name={showPassword ? "eye.slash.fill" : "eye.fill"}
+                      size={20}
+                      color={colors.muted}
+                    />
+                  </Pressable>
+                </View>
               </View>
 
               {/* Confirm Password Input */}
               <View style={styles.inputGroup}>
                 <Text style={[styles.label, { color: colors.foreground }]}>Confirm Password</Text>
-                <TextInput
-                  style={[
-                    styles.input,
-                    {
-                      backgroundColor: colors.surface,
-                      color: colors.foreground,
-                      borderColor: colors.border,
-                    },
-                  ]}
-                  placeholder="••••••••"
-                  placeholderTextColor={colors.muted}
-                  value={confirmPassword}
-                  onChangeText={setConfirmPassword}
-                  editable={!isLoading}
-                  secureTextEntry
-                  autoCapitalize="none"
-                />
+                <View style={[styles.inputWrapper, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                  <TextInput
+                    style={[styles.inputInner, { color: colors.foreground }]}
+                    placeholder="••••••••"
+                    placeholderTextColor={colors.muted}
+                    value={confirmPassword}
+                    onChangeText={setConfirmPassword}
+                    editable={!isLoading}
+                    secureTextEntry={!showConfirmPassword}
+                    autoCapitalize="none"
+                  />
+                  <Pressable
+                    onPress={() => setShowConfirmPassword((v) => !v)}
+                    style={styles.eyeButton}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <IconSymbol
+                      name={showConfirmPassword ? "eye.slash.fill" : "eye.fill"}
+                      size={20}
+                      color={colors.muted}
+                    />
+                  </Pressable>
+                </View>
               </View>
 
               {/* Name Input */}
@@ -434,6 +448,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 16,
+  },
+  inputWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 16,
+  },
+  inputInner: {
+    flex: 1,
+    paddingVertical: 12,
+    fontSize: 16,
+  },
+  eyeButton: {
+    paddingLeft: 8,
+    paddingVertical: 12,
   },
   button: {
     borderRadius: 8,

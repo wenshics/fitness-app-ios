@@ -52,7 +52,26 @@ const MAPPING = {
   "chevron.up": "keyboard-arrow-up",
   "chevron.down": "keyboard-arrow-down",
   "figure.strengthtraining.traditional": "fitness-center",
-} as IconMapping;
+  // Password visibility toggle
+  "eye.fill": "visibility",
+  "eye.slash.fill": "visibility-off",
+  // Achievement badge icons
+  "moon.stars.fill": "nightlight",
+  "bolt.circle.fill": "offline-bolt",
+  "target": "my-location",
+  "heart.circle.fill": "favorite",
+  "flame": "local-fire-department",
+  "fire": "local-fire-department",
+  "tree.fill": "park",
+  "arrow.circlepath": "autorenew",
+  "exclamationmark.circle.fill": "error",
+  "info.circle.fill": "info",
+  "checkmark.seal.fill": "verified",
+  "shield.fill": "shield",
+  "calendar": "calendar-today",
+  "moon.fill": "nightlight-round",
+  "sun.max.fill": "wb-sunny",
+} as unknown as IconMapping;
 
 export function IconSymbol({
   name,

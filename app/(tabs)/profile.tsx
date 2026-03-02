@@ -295,7 +295,13 @@ export default function ProfileScreen() {
                       Alert.alert(award.name, award.description);
                     }}
                   >
-                    <Text style={styles.achievementIcon}>{award.icon}</Text>
+                    <View style={[styles.achievementIconWrapper, { backgroundColor: colors.primary + "18" }]}>
+                      <IconSymbol
+                        name={award.icon as any}
+                        size={26}
+                        color={colors.primary}
+                      />
+                    </View>
                     <Text style={[styles.achievementName, { color: colors.foreground }]}>
                       {award.name}
                     </Text>
@@ -820,6 +826,14 @@ const styles = StyleSheet.create({
   },
   achievementIcon: {
     fontSize: 28,
+  },
+  achievementIconWrapper: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 6,
   },
   achievementName: {
     fontSize: 11,
