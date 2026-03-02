@@ -23,6 +23,7 @@ export default function ResetPasswordScreen() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
@@ -209,7 +210,7 @@ export default function ResetPasswordScreen() {
                 style={styles.input}
                 placeholder="Confirm new password"
                 placeholderTextColor={colors.muted}
-                secureTextEntry={!showPassword}
+                secureTextEntry={!showConfirmPassword}
                 autoCapitalize="none"
                 autoCorrect={false}
                 returnKeyType="done"
@@ -217,6 +218,12 @@ export default function ResetPasswordScreen() {
                 onChangeText={(t) => { setConfirmPassword(t); setError(""); }}
                 onSubmitEditing={handleReset}
               />
+              <TouchableOpacity
+                style={styles.eyeButton}
+                onPress={() => setShowConfirmPassword((v) => !v)}
+              >
+                <Text style={styles.eyeText}>{showConfirmPassword ? "🙈" : "👁"}</Text>
+              </TouchableOpacity>
             </View>
 
             {!!error && <Text style={styles.errorText}>{error}</Text>}

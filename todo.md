@@ -252,3 +252,8 @@
 - [x] Check email service configuration (SMTP / transactional email provider)
 - [x] Fix and verify email delivery works for wenshi.bme@gmail.com
 - [x] Add spam/promotions folder hint to forgot-password screen after email is sent
+
+## BUG - RESET PASSWORD CONFIRM FIELD MISSING EYE TOGGLE
+
+- [x] BUG: Confirm Password field on reset-password screen has no show/hide toggle (only New Password has one)
+- [x] Add independent showConfirmPassword state and eye toggle button to Confirm Password field
