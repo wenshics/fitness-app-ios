@@ -3,6 +3,8 @@ import {
   createEmailUser,
   findEmailUserByEmail,
   verifyPassword,
+  isLegacyHash,
+  rehashPassword,
   createEmailSession,
   findEmailSessionUser,
   deleteEmailSession,
@@ -11,6 +13,9 @@ import {
   createPasswordResetToken,
   resetPasswordWithToken,
 } from "../db";
+import { getDb } from "../db";
+import { emailUsers } from "../../drizzle/schema";
+import { eq } from "drizzle-orm";
 import { sendVerificationCode, sendPasswordResetEmail } from "./email";
 
 const COOKIE_NAME = "app_session_id";
@@ -95,6 +100,23 @@ export function registerAuthRoutes(app: Express) {
       if (!user || !verifyPassword(password.trim(), user.passwordHash)) {
         res.status(401).json({ error: "Invalid email or password" });
         return;
+      }
+
+      // Silently upgrade legacy (unsalted) hashes to the current salted format
+      if (isLegacyHash(password.trim(), user.passwordHash)) {
+        try {
+          const db = await getDb();
+          if (db) {
+            await db
+              .update(emailUsers)
+              .set({ passwordHash: rehashPassword(password.trim()) })
+              .where(eq(emailUsers.id, user.id));
+            console.log(`[Auth] Upgraded legacy password hash for user ${user.id}`);
+          }
+        } catch (upgradeErr) {
+          // Non-fatal — log and continue
+          console.warn("[Auth] Failed to upgrade legacy hash:", upgradeErr);
+        }
       }
 
       const token = await createEmailSession(user.id);

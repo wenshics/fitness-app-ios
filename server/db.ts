@@ -100,8 +100,35 @@ function hashPassword(password: string): string {
   return Buffer.from(password + "__salt_pulse_app__").toString("base64");
 }
 
+/** Legacy hash format used before the database migration (no salt) */
+function hashPasswordLegacy(password: string): string {
+  return Buffer.from(password).toString("base64");
+}
+
+/**
+ * Verify a password against a stored hash.
+ * Supports both the current salted format and the legacy unsalted format
+ * (accounts created before the database migration).
+ */
 export function verifyPassword(password: string, hash: string): boolean {
-  return hashPassword(password) === hash;
+  // Try current salted hash first
+  if (hashPassword(password) === hash) return true;
+  // Fall back to legacy unsalted hash (accounts created before DB migration)
+  if (hashPasswordLegacy(password) === hash) return true;
+  return false;
+}
+
+/**
+ * Re-hash a password using the current algorithm.
+ * Used to upgrade legacy hashes on successful login.
+ */
+export function rehashPassword(password: string): string {
+  return hashPassword(password);
+}
+
+/** Returns true if the hash was created with the legacy (unsalted) algorithm */
+export function isLegacyHash(password: string, hash: string): boolean {
+  return hashPasswordLegacy(password) === hash && hashPassword(password) !== hash;
 }
 
 export async function createEmailUser(

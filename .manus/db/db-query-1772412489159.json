@@ -1,0 +1,16 @@
+{
+  "query": "SELECT id, email, name, passwordHash FROM email_users WHERE email = 'wenshi.bme@gmail.com';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2bZZkzbo8ts7Msg.1120ae12998f --database TcKCq6vsXGY366ZGFCDBDp --execute SELECT id, email, name, passwordHash FROM email_users WHERE email = 'wenshi.bme@gmail.com';",
+  "rows": [
+    {
+      "id": "30002",
+      "email": "wenshi.bme@gmail.com",
+      "name": "Wen Shi",
+      "passwordHash": "U2hpd2VuY3N5dXdlbmluNEBmYl9fc2FsdF9wdWxzZV9hcHBfXw=="
+    }
+  ],
+  "messages": [],
+  "stdout": "id\temail\tname\tpasswordHash\n30002\twenshi.bme@gmail.com\tWen Shi\tU2hpd2VuY3N5dXdlbmluNEBmYl9fc2FsdF9wdWxzZV9hcHBfXw==\n",
+  "stderr": "",
+  "execution_time_ms": 87
+}

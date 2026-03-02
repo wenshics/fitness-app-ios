@@ -225,3 +225,10 @@
 ## BUG - LOGIN STILL FAILING
 - [ ] BUG: wenshi.bme@gmail.com login still fails in the app despite server working correctly
 - [ ] Diagnose exact error from browser/app perspective
+
+## BUG - LOGIN FAILS WITH CORRECT PASSWORD
+
+- [x] BUG: wenshi.bme@gmail.com login fails even with the correct password — password hash mismatch
+- [x] Investigate password hashing algorithm and salt handling in signup vs login
+- [x] Fix password verification logic so stored hash matches entered password
+- [x] Test login end-to-end with the real account
