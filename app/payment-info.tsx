@@ -34,10 +34,13 @@ export default function PaymentInfoScreen() {
   const [initKey, setInitKey] = useState(0);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
 
-  const selectedPlan = PLANS.find((p) => p.id === planId);
+  console.log("[PaymentInfo] planId from URL:", planId, "type:", typeof planId);
+  console.log("[PaymentInfo] Available PLANS:", PLANS.map((p) => p.id));
+  const selectedPlan = planId ? PLANS.find((p) => p.id === planId) : undefined;
+  console.log("[PaymentInfo] selectedPlan:", selectedPlan);
 
   useEffect(() => {
-    if (!selectedPlan) return;
+    if (!selectedPlan || !planId) return;
     if (authLoading) return;
     let cancelled = false;
 
@@ -53,13 +56,16 @@ export default function PaymentInfoScreen() {
 
         if (result.upgraded) {
           await subscribe(selectedPlan.id as PlanType);
-          router.replace("/payment-success");
+          router.replace(`/payment-success?plan=${selectedPlan.id}`);
           return;
         }
 
         if (!result.clientSecret) {
+          console.log("[PaymentInfo] No clientSecret, subscription created with trial. Navigating to success...");
           await subscribe(selectedPlan.id as PlanType);
-          router.replace("/payment-success");
+          console.log("[PaymentInfo] Subscription updated in store, navigating to /payment-success");
+          router.replace(`/payment-success?plan=${selectedPlan.id}`);
+          console.log("[PaymentInfo] Navigation called");
           return;
         }
 
@@ -137,7 +143,7 @@ export default function PaymentInfoScreen() {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
       await subscribe(selectedPlan.id as PlanType);
-      router.replace("/payment-success");
+      router.replace(`/payment-success?plan=${selectedPlan.id}`);
     } catch (err) {
       console.error("[PaymentInfo] Payment error:", err);
       if (Platform.OS !== "web") {
