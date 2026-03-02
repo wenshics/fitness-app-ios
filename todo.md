@@ -390,3 +390,12 @@
 ## APP STORE SUBMISSION FIXES
 
 - [x] Apple Connect Error 90683: Removed ALL unnecessary privacy strings (camera, microphone, photos, location, calendar, health) - app doesn't use these features. Kept only ITSAppUsesNonExemptEncryption: false
+
+
+## CRITICAL BUG - CORS ERROR AFTER SANDBOX RESET
+
+- [x] Bug: CORS error when logging in - API server URL changed after sandbox reset - FIXED: Clear browser cache with Ctrl+Shift+R
+
+## APP STORE SUBMISSION - ITMS-90683
+
+- [x] Apple error: Missing NSCameraUsageDescription - FIXED: Added camera, microphone, and photo library privacy strings to Info.plist
