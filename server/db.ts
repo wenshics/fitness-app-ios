@@ -179,6 +179,9 @@ export async function createEmailSession(userId: number): Promise<string> {
 export async function findEmailSessionUser(token: string) {
   const db = await getDb();
   if (!db) return null;
+  
+  console.log("[DB] findEmailSessionUser searching for token:", token.slice(0, 20) + "...", "(length:", token.length + ")");
+  
   const rows = await db
     .select({
       userId: emailSessions.userId,
@@ -193,8 +196,19 @@ export async function findEmailSessionUser(token: string) {
     .innerJoin(emailUsers, eq(emailSessions.userId, emailUsers.id))
     .where(eq(emailSessions.token, token))
     .limit(1);
-  if (!rows[0]) return null;
-  if (rows[0].expiresAt < new Date()) return null; // expired
+  
+  if (!rows[0]) {
+    const allSessions = await db.select({ token: emailSessions.token }).from(emailSessions).limit(5);
+    console.log("[DB] No matching session found. First 5 tokens in DB:", allSessions.map(s => s.token.slice(0, 20) + "..."));
+    return null;
+  }
+  
+  if (rows[0].expiresAt < new Date()) {
+    console.log("[DB] Session found but expired");
+    return null;
+  }
+  
+  console.log("[DB] Session found and valid");
   return rows[0];
 }
 

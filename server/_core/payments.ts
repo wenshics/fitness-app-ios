@@ -106,6 +106,7 @@ async function getAuthenticatedUser(req: Request) {
     authHeaderPrefix: authHeader?.slice(0, 20),
     hasBearerToken: !!bearerToken,
     bearerTokenLength: bearerToken?.length,
+    bearerTokenPrefix: bearerToken?.slice(0, 20),
     hasCookieToken: !!cookieToken,
     cookiesKeys: Object.keys(req.cookies || {}),
     tokenSource: bearerToken ? "bearer" : cookieToken ? "cookie" : "none",
@@ -116,6 +117,7 @@ async function getAuthenticatedUser(req: Request) {
     return null;
   }
 
+  console.log("[Payments] Looking up token:", token.slice(0, 20) + "...", "(length:", token.length + ")");
   const user = await findEmailSessionUser(token);
   console.log("[Payments] findEmailSessionUser result:", {
     found: !!user,
