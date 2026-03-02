@@ -27,7 +27,7 @@ export default function PaymentInfoScreen() {
   const { subscribe } = useSubscription();
   const { initPaymentSheet, presentPaymentSheet } = useStripePaymentSheet();
   // Wait for auth to hydrate before making API calls — prevents 401 on first mount
-  const { loading: authLoading, isAuthenticated } = useAuth();
+  const { loading: authLoading, isAuthenticated, logout } = useAuth();
 
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -52,16 +52,6 @@ export default function PaymentInfoScreen() {
         setLoadError(null);
         setPaymentReady(false);
 
-        // 0. Proactively validate session token before calling Stripe
-        // This catches stale tokens (e.g. from a previous server restart) early
-        const token = await Auth.getSessionToken();
-        console.log("[PaymentInfo] Session token present:", !!token, "length:", token?.length);
-        if (!token) {
-          console.warn("[PaymentInfo] No session token found — redirecting to login");
-          router.replace("/login-screen");
-          return;
-        }
-
         // 1. Create a Stripe Subscription on the server → get client_secret
         let clientSecret: string | null;
         let trialEnd: number;
@@ -74,7 +64,7 @@ export default function PaymentInfoScreen() {
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err);
           console.error("[PaymentInfo] createSubscriptionIntent error:", msg);
-          // Any auth-related error — clear stale credentials and redirect to login
+          // Auth error — show a specific error with a Log In Again button instead of auto-redirecting
           const isAuthError =
             msg.toLowerCase().includes("authentication") ||
             msg.toLowerCase().includes("401") ||
@@ -82,10 +72,7 @@ export default function PaymentInfoScreen() {
             msg.toLowerCase().includes("session expired") ||
             msg.toLowerCase().includes("unauthorized");
           if (isAuthError) {
-            console.warn("[PaymentInfo] Auth error — clearing credentials and redirecting to login");
-            await Auth.removeSessionToken();
-            await Auth.clearUserInfo();
-            router.replace("/login-screen");
+            setLoadError("SESSION_EXPIRED");
             return;
           }
           throw err;
@@ -144,13 +131,7 @@ export default function PaymentInfoScreen() {
     };
   }, [selectedPlan?.id, initKey, authLoading]);
 
-  // Redirect to login if not authenticated (should not happen in normal flow)
-  useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      console.warn("[PaymentInfo] User not authenticated, redirecting to login");
-      router.replace("/login-screen");
-    }
-  }, [authLoading, isAuthenticated]);
+  // No auto-redirect on auth state — handled by AuthGuard in _layout.tsx
 
   if (!selectedPlan) {
     return (
@@ -284,18 +265,38 @@ export default function PaymentInfoScreen() {
         {loadError && !isLoading ? (
           <View style={styles.errorBlock}>
             <View style={[styles.errorBanner, { backgroundColor: colors.error + "18", borderColor: colors.error + "40" }]}>
-              <Text style={[styles.errorBannerText, { color: colors.error }]}>{loadError}</Text>
+              <Text style={[styles.errorBannerText, { color: colors.error }]}>
+                {loadError === "SESSION_EXPIRED"
+                  ? "Your session has expired. Please log in again to continue."
+                  : loadError}
+              </Text>
             </View>
-            <Pressable
-              onPress={() => setInitKey((k) => k + 1)}
-              style={({ pressed }) => [
-                styles.retryButton,
-                { backgroundColor: colors.error, borderColor: colors.error },
-                pressed && { opacity: 0.75 },
-              ]}
-            >
-              <Text style={[styles.retryButtonText, { color: "#FFFFFF" }]}>Retry</Text>
-            </Pressable>
+            {loadError === "SESSION_EXPIRED" ? (
+              <Pressable
+                onPress={async () => {
+                  await logout();
+                  router.replace("/login-screen");
+                }}
+                style={({ pressed }) => [
+                  styles.retryButton,
+                  { backgroundColor: colors.primary },
+                  pressed && { opacity: 0.75 },
+                ]}
+              >
+                <Text style={[styles.retryButtonText, { color: "#FFFFFF" }]}>Log In Again</Text>
+              </Pressable>
+            ) : (
+              <Pressable
+                onPress={() => setInitKey((k) => k + 1)}
+                style={({ pressed }) => [
+                  styles.retryButton,
+                  { backgroundColor: colors.error, borderColor: colors.error },
+                  pressed && { opacity: 0.75 },
+                ]}
+              >
+                <Text style={[styles.retryButtonText, { color: "#FFFFFF" }]}>Retry</Text>
+              </Pressable>
+            )}
             <Pressable
               onPress={() => router.back()}
               style={({ pressed }) => [

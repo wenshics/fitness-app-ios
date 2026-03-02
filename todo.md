@@ -350,3 +350,11 @@
 - [x] Root cause confirmed via server logs: token received (tokenSource: 'bearer') but findEmailSessionUser returns {found:false} — DB migration (pnpm db:push) wiped email_sessions table, orphaning existing tokens in SecureStore
 - [x] Fix: payment-info.tsx now proactively checks for token presence before API call; auth errors (401/unauthorized) now auto-clear stale credentials and redirect to login-screen instead of showing error banner
 - [x] User must log out and log back in once to get a fresh session token after the DB migration
+
+## BUG - PAYMENT SCREEN NOT APPEARING
+
+- [x] BUG: After selecting a subscription plan and tapping "Next" on paywall, payment screen no longer appears
+- [x] Root cause: previous 401 fix used router.replace("/login-screen") on auth errors, creating a redirect loop (token cleared from SecureStore but globalUser still set in memory, causing infinite redirect cycle)
+- [x] Fix 1: removed all auto-redirects from payment-info.tsx; auth errors now show "SESSION_EXPIRED" error state with a "Log In Again" button that properly calls logout() before redirecting
+- [x] Fix 2: paywall.tsx handleSubscribe now resets isProcessing in finally block so subsequent taps work after returning from payment screen
+- [x] 464 tests pass, 0 TypeScript errors

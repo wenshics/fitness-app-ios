@@ -35,7 +35,7 @@ export default function PaywallScreen() {
 
   const currentPlan = PLANS.find((p) => p.id === selectedPlan)!;
 
-  const handleSubscribe = async () => {
+  const handleSubscribe = () => {
     if (isProcessing) return;
     setIsProcessing(true);
 
@@ -48,6 +48,8 @@ export default function PaywallScreen() {
       router.push(`/payment-info?plan=${selectedPlan}`);
     } catch (err) {
       console.error("[Paywall] Navigation failed:", err);
+    } finally {
+      // Always reset so the button is tappable again when user returns from payment screen
       setIsProcessing(false);
     }
   };
