@@ -17,7 +17,7 @@ import { getApiBaseUrl } from "@/constants/oauth";
 
 export default function ForgotPasswordScreen() {
   const router = useRouter();
-  const colors = useColors();
+  const colors = useColors("light");
 
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);

@@ -268,3 +268,8 @@
 
 - [x] BUG: Dark mode background changed from original #151718 to near-black #0C0C0E — restore original theme palette
 - [x] Revert theme.config.js to original colors from initial checkpoint
+
+## BUG - AUTH SCREENS SHOW BLACK IN DARK MODE
+
+- [x] BUG: Login, signup, forgot-password, reset-password screens show black background and dark inputs in dark mode
+- [x] Force all auth screens to always use light color scheme (white background, light inputs)

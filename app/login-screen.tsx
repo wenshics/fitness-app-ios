@@ -18,7 +18,7 @@ import { getApiBaseUrl } from "@/constants/oauth";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 
 export default function LoginScreen() {
-  const colors = useColors();
+  const colors = useColors("light");
   const router = useRouter();
   const { login } = useAuth();
   const [email, setEmail] = useState("");

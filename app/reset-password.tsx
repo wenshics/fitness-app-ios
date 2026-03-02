@@ -18,7 +18,7 @@ import { getApiBaseUrl } from "@/constants/oauth";
 export default function ResetPasswordScreen() {
   const router = useRouter();
   const { token } = useLocalSearchParams<{ token: string }>();
-  const colors = useColors();
+  const colors = useColors("light");
 
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
