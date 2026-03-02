@@ -178,12 +178,16 @@ export async function createEmailSession(userId: number): Promise<string> {
 
 export async function findEmailSessionUser(token: string) {
   const db = await getDb();
-  if (!db) return null;
+  if (!db) {
+    console.error("[DB] findEmailSessionUser: database not available");
+    return null;
+  }
   
   const cleanToken = token.trim();
   console.log("[DB] findEmailSessionUser searching for token:", cleanToken.slice(0, 20) + "...", "(length:", cleanToken.length + ")");
   
-  const rows = await db
+  try {
+    const rows = await db
     .select({
       userId: emailSessions.userId,
       expiresAt: emailSessions.expiresAt,
@@ -209,8 +213,12 @@ export async function findEmailSessionUser(token: string) {
     return null;
   }
   
-  console.log("[DB] Session found and valid");
-  return rows[0];
+    console.log("[DB] Session found and valid");
+    return rows[0];
+  } catch (error) {
+    console.error("[DB] findEmailSessionUser error:", error);
+    return null;
+  }
 }
 
 export async function deleteEmailSession(token: string): Promise<void> {
