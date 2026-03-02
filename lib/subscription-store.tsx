@@ -257,10 +257,16 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   }, [subscription.trialEndsAt]);
 
   const getDaysRemaining = useCallback(() => {
+    // During trial, show days until trial ends (always 7 days)
+    if (subscription.trialEndsAt && new Date() < new Date(subscription.trialEndsAt)) {
+      const diff = new Date(subscription.trialEndsAt).getTime() - Date.now();
+      return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
+    }
+    // After trial, show days until subscription expires
     if (!subscription.expiresAt) return 0;
     const diff = new Date(subscription.expiresAt).getTime() - Date.now();
     return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
-  }, [subscription.expiresAt]);
+  }, [subscription.trialEndsAt, subscription.expiresAt]);
 
   const getCurrentPlan = useCallback(() => {
     if (!subscription.plan) return null;

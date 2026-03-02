@@ -363,3 +363,12 @@
 - [ ] BUG: Payment screen shows "session expired" even after fresh login — server still returns 401 for new token
 - [ ] Diagnose: trace fresh login token through server findEmailSessionUser to find the DB lookup failure
 - [ ] Fix: ensure newly created session tokens are correctly stored and retrieved from email_sessions table
+
+
+## NEW BUGS - PAYMENT FLOW
+
+- [x] Bug: Trial period is inconsistent across subscription plans (should be 7 days for all) - FIXED: getDaysRemaining now uses trialEndsAt during trial
+- [x] Bug: Payment successful without card input - need payment card collection screen - FIXED: Added payment-card.tsx
+- [x] Feature: Add payment card input screen before subscription confirmation - DONE: payment-card.tsx with validation
+- [ ] Feature: Allow users to choose existing saved card or enter new card
+- [x] Feature: Show payment confirmation screen with card details and plan summary before final confirmation - DONE: payment-confirmation.tsx

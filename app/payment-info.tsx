@@ -113,46 +113,14 @@ export default function PaymentInfoScreen() {
     );
   }
 
-  const handlePaymentSuccess = async (paymentMethodId: string) => {
-    if (!clientSecret) {
-      Alert.alert("Error", "Payment information is missing. Please try again.");
-      return;
+  const handleContinueToCard = () => {
+    if (Platform.OS !== "web") {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
-
-    setIsProcessing(true);
-    try {
-      if (Platform.OS !== "web") {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      }
-
-      const result = await confirmPaymentWithCard(clientSecret, paymentMethodId);
-
-      if (!result.success) {
-        if (Platform.OS !== "web") {
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-        }
-        Alert.alert(
-          "Payment Failed",
-          result.message || "Your payment could not be processed. Please try again.",
-          [{ text: "OK" }]
-        );
-        return;
-      }
-
-      if (Platform.OS !== "web") {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      }
-      await subscribe(selectedPlan.id as PlanType);
-      router.replace(`/payment-success?plan=${selectedPlan.id}`);
-    } catch (err) {
-      console.error("[PaymentInfo] Payment error:", err);
-      if (Platform.OS !== "web") {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      }
-      Alert.alert("Error", "An unexpected error occurred. Please try again.");
-    } finally {
-      setIsProcessing(false);
-    }
+    router.push({
+      pathname: "/payment-card",
+      params: { plan: selectedPlan.id },
+    });
   };
 
   const handlePaymentError = (error: string) => {
@@ -282,17 +250,25 @@ export default function PaymentInfoScreen() {
           ))}
         </View>
 
-        {/* Payment Form */}
-        {paymentReady && (
-          <View style={styles.formSection}>
-            <CreditCardForm
-              onPaymentSuccess={handlePaymentSuccess}
-              onPaymentError={handlePaymentError}
-              isProcessing={isProcessing}
-              buttonText="Complete Payment"
-            />
-          </View>
-        )}
+        {/* Continue to Payment Button */}
+        <Pressable
+          onPress={handleContinueToCard}
+          disabled={isProcessing}
+          style={({ pressed }) => [
+            styles.continueButton,
+            { backgroundColor: colors.primary },
+            pressed && { opacity: 0.8 },
+            isProcessing && { opacity: 0.5 },
+          ]}
+        >
+          {isProcessing ? (
+            <ActivityIndicator color={colors.background} size="small" />
+          ) : (
+            <Text style={[styles.continueButtonText, { color: colors.background }]}>
+              Continue to Payment
+            </Text>
+          )}
+        </Pressable>
       </ScrollView>
     </ScreenContainer>
   );
@@ -448,5 +424,16 @@ export default function PaymentInfoScreen() {
   backButtonText: {
     fontSize: 14,
     fontWeight: "600",
+  },
+  continueButton: {
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: "center",
+    marginHorizontal: 16,
+    marginBottom: 16,
+  },
+  continueButtonText: {
+    fontSize: 16,
+    fontWeight: "700",
   },
 });
