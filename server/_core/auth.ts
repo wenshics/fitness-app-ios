@@ -253,7 +253,25 @@ export function registerAuthRoutes(app: Express) {
         res.status(400).json({ error: "Invalid or expired code" });
         return;
       }
-      res.json({ success: true });
+      // Find the user and create a session so they are auto-logged in
+      const user = await findEmailUserByEmail(email.trim());
+      if (!user) {
+        res.status(400).json({ error: "Account not found" });
+        return;
+      }
+      const sessionToken = await createEmailSession(user.id);
+      res.json({
+        success: true,
+        sessionToken,
+        user: {
+          id: String(user.id),
+          openId: String(user.id),
+          name: user.name,
+          email: user.email,
+          loginMethod: "email",
+          lastSignedIn: new Date().toISOString(),
+        },
+      });
     } catch (err) {
       console.error("[Auth] verify-email error:", err);
       res.status(500).json({ error: "Verification failed" });

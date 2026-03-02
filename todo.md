@@ -202,3 +202,17 @@
 - [x] BUG: Forgot password email not received by user despite "sent" confirmation - FIXED
 - [x] Debug Gmail SMTP connection and check server logs for errors - FIXED (SMTP works, issue was wrong APP_URL)
 - [x] Fix email sending and verify delivery end-to-end - FIXED (APP_URL now set to public dev URL)
+
+## BUG - FORGOT PASSWORD EMAIL STILL NOT RECEIVED (ROUND 2)
+
+- [ ] BUG: Email still not received after APP_URL fix
+- [ ] Check if user exists in DB before token is created
+- [ ] Add verbose server logging to trace exact email send path
+- [ ] Verify email is actually dispatched (not silently swallowed)
+
+## CRITICAL BUGS - POST-VERIFICATION FLOW
+
+- [x] BUG: After email verification, app goes to login screen instead of home — FIXED: verify-email endpoint now returns sessionToken, screen calls login() before navigating
+- [x] BUG: Account not saved to database — actually was saved correctly; login failed due to wrong password entered
+- [x] Fix verify-email screen to auto-login user and navigate to home — FIXED
+- [x] Fix signup to ensure account is persisted to database before navigating to verification — confirmed working

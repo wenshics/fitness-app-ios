@@ -14,11 +14,14 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { getApiBaseUrl } from "@/constants/oauth";
+import { useAuth } from "@/hooks/use-auth";
 
 export default function VerifyEmailScreen() {
   const router = useRouter();
   const { email } = useLocalSearchParams<{ email: string }>();
   const colors = useColors();
+
+  const { login } = useAuth();
 
   const [code, setCode] = useState(["", "", "", "", "", ""]);
   const [loading, setLoading] = useState(false);
@@ -89,7 +92,11 @@ export default function VerifyEmailScreen() {
         inputRefs.current[0]?.focus();
         return;
       }
-      // Verification successful — go to home
+      // Verification successful — log user in with the returned session token
+      if (data.sessionToken && data.user) {
+        await login(data.user, data.sessionToken);
+      }
+      // Navigate to home — user is now authenticated
       router.replace("/(tabs)");
     } catch {
       setError("Network error. Please try again.");
