@@ -385,3 +385,8 @@
 - [x] Bug: Expiry date input only accepts MM, should accept MM/YY format - FIXED: Combined to single field with auto-formatting
 
 - [x] Bug: After confirming payment, should return to the screen where user entered the flow (Profile, Exercise, etc), not back to paywall - FIXED: Added origin parameter through payment flow
+
+
+## APP STORE SUBMISSION FIXES
+
+- [x] Apple Connect Error 90683: Added NSCameraUsageDescription and other privacy purpose strings to Info.plist
