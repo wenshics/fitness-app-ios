@@ -1,8 +1,8 @@
-import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useColors } from "@/hooks/use-colors";
 import { useAuth } from "@/hooks/use-auth";
 import { PLANS, type PlanType, useSubscription } from "@/lib/subscription-store";
+import { getSessionToken } from "@/lib/_core/auth";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useState, useEffect } from "react";
@@ -16,6 +16,7 @@ import {
   View,
 } from "react-native";
 import * as Haptics from "expo-haptics";
+import { ScreenContainer } from "@/components/screen-container";
 
 export default function PaywallScreen() {
   const colors = useColors();
@@ -24,6 +25,7 @@ export default function PaywallScreen() {
   const { subscribe } = useSubscription();
   const [selectedPlan, setSelectedPlan] = useState<PlanType>("monthly");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isRestoring, setIsRestoring] = useState(false);
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -51,6 +53,62 @@ export default function PaywallScreen() {
     } finally {
       // Always reset so the button is tappable again when user returns from payment screen
       setIsProcessing(false);
+    }
+  };
+
+  const handleRestorePurchase = async () => {
+    if (isRestoring) return;
+    setIsRestoring(true);
+
+    try {
+      if (Platform.OS !== "web") {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      }
+
+      // Get the session token from SecureStore
+      const token = await getSessionToken();
+      if (!token) {
+        alert("Please log in again to restore your purchase.");
+        setIsRestoring(false);
+        return;
+      }
+
+      // Call the restore purchase endpoint on the server
+      const response = await fetch(
+        `${process.env.EXPO_PUBLIC_API_BASE_URL || ""}/api/payments/restore-purchase`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to restore purchase");
+      }
+
+      const data = await response.json();
+      if (data.subscription) {
+        // Subscription found and activated
+        subscribe(data.subscription);
+        if (Platform.OS !== "web") {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        }
+        router.replace("/(tabs)");
+      } else {
+        // No existing subscription found
+        alert("No existing subscription found. Please start a new subscription.");
+      }
+    } catch (err) {
+      console.error("[Paywall] Restore purchase failed:", err);
+      if (Platform.OS !== "web") {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      }
+      alert("Failed to restore purchase. Please try again.");
+    } finally {
+      setIsRestoring(false);
     }
   };
 
@@ -251,8 +309,12 @@ export default function PaywallScreen() {
               <Text style={styles.legalText}>Privacy Policy</Text>
             </Pressable>
             <Text style={styles.legalDot}>·</Text>
-            <Pressable style={({ pressed }) => [pressed && { opacity: 0.7 }]}>
-              <Text style={styles.legalText}>Restore Purchase</Text>
+            <Pressable
+              onPress={handleRestorePurchase}
+              disabled={isRestoring}
+              style={({ pressed }) => [pressed && { opacity: 0.7 }]}
+            >
+              <Text style={styles.legalText}>{isRestoring ? "Restoring..." : "Restore Purchase"}</Text>
             </Pressable>
           </View>
         </ScrollView>

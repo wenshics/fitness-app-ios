@@ -288,7 +288,50 @@ export function registerPaymentRoutes(app: Express) {
     }
   });
 
-  // ── 4. Webhook handler ─────────────────────────────────────────────────────
+  // ── 4. Restore purchase endpoint ─────────────────────────────────────────────
+  app.post("/api/payments/restore-purchase", async (req: Request, res: Response) => {
+    try {
+      const user = await getAuthenticatedUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
+      // Check if user has an existing Stripe subscription
+      const sub = await getStripeSubscription(user.userId);
+      if (!sub?.stripeSubscriptionId) {
+        return res.json({ subscription: null, message: "No existing subscription found" });
+      }
+
+      // Verify the subscription is still active in Stripe
+      const stripe = getStripe();
+      const stripeSubscription = await stripe.subscriptions.retrieve(sub.stripeSubscriptionId);
+
+      if (stripeSubscription.status === "active" || stripeSubscription.status === "trialing") {
+        // Subscription is valid, return it
+        // Extract plan from price ID (e.g., "price_1234_monthly" -> "monthly")
+        const stripePriceId = sub.stripePriceId || "";
+        const planId = stripePriceId.split("_").pop() || "monthly";
+        return res.json({
+          subscription: {
+            plan: planId,
+            status: stripeSubscription.status,
+            currentPeriodEnd: (stripeSubscription as any).current_period_end,
+            trialEnd: (stripeSubscription as any).trial_end,
+          },
+          message: "Subscription restored successfully",
+        });
+      } else {
+        // Subscription is not active
+        return res.json({ subscription: null, message: "Subscription is not active" });
+      }
+    } catch (error) {
+      console.error("[Stripe] restore-purchase error:", error);
+      const message = error instanceof Error ? error.message : "Failed to restore purchase";
+      res.status(500).json({ error: message });
+    }
+  });
+
+  // ── 5. Webhook handler ─────────────────────────────────────────────────────
   app.post("/api/payments/webhook", async (req: Request, res: Response) => {
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
     let event: Stripe.Event;
