@@ -81,6 +81,7 @@ export default function PaymentConfirmationScreen() {
         params: {
           plan: planId,
           transactionId: result?.subscriptionId || "",
+          from,
         },
       });
     } catch (err) {
