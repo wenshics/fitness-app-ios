@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { PLANS, type PlanType, useSubscription } from "@/lib/subscription-store";
 import { createSubscriptionIntent } from "@/lib/_core/stripe-payment";
 import * as Auth from "@/lib/_core/auth";
+import * as Api from "@/lib/_core/api";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
@@ -51,6 +52,24 @@ export default function PaymentInfoScreen() {
         setIsLoading(true);
         setLoadError(null);
         setPaymentReady(false);
+
+        // 0. Proactively validate the session token before making payment calls
+        //    This catches stale tokens early and gives a clear error message
+        const sessionToken = await Auth.getSessionToken();
+        console.log("[PaymentInfo] Session token present:", !!sessionToken, sessionToken ? `(${sessionToken.length} chars, starts: ${sessionToken.substring(0, 12)}...)` : "MISSING");
+        if (!sessionToken) {
+          console.error("[PaymentInfo] No session token found in SecureStore");
+          setLoadError("SESSION_EXPIRED");
+          return;
+        }
+        // Validate token against server
+        const me = await Api.getMe();
+        console.log("[PaymentInfo] Token validation result:", me ? `valid (userId: ${me.id})` : "INVALID");
+        if (!me) {
+          console.error("[PaymentInfo] Token rejected by server — session expired");
+          setLoadError("SESSION_EXPIRED");
+          return;
+        }
 
         // 1. Create a Stripe Subscription on the server → get client_secret
         let clientSecret: string | null;

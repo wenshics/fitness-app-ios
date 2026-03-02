@@ -16,8 +16,8 @@ import Stripe from "stripe";
 const STRIPE_SK = process.env.STRIPE_SK || process.env.STRIPE_SECRET_KEY;
 
 // Dynamically find the running server port (may be 3000, 3001, etc.)
+// Always use localhost for tests — the public proxy URL may not route correctly
 async function findServerBase(): Promise<string> {
-  if (process.env.EXPO_PUBLIC_API_BASE_URL) return process.env.EXPO_PUBLIC_API_BASE_URL;
   for (const port of [3000, 3001, 3002, 3003]) {
     try {
       const r = await fetch(`http://localhost:${port}/api/health`, {

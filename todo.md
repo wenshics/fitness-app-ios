@@ -358,3 +358,8 @@
 - [x] Fix 1: removed all auto-redirects from payment-info.tsx; auth errors now show "SESSION_EXPIRED" error state with a "Log In Again" button that properly calls logout() before redirecting
 - [x] Fix 2: paywall.tsx handleSubscribe now resets isProcessing in finally block so subsequent taps work after returning from payment screen
 - [x] 464 tests pass, 0 TypeScript errors
+
+## BUG - SESSION EXPIRED LOOP AFTER LOGIN
+- [ ] BUG: Payment screen shows "session expired" even after fresh login — server still returns 401 for new token
+- [ ] Diagnose: trace fresh login token through server findEmailSessionUser to find the DB lookup failure
+- [ ] Fix: ensure newly created session tokens are correctly stored and retrieved from email_sessions table
