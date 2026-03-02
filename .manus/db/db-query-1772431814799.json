@@ -1,0 +1,31 @@
+{
+  "query": "SELECT id, token, userId, expiresAt, DATE_ADD(NOW(), INTERVAL 1 YEAR) as expected_expiry FROM email_sessions ORDER BY id DESC LIMIT 3;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2bZZkzbo8ts7Msg.1120ae12998f --database TcKCq6vsXGY366ZGFCDBDp --execute SELECT id, token, userId, expiresAt, DATE_ADD(NOW(), INTERVAL 1 YEAR) as expected_expiry FROM email_sessions ORDER BY id DESC LIMIT 3;",
+  "rows": [
+    {
+      "id": "210009",
+      "token": "17ef15c0631557e8a3cdcf9037d499fcf3a4a2f09ddb754f0c27d2549455552dcf0ac8b791836431330694cba246f510",
+      "userId": "30002",
+      "expiresAt": "2027-03-02 06:07:12",
+      "expected_expiry": "2027-03-02 06:10:14"
+    },
+    {
+      "id": "210008",
+      "token": "fe562fd23b643c8d52f755fddee126a8661e6775b2160da4d7ad6034b117fa8178db457d3090e33b70cf8f9b4ef94d40",
+      "userId": "150001",
+      "expiresAt": "2027-03-02 06:01:37",
+      "expected_expiry": "2027-03-02 06:10:14"
+    },
+    {
+      "id": "210007",
+      "token": "f8fbba6421a941fcbff4367c254605d8540891900afc4625b631dc51cadc56cc1efd07ff0b7b407a887f209c71adf255",
+      "userId": "30002",
+      "expiresAt": "2027-03-02 06:00:24",
+      "expected_expiry": "2027-03-02 06:10:14"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\ttoken\tuserId\texpiresAt\texpected_expiry\n210009\t17ef15c0631557e8a3cdcf9037d499fcf3a4a2f09ddb754f0c27d2549455552dcf0ac8b791836431330694cba246f510\t30002\t2027-03-02 06:07:12\t2027-03-02 06:10:14\n210008\tfe562fd23b643c8d52f755fddee126a8661e6775b2160da4d7ad6034b117fa8178db457d3090e33b70cf8f9b4ef94d40\t150001\t2027-03-02 06:01:37\t2027-03-02 06:10:14\n210007\tf8fbba6421a941fcbff4367c254605d8540891900afc4625b631dc51cadc56cc1efd07ff0b7b407a887f209c71adf255\t30002\t2027-03-02 06:00:24\t2027-03-02 06:10:14\n",
+  "stderr": "",
+  "execution_time_ms": 56
+}

@@ -1,0 +1,52 @@
+{
+  "query": "SELECT * FROM email_sessions LIMIT 5; SELECT * FROM email_users LIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2bZZkzbo8ts7Msg.1120ae12998f --database TcKCq6vsXGY366ZGFCDBDp --execute SELECT * FROM email_sessions LIMIT 5; SELECT * FROM email_users LIMIT 5;",
+  "rows": [
+    {
+      "id": "30002",
+      "token": "886bc080c56c248289f315165c211239f9f8d4f8f09ffe5f338a8e2dda29ccd14efb2396961d9491ef1157479b207a23",
+      "userId": "30002",
+      "createdAt": "2026-03-01 23:58:24",
+      "expiresAt": "2027-03-01 23:58:25"
+    },
+    {
+      "id": "30003",
+      "token": "9179a4c99445de7ccef48600ea9e0a7dd8b1476a8aaa28bfc24db54171849337198336d65f78292ff62edce01f932f19",
+      "userId": "30003",
+      "createdAt": "2026-03-02 00:02:57",
+      "expiresAt": "2027-03-02 00:02:58"
+    },
+    {
+      "id": "60001",
+      "token": "51be418d59b0c9d144a276a22ec51eee8a0fd69e350d3435c4a8b89091e9462911d91eae28b5452e79a057b80b61ff1f",
+      "userId": "30002",
+      "createdAt": "2026-03-02 00:15:23",
+      "expiresAt": "2027-03-02 00:15:24"
+    },
+    {
+      "id": "60002",
+      "token": "c3166dd3a2bb2434c2c6cca49a2d32fb9841ad6f93bc4b4920712d538507bb57e05250667caed729a091439d72989502",
+      "userId": "30002",
+      "createdAt": "2026-03-02 00:20:13",
+      "expiresAt": "2027-03-02 00:20:14"
+    },
+    {
+      "id": "60003",
+      "token": "c79a207089ebca5b9e72800c3cc23e35448eb7580c7534ca7c6c5bad0801ea110b6507153eccf56eaf90971be62d3a82",
+      "userId": "30002",
+      "createdAt": "2026-03-02 00:20:23",
+      "expiresAt": "2027-03-02 00:20:24"
+    }
+  ],
+  "messages": [
+    "id\temail\tname\tpasswordHash\tbirthday\theightCm\tweightKg\tcreatedAt\tupdatedAt\tstripeCustomerId\tstripeSubscriptionId\tstripePriceId\tstripeSubscriptionStatus\tstripeTrialEnd",
+    "30002\twenshi.bme@gmail.com\tWen Shi\tU2hpd2VuY3N5dXdlbmluNEBmYl9fc2FsdF9wdWxzZV9hcHBfXw==\t1987-02-13\t160\t62\t2026-03-01 23:58:24\t2026-03-02 02:14:41\tNULL\tNULL\tNULL\tNULL\tNULL",
+    "30003\te2etest@example.com\tE2E Test\tVGVzdFBhc3MxMjNfX3NhbHRfcHVsc2VfYXBwX18=\t1990-01-01\t175\t70\t2026-03-02 00:02:57\t2026-03-02 00:02:57\tNULL\tNULL\tNULL\tNULL\tNULL",
+    "60001\ttestuser@fitlife.test\tTest User\tRml0TGlmZTEyMyFfX3NhbHRfcHVsc2VfYXBwX18=\t1990-01-01\t175\t70\t2026-03-02 00:41:54\t2026-03-02 00:41:54\tNULL\tNULL\tNULL\tNULL\tNULL",
+    "60002\tlucasxu423@gmail.com\tLucas Xu\tU2hpd2VuY3N5dXdlbmluNEBmYl9fc2FsdF9wdWxzZV9hcHBfXw==\t2017-04-23\t136\t30\t2026-03-02 00:51:42\t2026-03-02 00:51:42\tNULL\tNULL\tNULL\tNULL\tNULL",
+    "90001\twenshi.env@gmail.com\tWen Shi\tU2hpd2VuY3N5dXdlbmluNEBmYl9fc2FsdF9wdWxzZV9hcHBfXw==\t1987-02-13\t160\t62\t2026-03-02 02:49:03\t2026-03-02 02:49:03\tNULL\tNULL\tNULL\tNULL\tNULL"
+  ],
+  "stdout": "id\ttoken\tuserId\tcreatedAt\texpiresAt\n30002\t886bc080c56c248289f315165c211239f9f8d4f8f09ffe5f338a8e2dda29ccd14efb2396961d9491ef1157479b207a23\t30002\t2026-03-01 23:58:24\t2027-03-01 23:58:25\n30003\t9179a4c99445de7ccef48600ea9e0a7dd8b1476a8aaa28bfc24db54171849337198336d65f78292ff62edce01f932f19\t30003\t2026-03-02 00:02:57\t2027-03-02 00:02:58\n60001\t51be418d59b0c9d144a276a22ec51eee8a0fd69e350d3435c4a8b89091e9462911d91eae28b5452e79a057b80b61ff1f\t30002\t2026-03-02 00:15:23\t2027-03-02 00:15:24\n60002\tc3166dd3a2bb2434c2c6cca49a2d32fb9841ad6f93bc4b4920712d538507bb57e05250667caed729a091439d72989502\t30002\t2026-03-02 00:20:13\t2027-03-02 00:20:14\n60003\tc79a207089ebca5b9e72800c3cc23e35448eb7580c7534ca7c6c5bad0801ea110b6507153eccf56eaf90971be62d3a82\t30002\t2026-03-02 00:20:23\t2027-03-02 00:20:24\nid\temail\tname\tpasswordHash\tbirthday\theightCm\tweightKg\tcreatedAt\tupdatedAt\tstripeCustomerId\tstripeSubscriptionId\tstripePriceId\tstripeSubscriptionStatus\tstripeTrialEnd\n30002\twenshi.bme@gmail.com\tWen Shi\tU2hpd2VuY3N5dXdlbmluNEBmYl9fc2FsdF9wdWxzZV9hcHBfXw==\t1987-02-13\t160\t62\t2026-03-01 23:58:24\t2026-03-02 02:14:41\tNULL\tNULL\tNULL\tNULL\tNULL\n30003\te2etest@example.com\tE2E Test\tVGVzdFBhc3MxMjNfX3NhbHRfcHVsc2VfYXBwX18=\t1990-01-01\t175\t70\t2026-03-02 00:02:57\t2026-03-02 00:02:57\tNULL\tNULL\tNULL\tNULL\tNULL\n60001\ttestuser@fitlife.test\tTest User\tRml0TGlmZTEyMyFfX3NhbHRfcHVsc2VfYXBwX18=\t1990-01-01\t175\t70\t2026-03-02 00:41:54\t2026-03-02 00:41:54\tNULL\tNULL\tNULL\tNULL\tNULL\n60002\tlucasxu423@gmail.com\tLucas Xu\tU2hpd2VuY3N5dXdlbmluNEBmYl9fc2FsdF9wdWxzZV9hcHBfXw==\t2017-04-23\t136\t30\t2026-03-02 00:51:42\t2026-03-02 00:51:42\tNULL\tNULL\tNULL\tNULL\tNULL\n90001\twenshi.env@gmail.com\tWen Shi\tU2hpd2VuY3N5dXdlbmluNEBmYl9fc2FsdF9wdWxzZV9hcHBfXw==\t1987-02-13\t160\t62\t2026-03-02 02:49:03\t2026-03-02 02:49:03\tNULL\tNULL\tNULL\tNULL\tNULL\n",
+  "stderr": "",
+  "execution_time_ms": 62
+}

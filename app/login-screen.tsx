@@ -73,6 +73,9 @@ export default function LoginScreen() {
             email: data.user.email,
             loginMethod: data.user.loginMethod,
             lastSignedIn: new Date(data.user.lastSignedIn || Date.now()),
+            birthday: data.user.birthday || null,
+            heightCm: data.user.heightCm || null,
+            weightKg: data.user.weightKg || null,
           },
           data.sessionToken,
         );

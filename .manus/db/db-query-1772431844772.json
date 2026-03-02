@@ -1,0 +1,50 @@
+{
+  "query": "SELECT es.id, es.token, es.userId, es.expiresAt, eu.email, eu.name FROM email_sessions es LEFT JOIN email_users eu ON es.userId = eu.id ORDER BY es.id DESC LIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2bZZkzbo8ts7Msg.1120ae12998f --database TcKCq6vsXGY366ZGFCDBDp --execute SELECT es.id, es.token, es.userId, es.expiresAt, eu.email, eu.name FROM email_sessions es LEFT JOIN email_users eu ON es.userId = eu.id ORDER BY es.id DESC LIMIT 5;",
+  "rows": [
+    {
+      "id": "210009",
+      "token": "17ef15c0631557e8a3cdcf9037d499fcf3a4a2f09ddb754f0c27d2549455552dcf0ac8b791836431330694cba246f510",
+      "userId": "30002",
+      "expiresAt": "2027-03-02 06:07:12",
+      "email": "wenshi.bme@gmail.com",
+      "name": "Wen Shi"
+    },
+    {
+      "id": "210008",
+      "token": "fe562fd23b643c8d52f755fddee126a8661e6775b2160da4d7ad6034b117fa8178db457d3090e33b70cf8f9b4ef94d40",
+      "userId": "150001",
+      "expiresAt": "2027-03-02 06:01:37",
+      "email": "bqing1@yahoo.com",
+      "name": "Bo"
+    },
+    {
+      "id": "210007",
+      "token": "f8fbba6421a941fcbff4367c254605d8540891900afc4625b631dc51cadc56cc1efd07ff0b7b407a887f209c71adf255",
+      "userId": "30002",
+      "expiresAt": "2027-03-02 06:00:24",
+      "email": "wenshi.bme@gmail.com",
+      "name": "Wen Shi"
+    },
+    {
+      "id": "210006",
+      "token": "254cc8fb29f90a5fd049296fc3e944d277655d023728d08a0a994ef9aa1d1672cd32b843840d6f849d9c959bf6a6da6a",
+      "userId": "30002",
+      "expiresAt": "2027-03-02 05:53:13",
+      "email": "wenshi.bme@gmail.com",
+      "name": "Wen Shi"
+    },
+    {
+      "id": "210005",
+      "token": "9bb3db60c66b7d8049bf131f342216d8949e6bb81265bd3151fae0906c294c97980e9579784731d55f2feac08bf656ba",
+      "userId": "30002",
+      "expiresAt": "2027-03-02 05:46:09",
+      "email": "wenshi.bme@gmail.com",
+      "name": "Wen Shi"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\ttoken\tuserId\texpiresAt\temail\tname\n210009\t17ef15c0631557e8a3cdcf9037d499fcf3a4a2f09ddb754f0c27d2549455552dcf0ac8b791836431330694cba246f510\t30002\t2027-03-02 06:07:12\twenshi.bme@gmail.com\tWen Shi\n210008\tfe562fd23b643c8d52f755fddee126a8661e6775b2160da4d7ad6034b117fa8178db457d3090e33b70cf8f9b4ef94d40\t150001\t2027-03-02 06:01:37\tbqing1@yahoo.com\tBo\n210007\tf8fbba6421a941fcbff4367c254605d8540891900afc4625b631dc51cadc56cc1efd07ff0b7b407a887f209c71adf255\t30002\t2027-03-02 06:00:24\twenshi.bme@gmail.com\tWen Shi\n210006\t254cc8fb29f90a5fd049296fc3e944d277655d023728d08a0a994ef9aa1d1672cd32b843840d6f849d9c959bf6a6da6a\t30002\t2027-03-02 05:53:13\twenshi.bme@gmail.com\tWen Shi\n210005\t9bb3db60c66b7d8049bf131f342216d8949e6bb81265bd3151fae0906c294c97980e9579784731d55f2feac08bf656ba\t30002\t2027-03-02 05:46:09\twenshi.bme@gmail.com\tWen Shi\n",
+  "stderr": "",
+  "execution_time_ms": 60
+}

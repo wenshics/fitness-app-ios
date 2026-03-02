@@ -1,0 +1,19 @@
+{
+  "query": "SELECT COUNT(*) as session_count FROM email_sessions; SELECT COUNT(*) as user_count FROM email_users;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2bZZkzbo8ts7Msg.1120ae12998f --database TcKCq6vsXGY366ZGFCDBDp --execute SELECT COUNT(*) as session_count FROM email_sessions; SELECT COUNT(*) as user_count FROM email_users;",
+  "rows": [
+    {
+      "session_count": "43"
+    },
+    {
+      "session_count": "user_count"
+    },
+    {
+      "session_count": "12"
+    }
+  ],
+  "messages": [],
+  "stdout": "session_count\n43\nuser_count\n12\n",
+  "stderr": "",
+  "execution_time_ms": 107
+}
