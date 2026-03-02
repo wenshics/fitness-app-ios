@@ -51,16 +51,7 @@ const config: ExpoConfig = {
     supportsTablet: true,
     bundleIdentifier: env.iosBundleId,
     "infoPlist": {
-      "ITSAppUsesNonExemptEncryption": false,
-      "NSCameraUsageDescription": "Pulse uses your camera to capture workout videos and form analysis during exercises.",
-      "NSMicrophoneUsageDescription": "Pulse uses your microphone to record audio during workout sessions and video captures.",
-      "NSPhotoLibraryUsageDescription": "Pulse accesses your photo library to let you upload workout photos and progress pictures.",
-      "NSPhotoLibraryAddOnlyUsageDescription": "Pulse saves your workout photos and progress pictures to your photo library.",
-      "NSLocationWhenInUseUsageDescription": "Pulse uses your location to track outdoor workouts and provide location-based fitness data.",
-      "NSLocationAlwaysAndWhenInUseUsageDescription": "Pulse uses your location to track outdoor workouts and provide location-based fitness data.",
-      "NSCalendarsUsageDescription": "Pulse accesses your calendar to schedule and sync workout reminders.",
-      "NSHealthShareUsageDescription": "Pulse reads your health data to track calories burned and integrate with Apple Health.",
-      "NSHealthUpdateUsageDescription": "Pulse writes workout data to Apple Health to sync your fitness activities."
+      "ITSAppUsesNonExemptEncryption": false
     }
   },
   android: {
@@ -96,12 +87,6 @@ const config: ExpoConfig = {
   plugins: [
     "expo-router",
     [
-      "expo-audio",
-      {
-        microphonePermission: "Pulse uses your microphone to record audio during workout sessions.",
-      },
-    ],
-    [
       "expo-video",
       {
         supportsBackgroundPlayback: true,
@@ -126,6 +111,9 @@ const config: ExpoConfig = {
         android: {
           buildArchs: ["armeabi-v7a", "arm64-v8a"],
           minSdkVersion: 24,
+        },
+        ios: {
+          useFrameworks: "static",
         },
       },
     ],

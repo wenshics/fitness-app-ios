@@ -389,4 +389,4 @@
 
 ## APP STORE SUBMISSION FIXES
 
-- [x] Apple Connect Error 90683: Added NSCameraUsageDescription and other privacy purpose strings to Info.plist
+- [x] Apple Connect Error 90683: Removed ALL unnecessary privacy strings (camera, microphone, photos, location, calendar, health) - app doesn't use these features. Kept only ITSAppUsesNonExemptEncryption: false
