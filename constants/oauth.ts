@@ -32,22 +32,27 @@ export const API_BASE_URL = env.apiBaseUrl;
 export function getApiBaseUrl(): string {
   // If API_BASE_URL is set, use it
   if (API_BASE_URL) {
+    console.log("[getApiBaseUrl] Using env var:", API_BASE_URL);
     return API_BASE_URL.replace(/\/$/, "");
   }
 
   // On web, derive from current hostname by replacing port 8081 with 3000
   if (ReactNative.Platform.OS === "web" && typeof window !== "undefined" && window.location) {
     const { protocol, hostname } = window.location;
+    console.log("[getApiBaseUrl] Web platform detected", { protocol, hostname });
     // Pattern: 8081-sandboxid.region.domain -> 3000-sandboxid.region.domain
     const apiHostname = hostname.replace(/^8081-/, "3000-");
-    if (apiHostname !== hostname) {
-      return `${protocol}//${apiHostname}`;
-    }
+    console.log("[getApiBaseUrl] After replacement:", { apiHostname, changed: apiHostname !== hostname });
+    // Always return the API URL on web
+    const result = `${protocol}//${apiHostname}`;
+    console.log("[getApiBaseUrl] Returning:", result);
+    return result;
   }
 
   // On mobile, return empty string to use relative URLs
   // This allows the app to use the same domain as the Metro bundler
   // The fetch will be made to the same host that served the app
+  console.log("[getApiBaseUrl] Returning empty string (mobile or no hostname)");
   return "";
 }
 

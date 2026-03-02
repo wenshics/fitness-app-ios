@@ -14,7 +14,6 @@ import { useRouter } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { useAuth } from "@/hooks/use-auth";
-import { getApiBaseUrl } from "@/constants/oauth";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 
 export default function LoginScreen() {
@@ -37,9 +36,18 @@ export default function LoginScreen() {
     setError("");
 
     try {
-      const apiUrl = getApiBaseUrl();
-      const endpoint = "/api/auth/email-login";
-      const url = apiUrl ? `${apiUrl}${endpoint}` : endpoint;
+      // Always construct the full API URL on web
+      let url: string;
+      if (typeof window !== "undefined" && window.location) {
+        const { protocol, hostname } = window.location;
+        const apiHostname = hostname.replace(/^8081-/, "3000-");
+        url = `${protocol}//${apiHostname}/api/auth/email-login`;
+      } else {
+        // Fallback for non-web platforms - use relative URL
+        url = "/api/auth/email-login";
+      }
+
+      console.log("[LoginScreen] Fetching from:", url);
 
       const response = await fetch(url, {
         method: "POST",
@@ -51,7 +59,9 @@ export default function LoginScreen() {
         }),
       });
 
+      console.log("[LoginScreen] Response status:", response.status);
       const data = await response.json();
+      console.log("[LoginScreen] Response data:", data);
 
       if (!response.ok) {
         if (data.error?.includes("not found") || data.error?.includes("Invalid")) {
@@ -64,6 +74,7 @@ export default function LoginScreen() {
       }
 
       if (data.sessionToken && data.user) {
+        console.log("[LoginScreen] Login successful, navigating to home");
         // Use the login() method from useAuth — stores token + user, sets state immediately
         await login(
           {
@@ -87,7 +98,8 @@ export default function LoginScreen() {
         setIsLoading(false);
       }
     } catch (err) {
-      console.error("[LoginScreen] Error:", err);
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      console.error("[LoginScreen] Catch error:", errorMessage, err);
       setError("Network error. Please check your connection and try again.");
       setIsLoading(false);
     }
