@@ -170,9 +170,19 @@ export async function findEmailUserByEmail(email: string) {
 export async function createEmailSession(userId: number): Promise<string> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
+  
+  // Delete any existing sessions for this user to ensure only one active session per user
+  try {
+    await db.delete(emailSessions).where(eq(emailSessions.userId, userId));
+    console.log(`[DB] Deleted old sessions for userId ${userId}`);
+  } catch (err) {
+    console.warn(`[DB] Failed to delete old sessions for userId ${userId}:`, err);
+  }
+  
   const token = randomBytes(48).toString("hex");
   const expiresAt = new Date(Date.now() + ONE_YEAR_MS);
   await db.insert(emailSessions).values({ token, userId, expiresAt });
+  console.log(`[DB] Created new session for userId ${userId}: ${token.slice(0, 20)}...`);
   return token;
 }
 
@@ -223,8 +233,18 @@ export async function findEmailSessionUser(token: string) {
 
 export async function deleteEmailSession(token: string): Promise<void> {
   const db = await getDb();
-  if (!db) return;
-  await db.delete(emailSessions).where(eq(emailSessions.token, token));
+  if (!db) {
+    console.error("[DB] deleteEmailSession: database not available");
+    return;
+  }
+  const cleanToken = token.trim();
+  console.log("[DB] deleteEmailSession: deleting token", cleanToken.slice(0, 20) + "...");
+  try {
+    const result = await db.delete(emailSessions).where(eq(emailSessions.token, cleanToken));
+    console.log("[DB] deleteEmailSession: deleted", result);
+  } catch (err) {
+    console.error("[DB] deleteEmailSession error:", err);
+  }
 }
 
 // ---- Email Verification Helpers ----

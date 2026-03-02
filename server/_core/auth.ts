@@ -184,20 +184,29 @@ export function registerAuthRoutes(app: Express) {
   // ── Logout ─────────────────────────────────────────────────────────────────
   app.post("/api/auth/logout", async (req: Request, res: Response) => {
     try {
-      const token = (
-        req.headers.authorization?.replace("Bearer ", "") ||
-        req.cookies?.[COOKIE_NAME]
-      )?.trim();
+      const authHeader = req.headers.authorization;
+      const cookieToken = req.cookies?.[COOKIE_NAME];
+      const bearerToken = authHeader?.startsWith("Bearer ") ? authHeader.slice(7).trim() : null;
+      const token = bearerToken || cookieToken?.trim();
+
+      console.log("[Auth] logout called:", {
+        hasBearerToken: !!bearerToken,
+        hasCookieToken: !!cookieToken,
+        tokenToDelete: token ? token.slice(0, 20) + "..." : null,
+      });
 
       if (token) {
-        await deleteEmailSession(token).catch(() => {});
+        await deleteEmailSession(token).catch((err) => {
+          console.error("[Auth] Failed to delete session:", err);
+        });
+        console.log("[Auth] Session deleted for token:", token.slice(0, 20) + "...");
       }
 
       res.clearCookie(COOKIE_NAME, cookieOptions(-1));
       res.json({ success: true });
     } catch (err) {
       console.error("[Auth] logout error:", err);
-      res.json({ success: true }); // always succeed from client perspective
+      res.json({ success: true });
     }
   });
 
