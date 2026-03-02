@@ -1,0 +1,10 @@
+{
+  "query": "SELECT COUNT(*) as total_sessions FROM email_sessions; SELECT id, user_id, LEFT(token, 20) as token_prefix, expires_at FROM email_sessions LIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2bZZkzbo8ts7Msg.1120ae12998f --database TcKCq6vsXGY366ZGFCDBDp --execute SELECT COUNT(*) as total_sessions FROM email_sessions; SELECT id, user_id, LEFT(token, 20) as token_prefix, expires_at FROM email_sessions LIMIT 5;",
+  "returncode": 1,
+  "logs": [
+    "total_sessions",
+    "29",
+    "ERROR 1054 (42S22) at line 1: Unknown column 'user_id' in 'field list'"
+  ]
+}

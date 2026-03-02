@@ -96,11 +96,33 @@ async function getOrCreateStripePriceId(planId: string): Promise<string> {
 
 /** Extract the authenticated user from the request (Bearer token or cookie). */
 async function getAuthenticatedUser(req: Request) {
-  const token =
-    req.headers.authorization?.replace("Bearer ", "") ||
-    req.cookies?.[COOKIE_NAME];
-  if (!token) return null;
-  return findEmailSessionUser(token);
+  const authHeader = req.headers.authorization;
+  const cookieToken = req.cookies?.[COOKIE_NAME];
+  const bearerToken = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
+  const token = bearerToken || cookieToken;
+
+  console.log("[Payments] getAuthenticatedUser:", {
+    hasAuthHeader: !!authHeader,
+    authHeaderPrefix: authHeader?.slice(0, 20),
+    hasBearerToken: !!bearerToken,
+    bearerTokenLength: bearerToken?.length,
+    hasCookieToken: !!cookieToken,
+    cookiesKeys: Object.keys(req.cookies || {}),
+    tokenSource: bearerToken ? "bearer" : cookieToken ? "cookie" : "none",
+  });
+
+  if (!token) {
+    console.log("[Payments] No token found — returning null");
+    return null;
+  }
+
+  const user = await findEmailSessionUser(token);
+  console.log("[Payments] findEmailSessionUser result:", {
+    found: !!user,
+    userId: user?.userId,
+    email: user?.email,
+  });
+  return user;
 }
 
 export function registerPaymentRoutes(app: Express) {

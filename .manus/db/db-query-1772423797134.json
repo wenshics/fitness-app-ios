@@ -1,0 +1,58 @@
+{
+  "query": "SELECT id, email, name, LEFT(passwordHash, 10) as hash_prefix FROM email_users ORDER BY id DESC LIMIT 10;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2bZZkzbo8ts7Msg.1120ae12998f --database TcKCq6vsXGY366ZGFCDBDp --execute SELECT id, email, name, LEFT(passwordHash, 10) as hash_prefix FROM email_users ORDER BY id DESC LIMIT 10;",
+  "rows": [
+    {
+      "id": "120003",
+      "email": "paytest_1772423375@test.com",
+      "name": "Pay Test",
+      "hash_prefix": "VGVzdDEyMz"
+    },
+    {
+      "id": "120002",
+      "email": "paytest2@test.com",
+      "name": "Pay Test",
+      "hash_prefix": "VGVzdDEyMz"
+    },
+    {
+      "id": "120001",
+      "email": "paytest_1772422599@test.com",
+      "name": "Pay Test",
+      "hash_prefix": "VGVzdDEyMz"
+    },
+    {
+      "id": "90001",
+      "email": "wenshi.env@gmail.com",
+      "name": "Wen Shi",
+      "hash_prefix": "U2hpd2VuY3"
+    },
+    {
+      "id": "60002",
+      "email": "lucasxu423@gmail.com",
+      "name": "Lucas Xu",
+      "hash_prefix": "U2hpd2VuY3"
+    },
+    {
+      "id": "60001",
+      "email": "testuser@fitlife.test",
+      "name": "Test User",
+      "hash_prefix": "Rml0TGlmZT"
+    },
+    {
+      "id": "30003",
+      "email": "e2etest@example.com",
+      "name": "E2E Test",
+      "hash_prefix": "VGVzdFBhc3"
+    },
+    {
+      "id": "30002",
+      "email": "wenshi.bme@gmail.com",
+      "name": "Wen Shi",
+      "hash_prefix": "U2hpd2VuY3"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\temail\tname\thash_prefix\n120003\tpaytest_1772423375@test.com\tPay Test\tVGVzdDEyMz\n120002\tpaytest2@test.com\tPay Test\tVGVzdDEyMz\n120001\tpaytest_1772422599@test.com\tPay Test\tVGVzdDEyMz\n90001\twenshi.env@gmail.com\tWen Shi\tU2hpd2VuY3\n60002\tlucasxu423@gmail.com\tLucas Xu\tU2hpd2VuY3\n60001\ttestuser@fitlife.test\tTest User\tRml0TGlmZT\n30003\te2etest@example.com\tE2E Test\tVGVzdFBhc3\n30002\twenshi.bme@gmail.com\tWen Shi\tU2hpd2VuY3\n",
+  "stderr": "",
+  "execution_time_ms": 65
+}

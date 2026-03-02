@@ -4,6 +4,7 @@ import { useColors } from "@/hooks/use-colors";
 import { useAuth } from "@/hooks/use-auth";
 import { PLANS, type PlanType, useSubscription } from "@/lib/subscription-store";
 import { createSubscriptionIntent } from "@/lib/_core/stripe-payment";
+import * as Auth from "@/lib/_core/auth";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
@@ -51,8 +52,44 @@ export default function PaymentInfoScreen() {
         setLoadError(null);
         setPaymentReady(false);
 
+        // 0. Proactively validate session token before calling Stripe
+        // This catches stale tokens (e.g. from a previous server restart) early
+        const token = await Auth.getSessionToken();
+        console.log("[PaymentInfo] Session token present:", !!token, "length:", token?.length);
+        if (!token) {
+          console.warn("[PaymentInfo] No session token found — redirecting to login");
+          router.replace("/login-screen");
+          return;
+        }
+
         // 1. Create a Stripe Subscription on the server → get client_secret
-        const { clientSecret, trialEnd, upgraded } = await createSubscriptionIntent(selectedPlan.id);
+        let clientSecret: string | null;
+        let trialEnd: number;
+        let upgraded: boolean | undefined;
+        try {
+          const result = await createSubscriptionIntent(selectedPlan.id);
+          clientSecret = result.clientSecret;
+          trialEnd = result.trialEnd;
+          upgraded = result.upgraded;
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          console.error("[PaymentInfo] createSubscriptionIntent error:", msg);
+          // Any auth-related error — clear stale credentials and redirect to login
+          const isAuthError =
+            msg.toLowerCase().includes("authentication") ||
+            msg.toLowerCase().includes("401") ||
+            msg.toLowerCase().includes("not authenticated") ||
+            msg.toLowerCase().includes("session expired") ||
+            msg.toLowerCase().includes("unauthorized");
+          if (isAuthError) {
+            console.warn("[PaymentInfo] Auth error — clearing credentials and redirecting to login");
+            await Auth.removeSessionToken();
+            await Auth.clearUserInfo();
+            router.replace("/login-screen");
+            return;
+          }
+          throw err;
+        }
 
         if (cancelled) return;
 

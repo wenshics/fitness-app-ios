@@ -1,0 +1,70 @@
+{
+  "query": "SELECT id, userId, LEFT(token, 30) as token_prefix, expiresAt FROM email_sessions ORDER BY id DESC LIMIT 10;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2bZZkzbo8ts7Msg.1120ae12998f --database TcKCq6vsXGY366ZGFCDBDp --execute SELECT id, userId, LEFT(token, 30) as token_prefix, expiresAt FROM email_sessions ORDER BY id DESC LIMIT 10;",
+  "rows": [
+    {
+      "id": "180004",
+      "userId": "120003",
+      "token_prefix": "7952c61c1c465213289110b5ef2b07",
+      "expiresAt": "2027-03-02 03:49:36"
+    },
+    {
+      "id": "180003",
+      "userId": "120003",
+      "token_prefix": "d40a9ca9982a5315ac9f788c2bfff1",
+      "expiresAt": "2027-03-02 03:49:36"
+    },
+    {
+      "id": "180002",
+      "userId": "120002",
+      "token_prefix": "dd9c5b033a83528b41118aed4b0bf9",
+      "expiresAt": "2027-03-02 03:36:46"
+    },
+    {
+      "id": "180001",
+      "userId": "120001",
+      "token_prefix": "af24056c5d00b5760d08fd6d9e4384",
+      "expiresAt": "2027-03-02 03:36:39"
+    },
+    {
+      "id": "150001",
+      "userId": "90001",
+      "token_prefix": "c463cdab3b2e06abc4f70d0222b235",
+      "expiresAt": "2027-03-02 02:49:04"
+    },
+    {
+      "id": "120005",
+      "userId": "30002",
+      "token_prefix": "de894ad06b9cdb5075e7ded251f91c",
+      "expiresAt": "2027-03-02 02:15:23"
+    },
+    {
+      "id": "120004",
+      "userId": "30002",
+      "token_prefix": "b599d2fb3dd2769e6c0b4e38eddeac",
+      "expiresAt": "2027-03-02 02:14:52"
+    },
+    {
+      "id": "120003",
+      "userId": "30002",
+      "token_prefix": "641b20378477156a2ebd0c0a87573f",
+      "expiresAt": "2027-03-02 01:59:37"
+    },
+    {
+      "id": "120002",
+      "userId": "30002",
+      "token_prefix": "034cc2bb375f618c49e28acbf5321d",
+      "expiresAt": "2027-03-02 01:59:04"
+    },
+    {
+      "id": "120001",
+      "userId": "30002",
+      "token_prefix": "1673cc91157e4a147f04b8bcd142ca",
+      "expiresAt": "2027-03-02 01:49:12"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tuserId\ttoken_prefix\texpiresAt\n180004\t120003\t7952c61c1c465213289110b5ef2b07\t2027-03-02 03:49:36\n180003\t120003\td40a9ca9982a5315ac9f788c2bfff1\t2027-03-02 03:49:36\n180002\t120002\tdd9c5b033a83528b41118aed4b0bf9\t2027-03-02 03:36:46\n180001\t120001\taf24056c5d00b5760d08fd6d9e4384\t2027-03-02 03:36:39\n150001\t90001\tc463cdab3b2e06abc4f70d0222b235\t2027-03-02 02:49:04\n120005\t30002\tde894ad06b9cdb5075e7ded251f91c\t2027-03-02 02:15:23\n120004\t30002\tb599d2fb3dd2769e6c0b4e38eddeac\t2027-03-02 02:14:52\n120003\t30002\t641b20378477156a2ebd0c0a87573f\t2027-03-02 01:59:37\n120002\t30002\t034cc2bb375f618c49e28acbf5321d\t2027-03-02 01:59:04\n120001\t30002\t1673cc91157e4a147f04b8bcd142ca\t2027-03-02 01:49:12\n",
+  "stderr": "",
+  "execution_time_ms": 62
+}

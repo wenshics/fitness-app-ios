@@ -343,3 +343,10 @@
 - [x] BUG: Payment screen shows "Authentication required" error — FIXED: added cookie-parser middleware to Express server; payment-info.tsx now waits for auth hydration (authLoading guard) before calling API
 - [x] BUG: Retry button on payment error screen is not tappable — FIXED: restructured error state to show full-width Retry button outside the ScrollView flex spacer; button is now always visible and tappable
 - [x] Added unauthenticated redirect guard in payment-info.tsx — redirects to login if user is not authenticated
+
+## BUG - PAYMENT 401 STILL ON NATIVE IOS
+
+- [x] BUG: "Authentication required" 401 still appears on native iOS when tapping Start Free Trial
+- [x] Root cause confirmed via server logs: token received (tokenSource: 'bearer') but findEmailSessionUser returns {found:false} — DB migration (pnpm db:push) wiped email_sessions table, orphaning existing tokens in SecureStore
+- [x] Fix: payment-info.tsx now proactively checks for token presence before API call; auth errors (401/unauthorized) now auto-clear stale credentials and redirect to login-screen instead of showing error banner
+- [x] User must log out and log back in once to get a fresh session token after the DB migration
