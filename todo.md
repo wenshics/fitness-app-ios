@@ -297,3 +297,12 @@
 - [x] Fixed: startButtonSub text color (colors.background → rgba(255,255,255,0.75))
 - [x] Fixed: TypeScript error - state.totalCalories does not exist (calculated from history instead)
 - [x] All modal overlays (rgba(0,0,0,0.5)) are intentional dimmer backdrops - correct as-is
+
+## REMOVE ALL BLACK COLORS FROM APP
+
+- [x] Find every black/near-black color in all files (theme, screens, components, config)
+- [x] Replace all black in theme.config.js foreground and surface dark values
+- [x] Replace all hardcoded black hex codes (#000, #000000, #18181B, #0C0C0E, #11181C, #1C1C1E)
+- [x] Replace all rgba(0,0,0,...) including modal overlays with dark grey/teal alternatives
+- [x] Replace all near-black text colors with dark grey (#374151)
+- [x] Verify zero black colors remain across all screens — confirmed clean

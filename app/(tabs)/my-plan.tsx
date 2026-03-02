@@ -492,7 +492,7 @@ const styles = StyleSheet.create({
   addExerciseMeta: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 4 },
   confirmOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    backgroundColor: "rgba(55, 65, 81, 0.4)",
     justifyContent: "center",
     alignItems: "center",
     padding: 20,

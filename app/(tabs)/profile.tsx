@@ -495,7 +495,7 @@ export default function ProfileScreen() {
 
       {/* Cancel Subscription Confirmation Modal */}
       <Modal visible={showCancelConfirm} transparent animationType="fade">
-        <View style={[styles.modalOverlay, { backgroundColor: "rgba(0,0,0,0.5)" }]}>
+        <View style={[styles.modalOverlay, { backgroundColor: "rgba(55, 65, 81, 0.4)" }]}>
           <View style={[styles.confirmDialog, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <View style={styles.confirmHeader}>
               <IconSymbol name="exclamationmark.circle.fill" size={40} color={colors.error} />
@@ -887,7 +887,7 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
+    backgroundColor: "rgba(55, 65, 81, 0.4)",
     justifyContent: "flex-end",
   },
   modalContent: {
@@ -903,7 +903,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(0,0,0,0.1)",
+    borderBottomColor: "#E4E4E7",
   },
   modalCancel: {
     fontSize: 16,
@@ -1046,7 +1046,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(0,0,0,0.1)",
+    borderBottomColor: "#E4E4E7",
   },
   timePickerCancel: {
     fontSize: 16,
