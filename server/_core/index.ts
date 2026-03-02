@@ -29,7 +29,86 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
   throw new Error(`No available port found starting from ${startPort}`);
 }
 
+async function initializeDatabase() {
+  if (!process.env.DATABASE_URL) {
+    console.warn("[Database] DATABASE_URL not set, skipping initialization");
+    return;
+  }
+
+  try {
+    const mysql = await import("mysql2/promise");
+    const connection = await mysql.createConnection(process.env.DATABASE_URL);
+    
+    console.log("[Database] Initializing tables...");
+    
+    const tables = [
+      `CREATE TABLE IF NOT EXISTS users (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        openId VARCHAR(64) NOT NULL UNIQUE,
+        name TEXT,
+        email VARCHAR(320),
+        loginMethod VARCHAR(64),
+        role ENUM('user', 'admin') NOT NULL DEFAULT 'user',
+        createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        lastSignedIn TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+      )`,
+      `CREATE TABLE IF NOT EXISTS email_users (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        email VARCHAR(320) NOT NULL UNIQUE,
+        name TEXT NOT NULL,
+        passwordHash TEXT NOT NULL,
+        birthday VARCHAR(20),
+        heightCm INT,
+        weightKg INT,
+        stripeCustomerId VARCHAR(64),
+        stripeSubscriptionId VARCHAR(64),
+        stripePriceId VARCHAR(64),
+        stripeSubscriptionStatus VARCHAR(32),
+        stripeTrialEnd TIMESTAMP,
+        createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      )`,
+      `CREATE TABLE IF NOT EXISTS email_sessions (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        token VARCHAR(128) NOT NULL UNIQUE,
+        userId INT NOT NULL,
+        createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        expiresAt TIMESTAMP NOT NULL
+      )`,
+      `CREATE TABLE IF NOT EXISTS email_verification_codes (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        email VARCHAR(320) NOT NULL,
+        code VARCHAR(6) NOT NULL,
+        expiresAt TIMESTAMP NOT NULL,
+        usedAt TIMESTAMP,
+        createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+      )`,
+      `CREATE TABLE IF NOT EXISTS password_reset_tokens (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        email VARCHAR(320) NOT NULL,
+        token VARCHAR(128) NOT NULL UNIQUE,
+        expiresAt TIMESTAMP NOT NULL,
+        usedAt TIMESTAMP,
+        createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+      )`
+    ];
+
+    for (const sql of tables) {
+      await connection.execute(sql);
+    }
+
+    await connection.end();
+    console.log("[Database] Tables initialized successfully");
+  } catch (error) {
+    console.error("[Database] Failed to initialize tables:", error);
+  }
+}
+
 async function startServer() {
+  // Initialize database first
+  await initializeDatabase();
+  
   const app = express();
   const server = createServer(app);
 
