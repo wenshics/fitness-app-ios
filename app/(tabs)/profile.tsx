@@ -211,7 +211,7 @@ export default function ProfileScreen() {
         </View>
 
         {/* Subscription Banner */}
-        {subscription.plan ? (
+        {subscription.plan && (
         <View style={[styles.subscriptionBanner, { backgroundColor: colors.primary }]}>
           <View style={styles.subLeft}>
             <IconSymbol name="crown.fill" size={20} color="#FFD700" />
@@ -255,28 +255,6 @@ export default function ProfileScreen() {
             </Pressable>
             )}
           </View>
-        </View>
-        ) : (
-        <View style={[styles.subscriptionBanner, { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }]}>
-          <View style={styles.subLeft}>
-            <IconSymbol name="lock.fill" size={20} color={colors.muted} />
-            <View>
-              <Text style={[styles.subTitle, { color: colors.foreground }]}>No Active Subscription</Text>
-              <Text style={[styles.subPrice, { color: colors.muted }]}>Start your 7-day free trial</Text>
-            </View>
-          </View>
-          <Pressable
-            onPress={() => router.push("/paywall")}
-            style={({ pressed }) => [{
-              backgroundColor: colors.primary,
-              paddingHorizontal: 16,
-              paddingVertical: 8,
-              borderRadius: 8,
-              opacity: pressed ? 0.8 : 1,
-            }]}
-          >
-            <Text style={[styles.changePlanText, { color: colors.background }]}>Subscribe</Text>
-          </Pressable>
         </View>
         )}     {/* Stats */}
         <View style={styles.statsGrid}>

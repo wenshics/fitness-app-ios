@@ -24,7 +24,7 @@ export default function PaymentInfoScreen() {
   const router = useRouter();
   const { plan: planId } = useLocalSearchParams<{ plan: PlanType }>();
   const { subscribe } = useSubscription();
-  const { loading: authLoading, logout } = useAuth();
+  const { loading: authLoading } = useAuth();
 
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -76,11 +76,6 @@ export default function PaymentInfoScreen() {
         let userMessage = msg;
         if (msg.includes("Authentication required") || msg.includes("401") || msg.includes("unauthorized")) {
           userMessage = "Your session has expired. Please log in again.";
-          // Auto-logout and redirect to login
-          setTimeout(async () => {
-            await logout();
-            if (!cancelled) router.replace("/login-screen");
-          }, 500);
         } else if (msg.includes("network") || msg.includes("fetch")) {
           userMessage = "Network error. Please check your connection and try again.";
         }
