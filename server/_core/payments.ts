@@ -51,10 +51,10 @@ function getStripe(): Stripe {
 
 /** Map our internal plan IDs to Stripe Price IDs (created on demand if missing). */
 const PLAN_CONFIG: Record<string, { amount: number; interval: Stripe.PriceCreateParams.Recurring.Interval; intervalCount: number; name: string }> = {
-  daily:   { amount: 99,    interval: "day",   intervalCount: 1,  name: "FitLife Daily"   },
-  weekly:  { amount: 599,   interval: "week",  intervalCount: 1,  name: "FitLife Weekly"  },
-  monthly: { amount: 1999,  interval: "month", intervalCount: 1,  name: "FitLife Monthly" },
-  yearly:  { amount: 14999, interval: "year",  intervalCount: 1,  name: "FitLife Yearly"  },
+  daily:   { amount: 99,    interval: "day",   intervalCount: 1,  name: "Pulse Daily"   },
+  weekly:  { amount: 599,   interval: "week",  intervalCount: 1,  name: "Pulse Weekly"  },
+  monthly: { amount: 1999,  interval: "month", intervalCount: 1,  name: "Pulse Monthly" },
+  yearly:  { amount: 14999, interval: "year",  intervalCount: 1,  name: "Pulse Yearly"  },
 };
 
 /** Cache of planId → Stripe Price ID to avoid re-creating prices on every request. */
@@ -72,7 +72,7 @@ async function getOrCreateStripePriceId(planId: string): Promise<string> {
   if (!config) throw new Error(`Unknown plan: ${planId}`);
 
   // Search for an existing active price with this lookup_key
-  const lookupKey = `fitlife_${planId}`;
+  const lookupKey = `pulse_${planId}`;
   const existing = await stripe.prices.list({ lookup_keys: [lookupKey], active: true, limit: 1 });
   if (existing.data.length > 0) {
     priceIdCache[planId] = existing.data[0].id;

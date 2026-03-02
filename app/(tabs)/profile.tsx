@@ -211,11 +211,12 @@ export default function ProfileScreen() {
         </View>
 
         {/* Subscription Banner */}
+        {subscription.plan && (
         <View style={[styles.subscriptionBanner, { backgroundColor: colors.primary }]}>
           <View style={styles.subLeft}>
             <IconSymbol name="crown.fill" size={20} color="#FFD700" />
             <View>
-              <Text style={styles.subTitle}>FitLife Pro</Text>
+              <Text style={styles.subTitle}>Pulse Pro</Text>
               <Text style={styles.subPrice}>
                 {getCurrentPlan()?.price ?? "$19.99"}{getCurrentPlan()?.period ?? "/month"}
               </Text>
@@ -227,7 +228,7 @@ export default function ProfileScreen() {
                 {isTrialActive() ? "Trial" : "Active"} · {getDaysRemaining()}d left
               </Text>
             </View>
-            {subscription.plan !== "yearly" && (
+            {subscription.plan && subscription.plan !== "yearly" && (
               <Pressable
                 onPress={() => {
                   if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -242,6 +243,7 @@ export default function ProfileScreen() {
                 <Text style={styles.changePlanText}>{isTrialActive() ? "Change" : "Upgrade"} Plan</Text>
               </Pressable>
             )}
+            {subscription.plan && (
             <Pressable
               onPress={() => setShowCancelConfirm(true)}
               style={({ pressed }) => [
@@ -251,8 +253,10 @@ export default function ProfileScreen() {
             >
               <Text style={styles.cancelSubText}>Cancel</Text>
             </Pressable>
+            )}
           </View>
-        </View>     {/* Stats */}
+        </View>
+        )}     {/* Stats */}
         <View style={styles.statsGrid}>
           <View style={[styles.statCard, { backgroundColor: colors.surface }]}>
             <Text style={[styles.statValue, { color: colors.primary }]}>{state.history?.length || 0}</Text>
