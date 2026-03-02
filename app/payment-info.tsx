@@ -42,60 +42,11 @@ export default function PaymentInfoScreen() {
   useEffect(() => {
     if (!selectedPlan || !planId) return;
     if (authLoading) return;
-    let cancelled = false;
-
-    const initPayment = async () => {
-      try {
-        setIsLoading(true);
-        setLoadError(null);
-        setPaymentReady(false);
-        setClientSecret(null);
-
-        const result = await createSubscriptionIntent(selectedPlan.id);
-        if (cancelled) return;
-
-        if (result.upgraded) {
-          await subscribe(selectedPlan.id as PlanType);
-          router.replace(`/payment-success?plan=${selectedPlan.id}`);
-          return;
-        }
-
-        if (!result.clientSecret) {
-          console.log("[PaymentInfo] No clientSecret, subscription created with trial. Navigating to success...");
-          await subscribe(selectedPlan.id as PlanType);
-          console.log("[PaymentInfo] Subscription updated in store, navigating to /payment-success");
-          router.replace(`/payment-success?plan=${selectedPlan.id}`);
-          console.log("[PaymentInfo] Navigation called");
-          return;
-        }
-
-        setClientSecret(result.clientSecret);
-        if (result.trialEnd) {
-          setTrialEndDate(new Date(result.trialEnd * 1000));
-        }
-        setPaymentReady(true);
-      } catch (err) {
-        if (cancelled) return;
-        const msg = err instanceof Error ? err.message : String(err);
-        console.error("[PaymentInfo] initPayment error:", msg);
-        // Convert technical errors to user-friendly messages
-        let userMessage = msg;
-        if (msg.includes("Authentication required") || msg.includes("401") || msg.includes("unauthorized")) {
-          userMessage = "Your session has expired. Please log in again.";
-        } else if (msg.includes("network") || msg.includes("fetch")) {
-          userMessage = "Network error. Please check your connection and try again.";
-        }
-        setLoadError(userMessage || "Failed to initialize payment");
-      } finally {
-        if (!cancelled) setIsLoading(false);
-      }
-    };
-
-    initPayment();
-    return () => {
-      cancelled = true;
-    };
-  }, [selectedPlan?.id, initKey, authLoading]);
+    
+    // Just show plan details - don't create subscription yet
+    setIsLoading(false);
+    setPaymentReady(true);
+  }, [selectedPlan?.id, planId, authLoading]);
 
   if (!selectedPlan) {
     return (
@@ -117,6 +68,7 @@ export default function PaymentInfoScreen() {
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
+    console.log("[PaymentInfo] Navigating to payment-card with plan:", selectedPlan.id);
     router.push({
       pathname: "/payment-card",
       params: { plan: selectedPlan.id },

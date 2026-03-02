@@ -372,3 +372,10 @@
 - [x] Feature: Add payment card input screen before subscription confirmation - DONE: payment-card.tsx with validation
 - [ ] Feature: Allow users to choose existing saved card or enter new card
 - [x] Feature: Show payment confirmation screen with card details and plan summary before final confirmation - DONE: payment-confirmation.tsx
+
+## CRITICAL BUGS - PAYMENT FLOW (NEW)
+
+- [x] Bug: Payment card input screen (payment-card.tsx) is never shown - flow skips directly to success - FIXED: Removed createSubscriptionIntent from payment-info
+- [x] Bug: Subscription is created in payment-info.tsx before user enters card details - FIXED: Moved to payment-confirmation
+- [x] Bug: Need to defer subscription creation until payment-confirmation.tsx - FIXED: Now creates subscription only on confirmation
+- [x] Question: Verify Stripe configuration will work when app is published to App Store - CONFIRMED: Stripe Secret Key configured and tested
