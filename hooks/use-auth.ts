@@ -1,79 +1,93 @@
 import * as Auth from "@/lib/_core/auth";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { Platform } from "react-native";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as Api from "@/lib/_core/api";
 
 /**
- * SIMPLE AUTH DESIGN:
- * - Local storage (SecureStore on native, localStorage on web) is the SINGLE SOURCE OF TRUTH
- * - On app load: read user from local storage immediately — no API calls
- * - On login/signup: store token + user info locally, set user state
- * - On logout: clear local storage, clear user state
- * - NEVER call the API to verify the session on app load — this causes redirect loops
- *   when the server restarts and loses in-memory sessions
+ * GLOBAL AUTH STATE DESIGN:
+ * - Single shared state across ALL components via module-level singleton
+ * - Initialized lazily on first useAuth() mount (inside React lifecycle)
+ * - login() updates the shared state immediately — no race conditions between
+ *   LoginScreen and AuthGuard because they share the same globalUser reference
+ * - All useAuth() calls subscribe to the same event emitter
  */
 
 export type AuthUser = Auth.User;
 
-/**
- * Notify all useAuth instances that the user has logged in.
- * Call this after storing user info locally.
- */
-export function notifyAuthChanged(): void {
-  // No-op: login-screen directly sets state via the returned setUser
-  // This is kept for backward compatibility with any code that calls it
+// ─── Module-level singleton ───────────────────────────────────────────────────
+
+type Listener = (user: Auth.User | null, loading: boolean) => void;
+const listeners = new Set<Listener>();
+
+let globalUser: Auth.User | null = null;
+let globalLoading = true;
+let initStarted = false;
+
+function emit(user: Auth.User | null, loading: boolean) {
+  globalUser = user;
+  globalLoading = loading;
+  listeners.forEach((l) => l(user, loading));
 }
 
+async function initGlobalAuth() {
+  if (initStarted) return;
+  initStarted = true;
+  try {
+    const stored = await Auth.getUserInfo();
+    emit(stored, false);
+  } catch {
+    emit(null, false);
+  }
+}
+
+// ─── useAuth hook ─────────────────────────────────────────────────────────────
+
 export function useAuth() {
-  const [user, setUser] = useState<Auth.User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<Auth.User | null>(globalUser);
+  const [loading, setLoading] = useState(globalLoading);
+  const mountedRef = useRef(true);
 
-  // Load user from local storage on mount — synchronous, no API calls
   useEffect(() => {
-    let cancelled = false;
+    mountedRef.current = true;
 
-    const loadUser = async () => {
-      try {
-        const stored = await Auth.getUserInfo();
-        if (!cancelled) {
-          setUser(stored);
-        }
-      } catch (err) {
-        console.warn("[useAuth] Failed to load user from storage:", err);
-        if (!cancelled) {
-          setUser(null);
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
+    // Subscribe to global state changes
+    const listener: Listener = (u, l) => {
+      if (mountedRef.current) {
+        setUser(u);
+        setLoading(l);
       }
     };
+    listeners.add(listener);
 
-    loadUser();
+    // Sync with current global state immediately (in case it changed before subscribe)
+    setUser(globalUser);
+    setLoading(globalLoading);
+
+    // Start initialization if not already started (safe to call multiple times)
+    initGlobalAuth();
 
     return () => {
-      cancelled = true;
+      mountedRef.current = false;
+      listeners.delete(listener);
     };
   }, []);
 
   const login = useCallback(async (userData: Auth.User, sessionToken: string) => {
-    // Store token and user info locally
+    // Store locally first
     await Auth.setSessionToken(sessionToken);
     await Auth.setUserInfo(userData);
-    // Update state immediately — no API call needed
-    setUser(userData);
+    // Update ALL useAuth instances immediately — AuthGuard sees this right away
+    emit(userData, false);
   }, []);
 
   const logout = useCallback(async () => {
-    // Clear local state immediately
-    setUser(null);
+    // Update global state immediately so AuthGuard redirects right away
+    emit(null, false);
 
     // Clear local storage
     await Auth.removeSessionToken();
     await Auth.clearUserInfo();
 
-    // Best-effort server logout (don't await — don't let failure block UI)
+    // Best-effort server logout (don't block UI)
     Api.logout().catch((err) => {
       console.warn("[useAuth] Server logout failed (ignored):", err);
     });
@@ -87,8 +101,14 @@ export function useAuth() {
     isAuthenticated,
     login,
     logout,
-    // Legacy compat
     refresh: async () => {},
     error: null,
   };
+}
+
+/**
+ * @deprecated Use useAuth() instead. Kept for backward compatibility.
+ */
+export function notifyAuthChanged(): void {
+  // No-op: login() now updates global state directly
 }

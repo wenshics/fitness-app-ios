@@ -221,3 +221,7 @@
 
 - [x] BUG: Profile page shows empty birthday/height/weight — FIXED: server now returns birthday/heightCm/weightKg in all auth responses; profile reads from user object
 - [x] BUG: After logout, navigates to unmatched route — FIXED: router.replace('/login-screen') instead of '/login'
+
+## BUG - LOGIN STILL FAILING
+- [ ] BUG: wenshi.bme@gmail.com login still fails in the app despite server working correctly
+- [ ] Diagnose exact error from browser/app perspective
