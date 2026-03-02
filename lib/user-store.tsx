@@ -19,60 +19,95 @@ interface UserContextType {
 // ===== CONTEXT =====
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
+// ===== HELPERS =====
+/**
+ * Returns a per-user AsyncStorage key so that different accounts on the same
+ * device never share profile data.  Falls back to the legacy key when userId
+ * is absent so existing data for anonymous / pre-auth sessions is preserved.
+ */
+function profileKey(userId?: string | number | null): string {
+  return userId ? `user_profile_${userId}` : "user_profile";
+}
+
 // ===== PROVIDER =====
-export function UserProvider({ children }: { children: React.ReactNode }) {
+interface UserProviderProps {
+  children: React.ReactNode;
+  /** The ID of the currently authenticated user.  Pass null/undefined when
+   *  the user is logged out so the provider clears its in-memory state. */
+  userId?: string | number | null;
+}
+
+export function UserProvider({ children, userId }: UserProviderProps) {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load profile from storage on mount
+  // Reload profile whenever the logged-in user changes
   useEffect(() => {
+    let cancelled = false;
+    setIsLoading(true);
+
     const loadProfile = async () => {
       try {
-        const stored = await AsyncStorage.getItem("user_profile");
-        if (stored) {
-          setUserProfile(JSON.parse(stored));
+        if (!userId) {
+          // No user logged in — clear in-memory state
+          if (!cancelled) {
+            setUserProfile(null);
+            setIsLoading(false);
+          }
+          return;
+        }
+
+        const key = profileKey(userId);
+        const stored = await AsyncStorage.getItem(key);
+
+        if (!cancelled) {
+          setUserProfile(stored ? JSON.parse(stored) : null);
+          setIsLoading(false);
         }
       } catch (error) {
-        console.error("Error loading user profile:", error);
-      } finally {
-        setIsLoading(false);
+        console.error("[UserStore] Error loading user profile:", error);
+        if (!cancelled) setIsLoading(false);
       }
     };
 
     loadProfile();
-  }, []);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
 
   const updateUserProfile = useCallback(
     async (profile: Partial<UserProfile>) => {
       try {
-        // Use functional setState to avoid stale closures
+        const key = profileKey(userId);
         setUserProfile((prevProfile) => {
           const updated = { ...prevProfile, ...profile };
-          // Save to AsyncStorage after state update
-          AsyncStorage.setItem("user_profile", JSON.stringify(updated)).catch((error) => {
-            console.error("Error saving to AsyncStorage:", error);
+          AsyncStorage.setItem(key, JSON.stringify(updated)).catch((error) => {
+            console.error("[UserStore] Error saving to AsyncStorage:", error);
           });
           return updated;
         });
       } catch (error) {
-        console.error("Error updating user profile:", error);
+        console.error("[UserStore] Error updating user profile:", error);
         throw error;
       }
     },
-    []
+    [userId]
   );
 
   const clearUserProfile = useCallback(async () => {
     try {
+      const key = profileKey(userId);
       setUserProfile(null);
-      await AsyncStorage.removeItem("user_profile").catch((error) => {
-        console.error("Error removing from AsyncStorage:", error);
+      await AsyncStorage.removeItem(key).catch((error) => {
+        console.error("[UserStore] Error removing from AsyncStorage:", error);
       });
     } catch (error) {
-      console.error("Error clearing user profile:", error);
+      console.error("[UserStore] Error clearing user profile:", error);
       throw error;
     }
-  }, []);
+  }, [userId]);
 
   const contextValue = React.useMemo(
     () => ({ userProfile, updateUserProfile, clearUserProfile, isLoading }),

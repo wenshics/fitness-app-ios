@@ -36,6 +36,15 @@ export const unstable_settings = {
 };
 
 /**
+ * Wraps UserProvider with the current authenticated user's ID so that
+ * profile data is scoped per account.  Must be rendered inside AuthProvider.
+ */
+function UserProviderWithAuth({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth();
+  return <UserProvider userId={user?.id ?? null}>{children}</UserProvider>;
+}
+
+/**
  * Syncs user ID to subscription and workout stores so data is scoped per user.
  * This component must be rendered inside both providers AND have access to useAuth.
  */
@@ -177,7 +186,7 @@ export default function RootLayout() {
       <trpc.Provider client={trpcClient} queryClient={queryClient}>
         <QueryClientProvider client={queryClient}>
           <AuthModalProvider>
-            <UserProvider>
+            <UserProviderWithAuth>
               <SubscriptionProvider>
                 <WorkoutProvider>
                   <UserDataSync>
@@ -208,7 +217,7 @@ export default function RootLayout() {
               </UserDataSync>
             </WorkoutProvider>
           </SubscriptionProvider>
-            </UserProvider>
+            </UserProviderWithAuth>
           </AuthModalProvider>
           <StatusBar style="auto" />
         </QueryClientProvider>

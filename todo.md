@@ -237,3 +237,10 @@
 
 - [x] BUG: Achievement badge shows raw text "star.fill" instead of the icon graphic
 - [x] BUG: Password fields on login/signup screens have no show/hide toggle
+
+## BUG - PROFILE DATA WRONG USER
+
+- [x] BUG: Profile edit screen shows another user's birthday/weight/height (LucasXu423@gmail.com data shown when logged in as wenshi.bme@gmail.com)
+- [x] Investigate profile data fetch — likely not scoped to authenticated user's session
+- [x] Fix profile fetch to use session token / current user ID
+- [x] Test with wenshi.bme@gmail.com to confirm correct data loads
