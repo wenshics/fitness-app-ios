@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -71,122 +72,127 @@ export default function PaymentSuccessScreen() {
 
   return (
     <ScreenContainer edges={["top", "bottom", "left", "right"]}>
-      <View style={styles.container}>
-        {/* Success Icon */}
-        <View style={[styles.iconContainer, { backgroundColor: colors.success + "20" }]}>
-          <IconSymbol
-            name="checkmark.circle.fill"
-            size={80}
-            color={colors.success}
-          />
-        </View>
-
-        {/* Success Message */}
-        <Text style={[styles.title, { color: colors.foreground }]}>
-          Payment Successful!
-        </Text>
-        <Text style={[styles.subtitle, { color: colors.muted }]}>
-          Your subscription is now active
-        </Text>
-
-        {/* Plan Details */}
-        <View
-          style={[
-            styles.detailsCard,
-            { backgroundColor: colors.surface, borderColor: colors.border },
-          ]}
+      <View style={styles.outerContainer}>
+        <ScrollView 
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
         >
-          <View style={styles.detailRow}>
-            <Text style={[styles.detailLabel, { color: colors.muted }]}>
-              Plan
-            </Text>
-            <Text style={[styles.detailValue, { color: colors.foreground }]}>
-              {selectedPlan.label}
-            </Text>
+          {/* Success Icon */}
+          <View style={[styles.iconContainer, { backgroundColor: colors.success + "20" }]}>
+            <IconSymbol
+              name="checkmark.circle.fill"
+              size={80}
+              color={colors.success}
+            />
           </View>
 
-          <View
-            style={[
-              styles.divider,
-              { backgroundColor: colors.border },
-            ]}
-          />
-
-          <View style={styles.detailRow}>
-            <Text style={[styles.detailLabel, { color: colors.muted }]}>
-              Price
-            </Text>
-            <Text style={[styles.detailValue, { color: colors.foreground }]}>
-              {selectedPlan.price}
-            </Text>
-          </View>
-
-          <View
-            style={[
-              styles.divider,
-              { backgroundColor: colors.border },
-            ]}
-          />
-
-          <View style={styles.detailRow}>
-            <Text style={[styles.detailLabel, { color: colors.muted }]}>
-              Billing Cycle
-            </Text>
-            <Text style={[styles.detailValue, { color: colors.foreground }]}>
-              {selectedPlan.period}
-            </Text>
-          </View>
-
-          {transactionId && (
-            <>
-              <View
-                style={[
-                  styles.divider,
-                  { backgroundColor: colors.border },
-                ]}
-              />
-
-              <View style={styles.detailRow}>
-                <Text style={[styles.detailLabel, { color: colors.muted }]}>
-                  Transaction ID
-                </Text>
-                <Text
-                  style={[styles.detailValue, { color: colors.foreground }]}
-                  numberOfLines={1}
-                >
-                  {transactionId}
-                </Text>
-              </View>
-            </>
-          )}
-        </View>
-
-        {/* Features List */}
-        <View style={styles.featuresContainer}>
-          <Text style={[styles.featuresTitle, { color: colors.foreground }]}>
-            You now have access to:
+          {/* Success Message */}
+          <Text style={[styles.title, { color: colors.foreground }]}>
+            Payment Successful!
+          </Text>
+          <Text style={[styles.subtitle, { color: colors.muted }]}>
+            Your subscription is now active
           </Text>
 
-          {[
-            "Unlimited daily exercise plans",
-            "All 30+ exercises with demos",
-            "Workout reminders",
-            "Progress tracking & awards",
-          ].map((feature, index) => (
-            <View key={index} style={styles.featureItem}>
-              <IconSymbol
-                name="checkmark.circle.fill"
-                size={20}
-                color={colors.success}
-              />
-              <Text style={[styles.featureText, { color: colors.foreground }]}>
-                {feature}
+          {/* Plan Details Card */}
+          <View
+            style={[
+              styles.detailsCard,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+            ]}
+          >
+            <View style={styles.detailRow}>
+              <Text style={[styles.detailLabel, { color: colors.muted }]}>
+                Plan
+              </Text>
+              <Text style={[styles.detailValue, { color: colors.foreground }]}>
+                {selectedPlan.label}
               </Text>
             </View>
-          ))}
-        </View>
 
-        {/* Confirm Button */}
+            <View
+              style={[
+                styles.divider,
+                { backgroundColor: colors.border },
+              ]}
+            />
+
+            <View style={styles.detailRow}>
+              <Text style={[styles.detailLabel, { color: colors.muted }]}>
+                Price
+              </Text>
+              <Text style={[styles.detailValue, { color: colors.foreground }]}>
+                {selectedPlan.price}
+              </Text>
+            </View>
+
+            <View
+              style={[
+                styles.divider,
+                { backgroundColor: colors.border },
+              ]}
+            />
+
+            <View style={styles.detailRow}>
+              <Text style={[styles.detailLabel, { color: colors.muted }]}>
+                Billing Cycle
+              </Text>
+              <Text style={[styles.detailValue, { color: colors.foreground }]}>
+                {selectedPlan.period}
+              </Text>
+            </View>
+
+            {transactionId && (
+              <>
+                <View
+                  style={[
+                    styles.divider,
+                    { backgroundColor: colors.border },
+                  ]}
+                />
+
+                <View style={styles.detailRow}>
+                  <Text style={[styles.detailLabel, { color: colors.muted }]}>
+                    Transaction ID
+                  </Text>
+                  <Text
+                    style={[styles.detailValue, { color: colors.foreground }]}
+                    numberOfLines={1}
+                  >
+                    {transactionId}
+                  </Text>
+                </View>
+              </>
+            )}
+          </View>
+
+          {/* Features List */}
+          <View style={styles.featuresContainer}>
+            <Text style={[styles.featuresTitle, { color: colors.foreground }]}>
+              You now have access to:
+            </Text>
+
+            {[
+              "Unlimited daily exercise plans",
+              "All 30+ exercises with demos",
+              "Workout reminders",
+              "Progress tracking & awards",
+            ].map((feature, index) => (
+              <View key={index} style={styles.featureItem}>
+                <IconSymbol
+                  name="checkmark.circle.fill"
+                  size={20}
+                  color={colors.success}
+                />
+                <Text style={[styles.featureText, { color: colors.foreground }]}>
+                  {feature}
+                </Text>
+              </View>
+            ))}
+          </View>
+        </ScrollView>
+
+        {/* Confirm Button - Fixed at bottom */}
         <Pressable
           onPress={handleConfirm}
           disabled={isNavigating}
@@ -211,6 +217,15 @@ export default function PaymentSuccessScreen() {
 }
 
 const styles = StyleSheet.create({
+  outerContainer: {
+    flex: 1,
+    justifyContent: "space-between",
+  },
+  scrollContent: {
+    paddingHorizontal: 24,
+    paddingVertical: 24,
+    paddingBottom: 80,
+  },
   container: {
     flex: 1,
     paddingHorizontal: 24,
@@ -225,6 +240,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 24,
+    alignSelf: "center",
   },
   title: {
     fontSize: 28,
@@ -299,7 +315,8 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
-    marginTop: "auto",
+    marginHorizontal: 24,
+    marginBottom: 16,
   },
   continueButtonText: {
     fontSize: 16,
