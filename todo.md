@@ -260,9 +260,9 @@
 
 ## BUG - LOGIN SCREEN COLOR CHANGED TO BLACK
 
-- [ ] BUG: Login screen background/colors changed to black — user wants original colors restored
-- [ ] Identify what introduced the color change (ScreenContainer, StyleSheet, or theme)
-- [ ] Revert login screen to original light/white color scheme
+- [x] BUG: Login screen background/colors changed to black — user wants original colors restored
+- [x] Identify what introduced the color change (ScreenContainer, StyleSheet, or theme)
+- [x] Revert login screen to original light/white color scheme — restored teal/zinc palette
 
 ## BUG - THEME COLORS CHANGED
 
