@@ -311,20 +311,6 @@ export default function PaymentCardScreen() {
               </View>
             </View>
 
-            {/* Test Card Info */}
-            <View
-              style={[
-                styles.infoBox,
-                { backgroundColor: colors.surface, borderColor: colors.border },
-              ]}
-            >
-              <Text style={[styles.infoText, { color: colors.muted }]}>
-                💳 Test card: 4242 4242 4242 4242
-              </Text>
-              <Text style={[styles.infoText, { color: colors.muted }]}>
-                Any future expiry date and any 3-digit CVC
-              </Text>
-            </View>
           </View>
 
           {/* Continue Button */}
