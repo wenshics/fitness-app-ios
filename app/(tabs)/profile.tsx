@@ -488,27 +488,34 @@ export default function ProfileScreen() {
         )}
 
         {/* Test Notification Button (Dev Only) */}
-        {remindersEnabled && user && __DEV__ && (
+        {user && (
           <View style={{ marginTop: 16, marginHorizontal: 16 }}>
             <TouchableOpacity
               onPress={async () => {
                 try {
-                  const notificationId = await Notifications.scheduleNotificationAsync({
-                    content: {
-                      title: 'Test Workout Reminder',
-                      body: 'This is a test notification to verify reminders are working.',
-                      sound: 'default',
-                      badge: 1,
-                    },
-                    trigger: {
-                      type: 'time_interval',
-                      seconds: 2, // Fire in 2 seconds
-                    } as any,
-                  });
-                  Alert.alert('Success', `Test notification scheduled (ID: ${notificationId})`);
-                  if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                  if (Platform.OS === 'web') {
+                    console.log('✅ Test notification would fire in 2 seconds on mobile devices.');
+                    alert('Test notification would fire in 2 seconds on mobile devices.');
+                  } else {
+                    const notificationId = await Notifications.scheduleNotificationAsync({
+                      content: {
+                        title: 'Test Workout Reminder',
+                        body: 'This is a test notification to verify reminders are working.',
+                        sound: 'default',
+                        badge: 1,
+                      },
+                      trigger: {
+                        type: 'time_interval',
+                        seconds: 2,
+                      } as any,
+                    });
+                    console.log(`✅ Test notification scheduled (ID: ${notificationId})`);
+                    Alert.alert('Success', `Test notification scheduled (ID: ${notificationId})`);
+                    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                  }
                 } catch (error) {
-                  Alert.alert('Error', `Failed to schedule test notification: ${error}`);
+                  console.error('❌ Failed to schedule test notification:', error);
+                  alert(`Failed to schedule test notification: ${error}`);
                 }
               }}
               activeOpacity={0.7}
@@ -519,7 +526,7 @@ export default function ProfileScreen() {
               </Text>
             </TouchableOpacity>
             <Text style={{ fontSize: 12, color: colors.muted, marginTop: 8, textAlign: 'center' }}>
-              Dev only: Fires in 2 seconds
+              Dev only: Fires in 2 seconds on mobile
             </Text>
           </View>
         )}
