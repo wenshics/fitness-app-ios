@@ -77,7 +77,7 @@ async function scheduleReminder(
   body: string,
   hour: number,
   minute: number,
-  daysOfWeek: number[] // 0 = Sunday, 1 = Monday, etc.
+  daysOfWeek: number[] // 0 = Sunday, 1 = Monday, etc. (not used for daily, but kept for future weekly support)
 ): Promise<string | null> {
   try {
     if (Platform.OS === 'web') {
@@ -88,14 +88,7 @@ async function scheduleReminder(
     // Cancel existing notification with this identifier
     await Notifications.cancelScheduledNotificationAsync(identifier).catch(() => {});
 
-    // Create trigger for the specific days and time
-    // Use daily trigger at specific time for recurring reminders
-    const trigger: any = {
-      type: 'daily',
-      hour,
-      minute,
-    };
-
+    // Use CALENDAR trigger for recurring daily notifications
     const notificationId = await Notifications.scheduleNotificationAsync({
       content: {
         title,
@@ -103,11 +96,16 @@ async function scheduleReminder(
         sound: 'default',
         badge: 1,
       },
-      trigger: trigger as any,
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.CALENDAR,
+        hour,
+        minute,
+        repeats: true,
+      },
       identifier,
     });
 
-    console.log(`[Notifications] Scheduled ${identifier}: ${notificationId}`);
+    console.log(`[Notifications] Scheduled ${identifier} at ${hour}:${minute}: ${notificationId}`);
     return notificationId;
   } catch (error) {
     console.error(`[Notifications] Error scheduling ${identifier}:`, error);
