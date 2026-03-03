@@ -371,6 +371,66 @@ export default function ProfileScreen() {
           )}
         </View>
 
+        {/* Workout Reminders Section - Always Visible */}
+        {user && (
+          <View style={[styles.remindersSection, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <View style={styles.reminderHeader}>
+              <View style={styles.reminderTitleContainer}>
+                <IconSymbol name="bell.fill" size={20} color={colors.primary} />
+                <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Workout Reminders</Text>
+              </View>
+              <View style={[styles.toggle, { backgroundColor: remindersEnabled ? colors.primary : colors.border }]}>
+                <Pressable
+                  onPress={() => {
+                    const newEnabled = !remindersEnabled;
+                    setRemindersEnabled(newEnabled);
+                    if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    const settingsWithEnabled = { ...localReminders, enabled: newEnabled };
+                    updateSettings({ reminders: settingsWithEnabled });
+                    if (newEnabled) {
+                      scheduleAllReminders(settingsWithEnabled);
+                    } else {
+                      cancelAllReminders();
+                    }
+                  }}
+                  style={[styles.toggleInner, { transform: [{ translateX: remindersEnabled ? 20 : 0 }], backgroundColor: 'white' }]}
+                />
+              </View>
+            </View>
+
+            {remindersEnabled && (
+              <View style={styles.remindersList}>
+                {Object.entries(localReminders).map(([key, value]: [string, any]) => {
+                  const hour = value?.hour ?? 18;
+                  const minute = value?.minute ?? 0;
+                  const ampm = hour >= 12 ? 'PM' : 'AM';
+                  const displayHour = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
+                  const timeString = `${displayHour}:${String(minute).padStart(2, '0')} ${ampm}`;
+                  
+                  return (
+                    <Pressable
+                      key={key}
+                      onPress={() => openTimePicker(key)}
+                      style={({ pressed }) => [
+                        styles.reminderRow,
+                        { borderBottomColor: colors.border },
+                        pressed && { opacity: 0.7 },
+                      ]}
+                    >
+                      <Text style={[styles.reminderLabel, { color: colors.foreground }]}>
+                        {key === 'weekdayEvening' ? 'Weekday Evening' : key === 'weekendMorning' ? 'Weekend Morning' : 'Weekend Evening'}
+                      </Text>
+                      <Text style={[styles.reminderTime, { color: colors.primary }]}>
+                        {timeString}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            )}
+          </View>
+        )}
+
         {/* Settings Section */}
         {showSettings && user && (
           <View style={[styles.settingsSection, { backgroundColor: colors.surface, borderColor: colors.border }]}>
@@ -1112,6 +1172,45 @@ const styles = StyleSheet.create({
   },
   pickerItemText: {
     fontSize: 16,
+    fontWeight: "600",
+  },
+  remindersSection: {
+    marginHorizontal: 16,
+    marginBottom: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    overflow: "hidden",
+  },
+  reminderHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+  },
+  reminderTitleContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  remindersList: {
+    paddingHorizontal: 0,
+  },
+  reminderRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+  },
+  reminderLabel: {
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  reminderTime: {
+    fontSize: 14,
     fontWeight: "600",
   },
 });
