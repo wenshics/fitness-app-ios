@@ -14,6 +14,7 @@ const PLANS = [
   { id: "yearly" as const, label: "Yearly", price: "$149.99", period: "/year", perWeek: "$2.88/wk", savings: "Save 58%", popular: false },
 ]
 import * as Haptics from "expo-haptics";
+import * as Notifications from "expo-notifications";
 import { useRouter } from "expo-router";
 import { useCallback, useState, useEffect } from "react";
 import { useAuthModal } from "@/lib/auth-modal-context";
@@ -483,6 +484,43 @@ export default function ProfileScreen() {
                 </View>
               </>
             )}
+          </View>
+        )}
+
+        {/* Test Notification Button (Dev Only) */}
+        {remindersEnabled && user && __DEV__ && (
+          <View style={{ marginTop: 16, marginHorizontal: 16 }}>
+            <TouchableOpacity
+              onPress={async () => {
+                try {
+                  const notificationId = await Notifications.scheduleNotificationAsync({
+                    content: {
+                      title: 'Test Workout Reminder',
+                      body: 'This is a test notification to verify reminders are working.',
+                      sound: 'default',
+                      badge: 1,
+                    },
+                    trigger: {
+                      type: 'time_interval',
+                      seconds: 2, // Fire in 2 seconds
+                    } as any,
+                  });
+                  Alert.alert('Success', `Test notification scheduled (ID: ${notificationId})`);
+                  if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                } catch (error) {
+                  Alert.alert('Error', `Failed to schedule test notification: ${error}`);
+                }
+              }}
+              activeOpacity={0.7}
+              style={[{ backgroundColor: colors.primary, padding: 12, borderRadius: 8, alignItems: 'center' }]}
+            >
+              <Text style={{ color: 'white', fontSize: 14, fontWeight: '600' }}>
+                🔔 Test Notification
+              </Text>
+            </TouchableOpacity>
+            <Text style={{ fontSize: 12, color: colors.muted, marginTop: 8, textAlign: 'center' }}>
+              Dev only: Fires in 2 seconds
+            </Text>
           </View>
         )}
 
