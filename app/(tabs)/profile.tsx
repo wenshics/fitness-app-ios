@@ -720,6 +720,7 @@ export default function ProfileScreen() {
                   )}
                   keyExtractor={(item) => item.toString()}
                   scrollEventThrottle={16}
+                  nestedScrollEnabled={true}
                 />
               </View>
 
@@ -747,6 +748,7 @@ export default function ProfileScreen() {
                   )}
                   keyExtractor={(item) => item.toString()}
                   scrollEventThrottle={16}
+                  nestedScrollEnabled={true}
                 />
               </View>
             </View>
@@ -1193,10 +1195,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     paddingHorizontal: 16,
     paddingVertical: 12,
+    flex: 1,
+    minHeight: 200,
   },
   pickerColumn: {
     flex: 1,
     alignItems: "center",
+    maxHeight: 300,
   },
   pickerLabel: {
     fontSize: 12,
