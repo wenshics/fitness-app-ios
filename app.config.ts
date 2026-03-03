@@ -54,7 +54,8 @@ const config: ExpoConfig = {
       "ITSAppUsesNonExemptEncryption": false,
       "NSCameraUsageDescription": "Camera access is required by video playback libraries used in this app, even though the app does not directly use the camera.",
       "NSMicrophoneUsageDescription": "Microphone access is required by audio libraries used in this app.",
-      "NSPhotoLibraryUsageDescription": "Photo library access is required by media libraries used in this app."
+      "NSPhotoLibraryUsageDescription": "Photo library access is required by media libraries used in this app.",
+      "NSUserNotificationsUsageDescription": "We'll remind you when it's time for your workout."
     }
   },
   android: {
@@ -89,6 +90,7 @@ const config: ExpoConfig = {
   },
   plugins: [
     "expo-router",
+    "expo-notifications",
     [
       "expo-video",
       {
