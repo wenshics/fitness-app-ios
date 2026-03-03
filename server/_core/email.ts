@@ -1,43 +1,13 @@
-import nodemailer from "nodemailer";
-
-let _transporter: nodemailer.Transporter | null = null;
-
-// Check if we're in development mode without email config
-function isEmailConfigured(): boolean {
-  return !!(process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD);
-}
+// Resend API for sending emails (works on all cloud platforms)
+const RESEND_API_KEY = process.env.RESEND_API_KEY;
+const FROM_EMAIL = process.env.FROM_EMAIL || "Pulse <onboarding@resend.dev>";
 
 export function validateEmailConfig(): { valid: boolean; error?: string } {
-  const user = process.env.GMAIL_USER;
-  const pass = process.env.GMAIL_APP_PASSWORD;
-  
-  if (!user) return { valid: false, error: "GMAIL_USER not set" };
-  if (!pass) return { valid: false, error: "GMAIL_APP_PASSWORD not set" };
-  
-  console.log("[Email] Configuration valid. GMAIL_USER:", user);
-  return { valid: true };
-}
-
-function getTransporter() {
-  if (!_transporter) {
-    const user = process.env.GMAIL_USER;
-    const pass = process.env.GMAIL_APP_PASSWORD?.replace(/\s/g, ""); // strip spaces
-    if (!user || !pass) {
-      throw new Error("GMAIL_USER or GMAIL_APP_PASSWORD not configured");
-    }
-    // Use explicit SMTP settings instead of "service: gmail"
-    // This works better on cloud platforms like Railway
-    _transporter = nodemailer.createTransport({
-      host: "smtp.gmail.com",
-      port: 587,
-      secure: false, // Use STARTTLS
-      auth: { user, pass },
-      connectionTimeout: 30000, // 30 seconds
-      greetingTimeout: 30000,
-      socketTimeout: 30000,
-    });
+  if (!RESEND_API_KEY) {
+    return { valid: false, error: "RESEND_API_KEY not set" };
   }
-  return _transporter;
+  console.log("[Email] Configuration valid. Using Resend API");
+  return { valid: true };
 }
 
 export async function sendEmail(opts: {
@@ -46,24 +16,38 @@ export async function sendEmail(opts: {
   html: string;
   text?: string;
 }): Promise<void> {
-  // DEVELOPMENT FALLBACK: If email not configured, log and return success
-  if (!isEmailConfigured()) {
-    console.log("[Email] DEV MODE - Email not configured, simulating send:");
+  if (!RESEND_API_KEY) {
+    console.log("[Email] DEV MODE - No API key, simulating send:");
     console.log("[Email] To:", opts.to);
     console.log("[Email] Subject:", opts.subject);
-    console.log("[Email] Would have sent HTML email");
-    return; // Return success without actually sending
+    return;
   }
 
-  const transporter = getTransporter();
-  const from = `"Pulse" <${process.env.GMAIL_USER}>`;
-  await transporter.sendMail({
-    from,
-    to: opts.to,
-    subject: opts.subject,
-    html: opts.html,
-    text: opts.text ?? opts.html.replace(/<[^>]+>/g, ""),
+  console.log("[Email] Sending via Resend to:", opts.to);
+  
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${RESEND_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      from: FROM_EMAIL,
+      to: opts.to,
+      subject: opts.subject,
+      html: opts.html,
+      text: opts.text,
+    }),
   });
+
+  if (!response.ok) {
+    const error = await response.text();
+    console.error("[Email] Resend API error:", error);
+    throw new Error(`Failed to send email: ${error}`);
+  }
+  
+  const result = await response.json();
+  console.log("[Email] Sent successfully, ID:", result.id);
 }
 
 export async function sendVerificationCode(email: string, code: string): Promise<void> {
@@ -89,9 +73,7 @@ export async function sendVerificationCode(email: string, code: string): Promise
 }
 
 export async function sendPasswordResetEmail(email: string, token: string, appUrl: string): Promise<void> {
-  // Web URL for browser
   const webResetUrl = `${appUrl}/reset-password?token=${token}`;
-  // Deep link URL for mobile app
   const appResetUrl = `manus20260212000221://reset-password?token=${token}`;
   
   await sendEmail({
@@ -105,7 +87,6 @@ export async function sendPasswordResetEmail(email: string, token: string, appUr
           This link expires in <strong>1 hour</strong>.
         </p>
         
-        <!-- Primary button for mobile app -->
         <a href="${appResetUrl}"
            style="display:inline-block;background:#0d9488;color:#fff;text-decoration:none;padding:14px 28px;border-radius:8px;font-weight:600;font-size:16px;margin-bottom:16px">
           Reset Password in App
