@@ -487,49 +487,7 @@ export default function ProfileScreen() {
           </View>
         )}
 
-        {/* Test Notification Button (Dev Only) */}
-        {user && (
-          <View style={{ marginTop: 16, marginHorizontal: 16 }}>
-            <TouchableOpacity
-              onPress={async () => {
-                try {
-                  if (Platform.OS === 'web') {
-                    console.log('✅ Test notification would fire in 2 seconds on mobile devices.');
-                    alert('Test notification would fire in 2 seconds on mobile devices.');
-                  } else {
-                    const notificationId = await Notifications.scheduleNotificationAsync({
-                      content: {
-                        title: 'Test Workout Reminder',
-                        body: 'This is a test notification to verify reminders are working.',
-                        sound: 'default',
-                        badge: 1,
-                      },
-                      trigger: {
-                        type: 'time_interval',
-                        seconds: 2,
-                      } as any,
-                    });
-                    console.log(`✅ Test notification scheduled (ID: ${notificationId})`);
-                    Alert.alert('Success', `Test notification scheduled (ID: ${notificationId})`);
-                    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                  }
-                } catch (error) {
-                  console.error('❌ Failed to schedule test notification:', error);
-                  alert(`Failed to schedule test notification: ${error}`);
-                }
-              }}
-              activeOpacity={0.7}
-              style={[{ backgroundColor: colors.primary, padding: 12, borderRadius: 8, alignItems: 'center' }]}
-            >
-              <Text style={{ color: 'white', fontSize: 14, fontWeight: '600' }}>
-                🔔 Test Notification
-              </Text>
-            </TouchableOpacity>
-            <Text style={{ fontSize: 12, color: colors.muted, marginTop: 8, textAlign: 'center' }}>
-              Dev only: Fires in 2 seconds on mobile
-            </Text>
-          </View>
-        )}
+
 
       </ScrollView>
       
