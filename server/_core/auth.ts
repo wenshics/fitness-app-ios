@@ -459,7 +459,17 @@ export function registerAuthRoutes(app: Express) {
             <div class="success-icon">✓</div>
             <h2>Password Reset Successful</h2>
             <p>Your password has been reset. You can now log in with your new password.</p>
-            <a href="manus20260212000221://login" class="app-button">Open Pulse App</a>
+            <div id="mobile-content" style="display:none;">
+              <a href="manus20260212000221://login" class="app-button">Open Pulse App</a>
+              <p style="color:#6b7280;font-size:14px;margin-top:16px;">
+                If the app doesn't open, please open Pulse manually and log in with your new password.
+              </p>
+            </div>
+            <div id="desktop-content" style="display:none;">
+              <p style="color:#374151;font-size:16px;margin-top:16px;">
+                Open the Pulse app on your phone to log in with your new password.
+              </p>
+            </div>
           </div>
         </div>
         <script>
@@ -512,6 +522,17 @@ export function registerAuthRoutes(app: Express) {
 
               formSection.style.display = 'none';
               successSection.style.display = 'block';
+              
+              // Detect if user is on mobile
+              const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+              const mobileContent = document.getElementById('mobile-content');
+              const desktopContent = document.getElementById('desktop-content');
+              
+              if (isMobile) {
+                mobileContent.style.display = 'block';
+              } else {
+                desktopContent.style.display = 'block';
+              }
             } catch (err) {
               errorMsg.textContent = 'Network error. Please try again.';
               errorMsg.style.display = 'block';
