@@ -1133,7 +1133,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     paddingTop: 16,
-    maxHeight: "60%",
+    maxHeight: "85%",
   },
   timePickerHeader: {
     flexDirection: "row",
