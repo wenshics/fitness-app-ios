@@ -1,0 +1,572 @@
+export type Difficulty = "beginner" | "intermediate" | "advanced";
+export type Category = "outdoor" | "home" | "gym";
+export type MuscleGroup = "full-body" | "legs" | "core" | "chest" | "arms" | "back" | "glutes" | "cardio" | "shoulders" | "hips" | "hamstrings" | "spine";
+
+export interface Exercise {
+  id: string;
+  name: string;
+  difficulty: Difficulty;
+  category: Category;
+  muscleGroups: MuscleGroup[];
+  defaultDuration: number; // seconds
+  demoImage: string; // AI-generated demo image URL
+  description: string;
+  instructions: string[];
+  caloriesPerMinute: number;
+}
+
+export const EXERCISES: Exercise[] = [
+  // ==================== OUTDOOR EXERCISES (10) ====================
+
+  // --- Outdoor Beginner (3) ---
+  {
+    id: "outdoor-brisk-walking",
+    name: "Brisk Walking",
+    difficulty: "beginner",
+    category: "outdoor",
+    muscleGroups: ["legs", "cardio"],
+    defaultDuration: 300,
+    demoImage: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663279123655/kBZnHWNZQNgFHEzg.png",
+    description: "A low-impact cardio exercise that builds endurance and burns calories at a steady pace.",
+    instructions: [
+      "Walk at a pace that elevates your heart rate noticeably.",
+      "Swing your arms naturally with each stride.",
+      "Keep your posture upright and shoulders relaxed.",
+      "Maintain a consistent pace for the full duration.",
+    ],
+    caloriesPerMinute: 5,
+  },
+  {
+    id: "outdoor-light-jog",
+    name: "Light Jog",
+    difficulty: "beginner",
+    category: "outdoor",
+    muscleGroups: ["legs", "cardio", "glutes"],
+    defaultDuration: 300,
+    demoImage: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663279123655/VCPNDftqobAEDVPg.png",
+    description: "An easy-paced jog to build cardiovascular fitness and warm up your muscles.",
+    instructions: [
+      "Start with a slow jog at a conversational pace.",
+      "Land on the midfoot and roll forward to push off.",
+      "Keep your arms bent at 90 degrees and swing them gently.",
+      "Breathe rhythmically through your nose and mouth.",
+    ],
+    caloriesPerMinute: 8,
+  },
+  {
+    id: "outdoor-park-bench-step-ups",
+    name: "Park Bench Step-Ups",
+    difficulty: "beginner",
+    category: "outdoor",
+    muscleGroups: ["legs", "glutes", "cardio"],
+    defaultDuration: 60,
+    demoImage: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663279123655/jMdZviAfRjTjSbZg.png",
+    description: "Use a park bench to perform step-ups that strengthen your legs and improve balance.",
+    instructions: [
+      "Stand facing a sturdy park bench.",
+      "Step up with your right foot, pressing through your heel.",
+      "Bring your left foot up to stand on the bench.",
+      "Step down with control and alternate the leading leg.",
+    ],
+    caloriesPerMinute: 7,
+  },
+
+  // --- Outdoor Intermediate (4) ---
+  {
+    id: "outdoor-interval-running",
+    name: "Interval Running",
+    difficulty: "intermediate",
+    category: "outdoor",
+    muscleGroups: ["legs", "cardio", "core"],
+    defaultDuration: 300,
+    demoImage: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663279123655/ZYRDJfIvnIfqJqQI.png",
+    description: "Alternate between fast running and recovery jogs to boost cardiovascular capacity.",
+    instructions: [
+      "Warm up with a 2-minute easy jog.",
+      "Sprint at 80% effort for 30 seconds.",
+      "Recover with a slow jog for 60 seconds.",
+      "Repeat the sprint-recovery cycle for the full duration.",
+    ],
+    caloriesPerMinute: 12,
+  },
+  {
+    id: "outdoor-hill-sprints",
+    name: "Hill Sprints",
+    difficulty: "intermediate",
+    category: "outdoor",
+    muscleGroups: ["legs", "glutes", "cardio"],
+    defaultDuration: 120,
+    demoImage: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663279123655/RNaPQOzHhNAKXzIV.png",
+    description: "Sprint up a hill to build explosive leg power and cardiovascular endurance.",
+    instructions: [
+      "Find a moderate incline hill.",
+      "Sprint uphill at maximum effort for 15-20 seconds.",
+      "Walk back down to recover.",
+      "Repeat for the full duration with proper rest between sprints.",
+    ],
+    caloriesPerMinute: 14,
+  },
+  {
+    id: "outdoor-stair-climbing",
+    name: "Stair Climbing",
+    difficulty: "intermediate",
+    category: "outdoor",
+    muscleGroups: ["legs", "glutes", "cardio", "core"],
+    defaultDuration: 180,
+    demoImage: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663279123655/vMLYiAknJAAopcVt.png",
+    description: "Climb outdoor stairs or stadium steps for an intense lower-body and cardio workout.",
+    instructions: [
+      "Find a set of outdoor stairs or bleachers.",
+      "Climb up at a brisk pace, driving through your heels.",
+      "Walk or jog back down for recovery.",
+      "Maintain an upright posture throughout.",
+    ],
+    caloriesPerMinute: 10,
+  },
+  {
+    id: "outdoor-trail-running",
+    name: "Trail Running",
+    difficulty: "intermediate",
+    category: "outdoor",
+    muscleGroups: ["legs", "core", "cardio", "glutes"],
+    defaultDuration: 600,
+    demoImage: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663279123655/YCFwKoMZVtFFScYa.png",
+    description: "Run on uneven terrain to challenge your balance, agility, and endurance.",
+    instructions: [
+      "Choose a trail with varied terrain.",
+      "Shorten your stride on uneven ground for stability.",
+      "Keep your eyes on the path ahead, not at your feet.",
+      "Adjust pace based on terrain difficulty.",
+    ],
+    caloriesPerMinute: 11,
+  },
+
+  // --- Outdoor Advanced (3) ---
+  {
+    id: "outdoor-sprint-intervals",
+    name: "Sprint Intervals",
+    difficulty: "advanced",
+    category: "outdoor",
+    muscleGroups: ["legs", "cardio", "core", "glutes"],
+    defaultDuration: 300,
+    demoImage: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663279123655/FDirtUvyGDOmjZgQ.png",
+    description: "All-out sprints with short rest periods to push your anaerobic threshold.",
+    instructions: [
+      "Mark a 100-meter distance on flat ground.",
+      "Sprint at 95-100% effort to the end.",
+      "Walk back to the start for recovery.",
+      "Repeat immediately with minimal rest between sets.",
+    ],
+    caloriesPerMinute: 16,
+  },
+  {
+    id: "outdoor-long-distance-run",
+    name: "Long Distance Run",
+    difficulty: "advanced",
+    category: "outdoor",
+    muscleGroups: ["legs", "cardio", "core"],
+    defaultDuration: 1800,
+    demoImage: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663279123655/xHCNSAqiEgRLggFI.png",
+    description: "A sustained run to build aerobic endurance and mental toughness.",
+    instructions: [
+      "Start at a comfortable pace you can maintain.",
+      "Focus on steady breathing and relaxed form.",
+      "Gradually increase pace in the second half if able.",
+      "Cool down with a slow jog for the last 2 minutes.",
+    ],
+    caloriesPerMinute: 10,
+  },
+  {
+    id: "outdoor-plyometric-circuit",
+    name: "Plyometric Circuit",
+    difficulty: "advanced",
+    category: "outdoor",
+    muscleGroups: ["full-body", "legs", "cardio", "core"],
+    defaultDuration: 300,
+    demoImage: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663279123655/LtmNFzmOuKcxEAHU.png",
+    description: "Explosive jumping exercises performed outdoors for maximum power development.",
+    instructions: [
+      "Perform box jumps onto a park bench (10 reps).",
+      "Follow with broad jumps across the grass (10 reps).",
+      "Do tuck jumps in place (10 reps).",
+      "Rest 30 seconds and repeat the circuit.",
+    ],
+    caloriesPerMinute: 13,
+  },
+
+  // ==================== HOME EXERCISES (10) ====================
+
+  // --- Home Beginner (3) ---
+  {
+    id: "home-bodyweight-squats",
+    name: "Bodyweight Squats",
+    difficulty: "beginner",
+    category: "home",
+    muscleGroups: ["legs", "glutes", "core"],
+    defaultDuration: 60,
+    demoImage: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663279123655/aEwpwylPbJTrzcsq.png",
+    description: "A fundamental lower-body exercise that strengthens your quads, hamstrings, and glutes.",
+    instructions: [
+      "Stand with feet shoulder-width apart.",
+      "Push your hips back and bend your knees.",
+      "Lower until your thighs are parallel to the floor.",
+      "Drive through your heels to stand back up.",
+    ],
+    caloriesPerMinute: 6,
+  },
+  {
+    id: "home-push-ups",
+    name: "Push-Ups",
+    difficulty: "beginner",
+    category: "home",
+    muscleGroups: ["chest", "arms", "shoulders", "core"],
+    defaultDuration: 60,
+    demoImage: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663279123655/MVXVUFcCqnjNLXcP.png",
+    description: "A classic upper-body exercise that builds chest, shoulder, and arm strength.",
+    instructions: [
+      "Start in a high plank position with hands shoulder-width apart.",
+      "Lower your body until your chest nearly touches the floor.",
+      "Keep your core tight and body in a straight line.",
+      "Push back up to the starting position.",
+    ],
+    caloriesPerMinute: 7,
+  },
+  {
+    id: "home-glute-bridges",
+    name: "Glute Bridges",
+    difficulty: "beginner",
+    category: "home",
+    muscleGroups: ["glutes", "hamstrings", "core"],
+    defaultDuration: 60,
+    demoImage: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663279123655/jmWfYpPPwbbwgbiV.png",
+    description: "An effective exercise for activating and strengthening the glutes and posterior chain.",
+    instructions: [
+      "Lie on your back with knees bent and feet flat on the floor.",
+      "Press through your heels to lift your hips toward the ceiling.",
+      "Squeeze your glutes at the top of the movement.",
+      "Lower back down with control and repeat.",
+    ],
+    caloriesPerMinute: 5,
+  },
+
+  // --- Home Intermediate (4) ---
+  {
+    id: "home-burpees",
+    name: "Burpees",
+    difficulty: "intermediate",
+    category: "home",
+    muscleGroups: ["full-body", "cardio", "chest", "legs"],
+    defaultDuration: 60,
+    demoImage: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663279123655/PJqPjpYWBitZIhoU.png",
+    description: "A high-intensity full-body exercise that combines a squat, push-up, and jump.",
+    instructions: [
+      "Stand with feet shoulder-width apart.",
+      "Drop into a squat and place your hands on the floor.",
+      "Jump your feet back into a plank and do a push-up.",
+      "Jump your feet forward and explode upward into a jump.",
+    ],
+    caloriesPerMinute: 12,
+  },
+  {
+    id: "home-mountain-climbers",
+    name: "Mountain Climbers",
+    difficulty: "intermediate",
+    category: "home",
+    muscleGroups: ["core", "cardio", "legs", "shoulders"],
+    defaultDuration: 45,
+    demoImage: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663279123655/XEOKEFHCQjVumgYv.png",
+    description: "A dynamic plank exercise that builds core strength and cardiovascular endurance.",
+    instructions: [
+      "Start in a high plank position.",
+      "Drive your right knee toward your chest.",
+      "Quickly switch legs, bringing the left knee forward.",
+      "Continue alternating at a rapid pace.",
+    ],
+    caloriesPerMinute: 10,
+  },
+  {
+    id: "home-plank-hold",
+    name: "Plank Hold",
+    difficulty: "intermediate",
+    category: "home",
+    muscleGroups: ["core", "shoulders", "back"],
+    defaultDuration: 60,
+    demoImage: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663279123655/DnQBFKQkKBIqaKja.png",
+    description: "An isometric core exercise that builds stability and endurance throughout the trunk.",
+    instructions: [
+      "Start in a forearm plank position.",
+      "Keep your body in a straight line from head to heels.",
+      "Engage your core and avoid letting your hips sag.",
+      "Hold the position for the full duration.",
+    ],
+    caloriesPerMinute: 5,
+  },
+  {
+    id: "home-jump-squats",
+    name: "Jump Squats",
+    difficulty: "intermediate",
+    category: "home",
+    muscleGroups: ["legs", "glutes", "cardio"],
+    defaultDuration: 45,
+    demoImage: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663279123655/gqTdTvSJgQsxLcvt.png",
+    description: "An explosive variation of the squat that builds power and burns calories fast.",
+    instructions: [
+      "Stand with feet shoulder-width apart.",
+      "Lower into a squat position.",
+      "Explode upward, jumping as high as you can.",
+      "Land softly and immediately lower into the next squat.",
+    ],
+    caloriesPerMinute: 10,
+  },
+
+  // --- Home Advanced (3) ---
+  {
+    id: "home-pistol-squats",
+    name: "Pistol Squats",
+    difficulty: "advanced",
+    category: "home",
+    muscleGroups: ["legs", "glutes", "core"],
+    defaultDuration: 60,
+    demoImage: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663279123655/efEfhKFWQKhjleyx.png",
+    description: "A challenging single-leg squat that demands strength, balance, and flexibility.",
+    instructions: [
+      "Stand on one leg with the other extended in front.",
+      "Lower yourself slowly on the standing leg.",
+      "Go as deep as possible while keeping balance.",
+      "Drive through your heel to stand back up.",
+    ],
+    caloriesPerMinute: 9,
+  },
+  {
+    id: "home-handstand-push-ups",
+    name: "Handstand Push-Ups",
+    difficulty: "advanced",
+    category: "home",
+    muscleGroups: ["shoulders", "arms", "core"],
+    defaultDuration: 60,
+    demoImage: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663279123655/TtLADNgsvhYYRVJv.png",
+    description: "An advanced bodyweight exercise that builds exceptional shoulder and arm strength.",
+    instructions: [
+      "Kick up into a handstand against a wall.",
+      "Lower your head toward the floor by bending your arms.",
+      "Press back up to full arm extension.",
+      "Maintain core tension throughout the movement.",
+    ],
+    caloriesPerMinute: 8,
+  },
+  {
+    id: "home-one-arm-push-ups",
+    name: "One-Arm Push-Ups",
+    difficulty: "advanced",
+    category: "home",
+    muscleGroups: ["chest", "arms", "core", "shoulders"],
+    defaultDuration: 60,
+    demoImage: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663279123655/emzcMaRVGlCXAkcS.png",
+    description: "An elite-level push-up variation requiring immense upper-body and core strength.",
+    instructions: [
+      "Assume a wide push-up stance with one hand behind your back.",
+      "Lower your chest toward the floor with control.",
+      "Press back up using one arm.",
+      "Keep your hips level and core braced throughout.",
+    ],
+    caloriesPerMinute: 9,
+  },
+
+  // ==================== GYM EXERCISES (10) ====================
+
+  // --- Gym Beginner (3) ---
+  {
+    id: "gym-leg-press",
+    name: "Leg Press",
+    difficulty: "beginner",
+    category: "gym",
+    muscleGroups: ["legs", "glutes"],
+    defaultDuration: 60,
+    demoImage: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663279123655/IakEmzvOCDrrfowH.png",
+    description: "A machine-based exercise that safely builds lower-body strength for all fitness levels.",
+    instructions: [
+      "Sit in the leg press machine with feet shoulder-width on the platform.",
+      "Release the safety handles and lower the weight toward your chest.",
+      "Push through your heels to extend your legs.",
+      "Do not lock your knees at the top of the movement.",
+    ],
+    caloriesPerMinute: 6,
+  },
+  {
+    id: "gym-lat-pulldown",
+    name: "Lat Pulldown",
+    difficulty: "beginner",
+    category: "gym",
+    muscleGroups: ["back", "arms"],
+    defaultDuration: 60,
+    demoImage: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663279123655/BHXUFztjXFNvoXLA.png",
+    description: "A cable machine exercise that targets the latissimus dorsi for a wider back.",
+    instructions: [
+      "Sit at the lat pulldown machine and grip the bar wide.",
+      "Pull the bar down to your upper chest.",
+      "Squeeze your shoulder blades together at the bottom.",
+      "Slowly return the bar to the starting position.",
+    ],
+    caloriesPerMinute: 5,
+  },
+  {
+    id: "gym-chest-press-machine",
+    name: "Chest Press Machine",
+    difficulty: "beginner",
+    category: "gym",
+    muscleGroups: ["chest", "arms", "shoulders"],
+    defaultDuration: 60,
+    demoImage: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663279123655/pFAQnmkqsnXqBwdQ.png",
+    description: "A guided machine exercise that safely builds chest and tricep strength.",
+    instructions: [
+      "Adjust the seat so handles are at chest height.",
+      "Grip the handles and press forward until arms are extended.",
+      "Slowly return to the starting position.",
+      "Keep your back flat against the pad throughout.",
+    ],
+    caloriesPerMinute: 5,
+  },
+
+  // --- Gym Intermediate (4) ---
+  {
+    id: "gym-barbell-bench-press",
+    name: "Barbell Bench Press",
+    difficulty: "intermediate",
+    category: "gym",
+    muscleGroups: ["chest", "arms", "shoulders"],
+    defaultDuration: 90,
+    demoImage: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663279123655/SQbpHMmLHTrVkpTt.png",
+    description: "The gold standard for building chest strength and upper-body mass.",
+    instructions: [
+      "Lie flat on a bench with feet on the floor.",
+      "Grip the barbell slightly wider than shoulder-width.",
+      "Lower the bar to your mid-chest with control.",
+      "Press the bar back up to full arm extension.",
+    ],
+    caloriesPerMinute: 7,
+  },
+  {
+    id: "gym-cable-rows",
+    name: "Seated Cable Rows",
+    difficulty: "intermediate",
+    category: "gym",
+    muscleGroups: ["back", "arms", "shoulders"],
+    defaultDuration: 60,
+    demoImage: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663279123655/HQmQANlIXjuJNumZ.png",
+    description: "A cable exercise that builds back thickness and improves posture.",
+    instructions: [
+      "Sit at the cable row machine with feet on the platform.",
+      "Grip the handle and sit upright with a slight lean back.",
+      "Pull the handle to your lower chest, squeezing your back.",
+      "Slowly extend your arms to return to the start.",
+    ],
+    caloriesPerMinute: 6,
+  },
+  {
+    id: "gym-dumbbell-shoulder-press",
+    name: "Dumbbell Shoulder Press",
+    difficulty: "intermediate",
+    category: "gym",
+    muscleGroups: ["shoulders", "arms"],
+    defaultDuration: 60,
+    demoImage: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663279123655/PRVwsSZCLfxNuNBB.png",
+    description: "A free-weight exercise that builds strong, defined shoulders.",
+    instructions: [
+      "Sit on a bench with back support, holding dumbbells at shoulder height.",
+      "Press the dumbbells overhead until arms are fully extended.",
+      "Lower the dumbbells back to shoulder height with control.",
+      "Keep your core engaged and avoid arching your back.",
+    ],
+    caloriesPerMinute: 6,
+  },
+  {
+    id: "gym-barbell-squats",
+    name: "Barbell Back Squats",
+    difficulty: "intermediate",
+    category: "gym",
+    muscleGroups: ["legs", "glutes", "core"],
+    defaultDuration: 90,
+    demoImage: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663279123655/cdDzABOhXPHUMjdc.png",
+    description: "The king of lower-body exercises, building overall leg strength and power.",
+    instructions: [
+      "Position the barbell on your upper traps in a squat rack.",
+      "Unrack the bar and step back with feet shoulder-width apart.",
+      "Lower into a squat until thighs are parallel to the floor.",
+      "Drive through your heels to stand back up.",
+    ],
+    caloriesPerMinute: 8,
+  },
+
+  // --- Gym Advanced (3) ---
+  {
+    id: "gym-barbell-deadlifts",
+    name: "Barbell Deadlifts",
+    difficulty: "advanced",
+    category: "gym",
+    muscleGroups: ["back", "legs", "glutes", "core"],
+    defaultDuration: 90,
+    demoImage: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663279123655/QgFHrVZJIfPMavrj.png",
+    description: "A compound lift that builds total-body strength, targeting the posterior chain.",
+    instructions: [
+      "Stand with feet hip-width apart, barbell over mid-foot.",
+      "Hinge at the hips and grip the bar just outside your knees.",
+      "Drive through your feet, extending hips and knees together.",
+      "Stand tall at the top, then lower the bar with control.",
+    ],
+    caloriesPerMinute: 9,
+  },
+  {
+    id: "gym-weighted-pull-ups",
+    name: "Weighted Pull-Ups",
+    difficulty: "advanced",
+    category: "gym",
+    muscleGroups: ["back", "arms", "shoulders"],
+    defaultDuration: 60,
+    demoImage: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663279123655/FiLLBHjHhNqCgTVQ.png",
+    description: "Pull-ups with added weight for advanced back and arm development.",
+    instructions: [
+      "Attach a weight belt or hold a dumbbell between your feet.",
+      "Hang from a pull-up bar with an overhand grip.",
+      "Pull yourself up until your chin clears the bar.",
+      "Lower yourself back down with full control.",
+    ],
+    caloriesPerMinute: 8,
+  },
+  {
+    id: "gym-clean-and-press",
+    name: "Clean and Press",
+    difficulty: "advanced",
+    category: "gym",
+    muscleGroups: ["full-body", "shoulders", "legs", "core"],
+    defaultDuration: 90,
+    demoImage: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663279123655/DYPFLqVklLMPIfgW.png",
+    description: "An Olympic-style compound movement that develops explosive power and total-body strength.",
+    instructions: [
+      "Stand with feet hip-width apart, barbell on the floor.",
+      "Clean the bar to your shoulders in one explosive motion.",
+      "Press the bar overhead to full arm extension.",
+      "Lower the bar back to your shoulders, then to the floor.",
+    ],
+    caloriesPerMinute: 10,
+  },
+];
+
+export const CATEGORIES: { id: Category; label: string; icon: string }[] = [
+  { id: "outdoor", label: "Outdoor", icon: "figure.run" },
+  { id: "home", label: "Home", icon: "house.fill" },
+  { id: "gym", label: "Gym", icon: "dumbbell.fill" },
+];
+
+export const DIFFICULTY_COLORS: Record<Difficulty, { bg: string; text: string }> = {
+  beginner: { bg: "#059669", text: "#FFFFFF" },
+  intermediate: { bg: "#D97706", text: "#FFFFFF" },
+  advanced: { bg: "#DC2626", text: "#FFFFFF" },
+};
+
+export const CATEGORY_COLORS: Record<Category, { bg: string; text: string }> = {
+  outdoor: { bg: "#059669", text: "#FFFFFF" },
+  home: { bg: "#0D9488", text: "#FFFFFF" },
+  gym: { bg: "#7C3AED", text: "#FFFFFF" },
+};
+
+export const DEFAULT_REST_TIME = 15; // seconds

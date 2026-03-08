@@ -1,0 +1,35 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "types": [
+      "node",
+      "nativewind/types"
+    ],
+    "paths": {
+      "@/*": [
+        "./*"
+      ],
+      "@shared/*": [
+        "./shared/*"
+      ]
+    }
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    ".expo/types/**/*.ts",
+    "expo-env.d.ts",
+    "nativewind-env.d.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "server",
+    "tests/stripe-integration.test.ts",
+    "components/credit-card-form.native.tsx",
+    "components/stripe-provider-wrapper.native.tsx",
+    "hooks/use-stripe-payment-sheet.native.ts",
+    "lib/_core/stripe-payment.native.ts"
+  ]
+}

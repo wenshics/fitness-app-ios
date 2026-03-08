@@ -1,0 +1,747 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import React, { createContext, useCallback, useContext, useEffect, useReducer, useRef } from "react";
+import { DEFAULT_REST_TIME, EXERCISES, type Category, type Difficulty } from "@/constants/exercises";
+
+// ===== DAILY PLAN GENERATOR =====
+function generateDailyPlan(date: string, difficulty?: Difficulty): string[] {
+  // Use date as seed for deterministic but daily-changing plans
+  const seed = date.split("-").reduce((acc, n) => acc * 31 + parseInt(n, 10), 0);
+  const rng = (i: number) => ((seed * 9301 + 49297 + i * 1327) % 233280) / 233280;
+
+  const targetCount = 8; // 8 exercises per daily plan
+  const plan: string[] = [];
+
+  // Ensure variety: pick from different categories
+  const categories: Category[] = ["outdoor", "home", "gym"];
+  const exercisesByCategory: Record<string, typeof EXERCISES> = {};
+  for (const cat of categories) {
+    exercisesByCategory[cat] = EXERCISES.filter((e) => e.category === cat);
+  }
+
+  // Pick 3 outdoor, 3 home, 2 gym
+  const distribution: { cat: Category; count: number }[] = [
+    { cat: "outdoor", count: 3 },
+    { cat: "home", count: 3 },
+    { cat: "gym", count: 2 },
+  ];
+
+  let rngIdx = 0;
+  for (const { cat, count } of distribution) {
+    const pool = exercisesByCategory[cat] || [];
+    // Shuffle pool using seeded random
+    const shuffled = [...pool].sort(() => rng(rngIdx++) - 0.5);
+    // Filter by difficulty if specified
+    const filtered = difficulty
+      ? shuffled.filter((e) => e.difficulty === difficulty)
+      : shuffled;
+    const source = filtered.length >= count ? filtered : shuffled;
+    for (let i = 0; i < Math.min(count, source.length); i++) {
+      if (!plan.includes(source[i].id)) {
+        plan.push(source[i].id);
+      }
+    }
+  }
+
+  // Fill remaining slots if needed
+  while (plan.length < targetCount) {
+    const remaining = EXERCISES.filter((e) => !plan.includes(e.id));
+    if (remaining.length === 0) break;
+    const pick = remaining[Math.floor(rng(rngIdx++) * remaining.length)];
+    plan.push(pick.id);
+  }
+
+  return plan;
+}
+
+// Truly random plan for manual refresh (not seeded)
+function generateRandomPlan(): string[] {
+  const targetCount = 8;
+  const plan: string[] = [];
+  const categories: Category[] = ["outdoor", "home", "gym"];
+  const exercisesByCategory: Record<string, typeof EXERCISES> = {};
+  for (const cat of categories) {
+    exercisesByCategory[cat] = EXERCISES.filter((e) => e.category === cat);
+  }
+
+  // Randomize the distribution slightly each time
+  const distributions = [
+    [{ cat: "outdoor" as Category, count: 3 }, { cat: "home" as Category, count: 3 }, { cat: "gym" as Category, count: 2 }],
+    [{ cat: "outdoor" as Category, count: 2 }, { cat: "home" as Category, count: 4 }, { cat: "gym" as Category, count: 2 }],
+    [{ cat: "outdoor" as Category, count: 4 }, { cat: "home" as Category, count: 2 }, { cat: "gym" as Category, count: 2 }],
+    [{ cat: "outdoor" as Category, count: 3 }, { cat: "home" as Category, count: 2 }, { cat: "gym" as Category, count: 3 }],
+    [{ cat: "outdoor" as Category, count: 2 }, { cat: "home" as Category, count: 3 }, { cat: "gym" as Category, count: 3 }],
+  ];
+  const distribution = distributions[Math.floor(Math.random() * distributions.length)];
+
+  for (const { cat, count } of distribution) {
+    const pool = exercisesByCategory[cat] || [];
+    const shuffled = [...pool].sort(() => Math.random() - 0.5);
+    for (let i = 0; i < Math.min(count, shuffled.length); i++) {
+      if (!plan.includes(shuffled[i].id)) {
+        plan.push(shuffled[i].id);
+      }
+    }
+  }
+
+  // Fill remaining slots
+  while (plan.length < targetCount) {
+    const remaining = EXERCISES.filter((e) => !plan.includes(e.id));
+    if (remaining.length === 0) break;
+    const pick = remaining[Math.floor(Math.random() * remaining.length)];
+    plan.push(pick.id);
+  }
+
+  return plan;
+}
+
+// ===== AWARDS SYSTEM =====
+export interface Award {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  requirement: (state: WorkoutState) => boolean;
+}
+
+export const AWARDS: Award[] = [
+  {
+    id: "first-workout",
+    name: "First Step",
+    description: "Complete your first workout",
+    icon: "star.fill",
+    requirement: (s) => s.history.length >= 1,
+  },
+  {
+    id: "streak-3",
+    name: "On Fire",
+    description: "Achieve a 3-day workout streak",
+    icon: "flame.fill",
+    requirement: (s) => s.streak >= 3,
+  },
+  {
+    id: "streak-7",
+    name: "Week Warrior",
+    description: "Achieve a 7-day workout streak",
+    icon: "bolt.fill",
+    requirement: (s) => s.streak >= 7,
+  },
+  {
+    id: "streak-14",
+    name: "Unstoppable",
+    description: "Achieve a 14-day workout streak",
+    icon: "trophy.fill",
+    requirement: (s) => s.streak >= 14,
+  },
+  {
+    id: "streak-30",
+    name: "Iron Will",
+    description: "Achieve a 30-day workout streak",
+    icon: "crown.fill",
+    requirement: (s) => s.streak >= 30,
+  },
+  {
+    id: "workouts-5",
+    name: "Getting Started",
+    description: "Complete 5 total workouts",
+    icon: "figure.run",
+    requirement: (s) => s.history.length >= 5,
+  },
+  {
+    id: "workouts-25",
+    name: "Dedicated",
+    description: "Complete 25 total workouts",
+    icon: "figure.strengthtraining.traditional",
+    requirement: (s) => s.history.length >= 25,
+  },
+  {
+    id: "workouts-50",
+    name: "Half Century",
+    description: "Complete 50 total workouts",
+    icon: "medal.fill",
+    requirement: (s) => s.history.length >= 50,
+  },
+  {
+    id: "workouts-100",
+    name: "Centurion",
+    description: "Complete 100 total workouts",
+    icon: "star.circle.fill",
+    requirement: (s) => s.history.length >= 100,
+  },
+  {
+    id: "calories-1000",
+    name: "Calorie Crusher",
+    description: "Burn 1,000 total estimated calories",
+    icon: "flame.circle.fill",
+    requirement: (s) => {
+      const totalCal = s.history.reduce((sum, h) => {
+        const cal = h.exerciseIds.reduce((c, eid) => {
+          const ex = EXERCISES.find((e) => e.id === eid);
+          return c + (ex ? ex.caloriesPerMinute * (ex.defaultDuration / 60) : 0);
+        }, 0);
+        return sum + cal;
+      }, 0);
+      return totalCal >= 1000;
+    },
+  },
+  {
+    id: "all-categories",
+    name: "Well Rounded",
+    description: "Complete exercises from all 4 categories",
+    icon: "circle.grid.2x2.fill",
+    requirement: (s) => {
+      const cats = new Set<string>();
+      s.history.forEach((h) =>
+        h.exerciseIds.forEach((eid) => {
+          const ex = EXERCISES.find((e) => e.id === eid);
+          if (ex) cats.add(ex.category);
+        }),
+      );
+      return cats.size >= 4;
+    },
+  },
+  {
+    id: "early-bird",
+    name: "Early Bird",
+    description: "Complete 3 morning workouts (before noon)",
+    icon: "sunrise.fill",
+    requirement: (s) => {
+      const morningCount = s.history.filter((h) => {
+        const hour = new Date(h.completedAt).getHours();
+        return hour < 12;
+      }).length;
+      return morningCount >= 3;
+    },
+  },
+  {
+    id: "night-owl",
+    name: "Night Owl",
+    description: "Complete 3 evening workouts (after 6 PM)",
+    icon: "moon.stars.fill",
+    requirement: (s) => {
+      const eveningCount = s.history.filter((h) => {
+        const hour = new Date(h.completedAt).getHours();
+        return hour >= 18;
+      }).length;
+      return eveningCount >= 3;
+    },
+  },
+  {
+    id: "workouts-10",
+    name: "Momentum",
+    description: "Complete 10 total workouts",
+    icon: "bolt.circle.fill",
+    requirement: (s) => s.history.length >= 10,
+  },
+  {
+    id: "workouts-75",
+    name: "Three Quarters",
+    description: "Complete 75 total workouts",
+    icon: "target",
+    requirement: (s) => s.history.length >= 75,
+  },
+  {
+    id: "streak-5",
+    name: "Consistency",
+    description: "Achieve a 5-day workout streak",
+    icon: "checkmark.circle.fill",
+    requirement: (s) => s.streak >= 5,
+  },
+  {
+    id: "streak-21",
+    name: "Habit Formed",
+    description: "Achieve a 21-day workout streak",
+    icon: "heart.circle.fill",
+    requirement: (s) => s.streak >= 21,
+  },
+  {
+    id: "streak-60",
+    name: "Legendary",
+    description: "Achieve a 60-day workout streak",
+    icon: "star.fill",
+    requirement: (s) => s.streak >= 60,
+  },
+  {
+    id: "calories-500",
+    name: "Calorie Counter",
+    description: "Burn 500 total estimated calories",
+    icon: "flame",
+    requirement: (s) => {
+      const totalCal = s.history.reduce((sum, h) => {
+        const cal = h.exerciseIds.reduce((c, eid) => {
+          const ex = EXERCISES.find((e) => e.id === eid);
+          return c + (ex ? ex.caloriesPerMinute * (ex.defaultDuration / 60) : 0);
+        }, 0);
+        return sum + cal;
+      }, 0);
+      return totalCal >= 500;
+    },
+  },
+  {
+    id: "calories-2000",
+    name: "Calorie Master",
+    description: "Burn 2,000 total estimated calories",
+    icon: "flame.fill",
+    requirement: (s) => {
+      const totalCal = s.history.reduce((sum, h) => {
+        const cal = h.exerciseIds.reduce((c, eid) => {
+          const ex = EXERCISES.find((e) => e.id === eid);
+          return c + (ex ? ex.caloriesPerMinute * (ex.defaultDuration / 60) : 0);
+        }, 0);
+        return sum + cal;
+      }, 0);
+      return totalCal >= 2000;
+    },
+  },
+  {
+    id: "calories-5000",
+    name: "Inferno",
+    description: "Burn 5,000 total estimated calories",
+    icon: "fire",
+    requirement: (s) => {
+      const totalCal = s.history.reduce((sum, h) => {
+        const cal = h.exerciseIds.reduce((c, eid) => {
+          const ex = EXERCISES.find((e) => e.id === eid);
+          return c + (ex ? ex.caloriesPerMinute * (ex.defaultDuration / 60) : 0);
+        }, 0);
+        return sum + cal;
+      }, 0);
+      return totalCal >= 5000;
+    },
+  },
+  {
+    id: "outdoor-warrior",
+    name: "Outdoor Warrior",
+    description: "Complete 10 outdoor exercises",
+    icon: "tree.fill",
+    requirement: (s) => {
+      let outdoorCount = 0;
+      s.history.forEach((h) =>
+        h.exerciseIds.forEach((eid) => {
+          const ex = EXERCISES.find((e) => e.id === eid);
+          if (ex && ex.category === "outdoor") outdoorCount++;
+        }),
+      );
+      return outdoorCount >= 10;
+    },
+  },
+  {
+    id: "gym-rat",
+    name: "Gym Rat",
+    description: "Complete 10 gym exercises",
+    icon: "dumbbell.fill",
+    requirement: (s) => {
+      let gymCount = 0;
+      s.history.forEach((h) =>
+        h.exerciseIds.forEach((eid) => {
+          const ex = EXERCISES.find((e) => e.id === eid);
+          if (ex && ex.category === "gym") gymCount++;
+        }),
+      );
+      return gymCount >= 10;
+    },
+  },
+  {
+    id: "home-champion",
+    name: "Home Champion",
+    description: "Complete 10 home exercises",
+    icon: "house.fill",
+    requirement: (s) => {
+      let homeCount = 0;
+      s.history.forEach((h) =>
+        h.exerciseIds.forEach((eid) => {
+          const ex = EXERCISES.find((e) => e.id === eid);
+          if (ex && ex.category === "home") homeCount++;
+        }),
+      );
+      return homeCount >= 10;
+    },
+  },
+  {
+    id: "comeback-kid",
+    name: "Comeback Kid",
+    description: "Return to working out after 7+ days off",
+    icon: "arrow.circlepath",
+    requirement: (s) => {
+      if (s.history.length < 2) return false;
+      const sorted = [...s.history].sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime());
+      if (sorted.length < 2) return false;
+      const lastWorkout = new Date(sorted[0].completedAt);
+      const secondLast = new Date(sorted[1].completedAt);
+      const daysDiff = (lastWorkout.getTime() - secondLast.getTime()) / (1000 * 60 * 60 * 24);
+      return daysDiff >= 7;
+    },
+  },
+];
+
+// ===== TYPES =====
+export interface WorkoutHistory {
+  date: string; // YYYY-MM-DD
+  exerciseIds: string[];
+  totalDuration: number; // seconds
+  completedAt: string; // ISO string
+}
+
+export interface ReminderSettings {
+  weekdayEvening: { hour: number; minute: number };
+  weekendMorning: { hour: number; minute: number };
+  weekendEvening: { hour: number; minute: number };
+  enabled: boolean;
+}
+
+export const DEFAULT_REMINDERS: ReminderSettings = {
+  weekdayEvening: { hour: 19, minute: 30 },
+  weekendMorning: { hour: 8, minute: 30 },
+  weekendEvening: { hour: 19, minute: 30 },
+  enabled: true,
+};
+
+export interface WorkoutSettings {
+  restTime: number;
+  defaultDuration: number;
+  reminders: ReminderSettings;
+}
+
+interface WorkoutState {
+  plan: string[]; // exercise IDs (custom plan)
+  dailyPlan: string[]; // auto-generated daily plan
+  dailyPlanDate: string; // date of the daily plan
+  dailyPlanEdited: boolean; // whether user manually edited today's plan
+  history: WorkoutHistory[];
+  settings: WorkoutSettings;
+  todayCompleted: string[]; // exercise IDs completed today
+  streak: number;
+  unlockedAwards: string[]; // award IDs
+  loaded: boolean;
+}
+
+type WorkoutAction =
+  | { type: "LOAD_STATE"; payload: Partial<WorkoutState> }
+  | { type: "SET_PLAN"; payload: string[] }
+  | { type: "ADD_TO_PLAN"; payload: string }
+  | { type: "REMOVE_FROM_PLAN"; payload: string }
+  | { type: "REORDER_PLAN"; payload: string[] }
+  | { type: "SET_DAILY_PLAN"; payload: { plan: string[]; date: string } }
+  | { type: "EDIT_DAILY_PLAN"; payload: string[] }
+  | { type: "REFRESH_DAILY_PLAN" }
+  | { type: "COMPLETE_WORKOUT"; payload: { exerciseIds: string[]; totalDuration: number } }
+  | { type: "UPDATE_SETTINGS"; payload: Partial<WorkoutSettings> }
+  | { type: "UNLOCK_AWARD"; payload: string }
+  | { type: "RESET_TODAY" }
+  | { type: "RESET_ALL" };
+
+// Storage keys are scoped to user ID
+function getStorageKeys(userId: string | number | null) {
+  const prefix = userId ? `pulse_${userId}` : "pulse";
+  return {
+    PLAN: `${prefix}_plan`,
+    DAILY_PLAN: `${prefix}_daily_plan`,
+    DAILY_PLAN_DATE: `${prefix}_daily_plan_date`,
+    DAILY_PLAN_EDITED: `${prefix}_daily_plan_edited`,
+    HISTORY: `${prefix}_history`,
+    SETTINGS: `${prefix}_settings`,
+    TODAY_COMPLETED: `${prefix}_today_completed`,
+    TODAY_DATE: `${prefix}_today_date`,
+    STREAK: `${prefix}_streak`,
+    UNLOCKED_AWARDS: `${prefix}_unlocked_awards`,
+  };
+}
+
+function getToday(): string {
+  return new Date().toISOString().split("T")[0];
+}
+
+function calculateStreak(history: WorkoutHistory[]): number {
+  if (history.length === 0) return 0;
+  const sorted = [...history].sort((a, b) => b.date.localeCompare(a.date));
+  let streak = 0;
+  const today = new Date();
+  const checkDate = new Date(today);
+
+  for (let i = 0; i < 365; i++) {
+    const dateStr = checkDate.toISOString().split("T")[0];
+    const hasWorkout = sorted.some((h) => h.date === dateStr);
+    if (hasWorkout) {
+      streak++;
+      checkDate.setDate(checkDate.getDate() - 1);
+    } else if (i === 0) {
+      checkDate.setDate(checkDate.getDate() - 1);
+    } else {
+      break;
+    }
+  }
+  return streak;
+}
+
+const todayStr = getToday();
+const initialDailyPlan = generateDailyPlan(todayStr);
+
+const initialState: WorkoutState = {
+  plan: [],
+  dailyPlan: initialDailyPlan,
+  dailyPlanDate: todayStr,
+  dailyPlanEdited: false,
+  history: [],
+  settings: { restTime: DEFAULT_REST_TIME, defaultDuration: 30, reminders: DEFAULT_REMINDERS },
+  todayCompleted: [],
+  streak: 0,
+  unlockedAwards: [],
+  loaded: false,
+};
+
+function workoutReducer(state: WorkoutState, action: WorkoutAction): WorkoutState {
+  switch (action.type) {
+    case "LOAD_STATE":
+      return { ...state, ...action.payload, loaded: true };
+    case "SET_PLAN":
+      return { ...state, plan: action.payload };
+    case "ADD_TO_PLAN":
+      if (state.dailyPlan.includes(action.payload)) return state;
+      return { ...state, dailyPlan: [...state.dailyPlan, action.payload], dailyPlanEdited: true };
+    case "REMOVE_FROM_PLAN":
+      return { ...state, dailyPlan: state.dailyPlan.filter((id) => id !== action.payload), dailyPlanEdited: true };
+    case "REORDER_PLAN":
+      return { ...state, dailyPlan: action.payload, dailyPlanEdited: true };
+    case "SET_DAILY_PLAN":
+      return { ...state, dailyPlan: action.payload.plan, dailyPlanDate: action.payload.date, dailyPlanEdited: false };
+    case "EDIT_DAILY_PLAN":
+      return { ...state, dailyPlan: action.payload, dailyPlanEdited: true };
+    case "REFRESH_DAILY_PLAN": {
+      const today = getToday();
+      const newPlan = generateRandomPlan();
+      return { ...state, dailyPlan: newPlan, dailyPlanDate: today, dailyPlanEdited: false };
+    }
+    case "COMPLETE_WORKOUT": {
+      const today = getToday();
+      const newHistory: WorkoutHistory = {
+        date: today,
+        exerciseIds: action.payload.exerciseIds,
+        totalDuration: action.payload.totalDuration,
+        completedAt: new Date().toISOString(),
+      };
+      const updatedHistory = [...state.history, newHistory];
+      const newTodayCompleted = [
+        ...new Set([...state.todayCompleted, ...action.payload.exerciseIds]),
+      ];
+      const newStreak = calculateStreak(updatedHistory);
+      // Check for new awards
+      const tempState = { ...state, history: updatedHistory, streak: newStreak, todayCompleted: newTodayCompleted };
+      const newAwards = [...state.unlockedAwards];
+      for (const award of AWARDS) {
+        if (!newAwards.includes(award.id) && award.requirement(tempState)) {
+          newAwards.push(award.id);
+        }
+      }
+      return {
+        ...state,
+        history: updatedHistory,
+        todayCompleted: newTodayCompleted,
+        streak: newStreak,
+        unlockedAwards: newAwards,
+      };
+    }
+    case "UPDATE_SETTINGS":
+      return { ...state, settings: { ...state.settings, ...action.payload } };
+    case "UNLOCK_AWARD":
+      if (state.unlockedAwards.includes(action.payload)) return state;
+      return { ...state, unlockedAwards: [...state.unlockedAwards, action.payload] };
+    case "RESET_TODAY":
+      return { ...state, todayCompleted: [] };
+    case "RESET_ALL":
+      return { ...initialState, loaded: true };
+    default:
+      return state;
+  }
+}
+
+interface WorkoutContextType {
+  state: WorkoutState;
+  setPlan: (plan: string[]) => void;
+  addToPlan: (exerciseId: string) => void;
+  removeFromPlan: (exerciseId: string) => void;
+  reorderPlan: (plan: string[]) => void;
+  editDailyPlan: (plan: string[]) => void;
+  refreshDailyPlan: () => void;
+  completeWorkout: (exerciseIds: string[], totalDuration: number) => void;
+  updateSettings: (settings: Partial<WorkoutSettings>) => void;
+  getDailyPlanExercises: () => typeof EXERCISES;
+  getTotalPlanDuration: () => number;
+  getUnlockedAwards: () => Award[];
+  getLockedAwards: () => Award[];
+  setUserId: (userId: string | number | null) => void;
+}
+
+const WorkoutContext = createContext<WorkoutContextType | null>(null);
+
+export function WorkoutProvider({ children }: { children: React.ReactNode }) {
+  const [state, dispatch] = useReducer(workoutReducer, initialState);
+  const userIdRef = useRef<string | number | null>(null);
+
+  const loadStateForUser = useCallback(async (userId: string | number | null) => {
+    try {
+      const keys = getStorageKeys(userId);
+      console.log("[WorkoutStore] Loading state for user:", userId);
+
+      const [
+        planStr, dailyPlanStr, dailyPlanDateStr, dailyPlanEditedStr,
+        historyStr, settingsStr, todayCompletedStr, todayDateStr, streakStr,
+        unlockedAwardsStr,
+      ] = await Promise.all([
+        AsyncStorage.getItem(keys.PLAN),
+        AsyncStorage.getItem(keys.DAILY_PLAN),
+        AsyncStorage.getItem(keys.DAILY_PLAN_DATE),
+        AsyncStorage.getItem(keys.DAILY_PLAN_EDITED),
+        AsyncStorage.getItem(keys.HISTORY),
+        AsyncStorage.getItem(keys.SETTINGS),
+        AsyncStorage.getItem(keys.TODAY_COMPLETED),
+        AsyncStorage.getItem(keys.TODAY_DATE),
+        AsyncStorage.getItem(keys.STREAK),
+        AsyncStorage.getItem(keys.UNLOCKED_AWARDS),
+      ]);
+
+      const today = getToday();
+      const savedDate = todayDateStr || "";
+
+      const payload: Partial<WorkoutState> = {};
+      if (planStr) payload.plan = JSON.parse(planStr);
+      if (historyStr) payload.history = JSON.parse(historyStr);
+      if (settingsStr) {
+        const savedSettings = JSON.parse(settingsStr);
+        // Merge with defaults so old data without reminders gets the defaults
+        payload.settings = {
+          ...initialState.settings,
+          ...savedSettings,
+          reminders: { ...DEFAULT_REMINDERS, ...(savedSettings.reminders || {}) },
+        };
+      }
+      if (streakStr) payload.streak = parseInt(streakStr, 10);
+      if (unlockedAwardsStr) payload.unlockedAwards = JSON.parse(unlockedAwardsStr);
+
+      // Handle daily plan - auto-generate if it's a new day
+      if (dailyPlanDateStr === today && dailyPlanStr) {
+        payload.dailyPlan = JSON.parse(dailyPlanStr);
+        payload.dailyPlanDate = today;
+        payload.dailyPlanEdited = dailyPlanEditedStr === "true";
+      } else {
+        // New day - generate fresh plan
+        payload.dailyPlan = generateDailyPlan(today);
+        payload.dailyPlanDate = today;
+        payload.dailyPlanEdited = false;
+      }
+
+      // Reset today's completed if it's a new day
+      if (savedDate === today && todayCompletedStr) {
+        payload.todayCompleted = JSON.parse(todayCompletedStr);
+      } else {
+        payload.todayCompleted = [];
+      }
+
+      dispatch({ type: "LOAD_STATE", payload });
+      console.log("[WorkoutStore] State loaded for user:", userId);
+    } catch (error) {
+      console.error("[WorkoutStore] Failed to load state:", error);
+      dispatch({ type: "LOAD_STATE", payload: {} });
+    }
+  }, []);
+
+  const setUserId = useCallback((userId: string | number | null) => {
+    console.log("[WorkoutStore] setUserId:", userId, "previous:", userIdRef.current);
+    if (userId !== userIdRef.current) {
+      userIdRef.current = userId;
+      // Reset state first, then load for new user
+      dispatch({ type: "RESET_ALL" });
+      loadStateForUser(userId);
+    }
+  }, [loadStateForUser]);
+
+  // Initial load (anonymous)
+  useEffect(() => {
+    loadStateForUser(null);
+  }, [loadStateForUser]);
+
+  // Persist state changes (scoped to current user)
+  useEffect(() => {
+    if (!state.loaded) return;
+    const persist = async () => {
+      try {
+        const keys = getStorageKeys(userIdRef.current);
+        await Promise.all([
+          AsyncStorage.setItem(keys.PLAN, JSON.stringify(state.plan)),
+          AsyncStorage.setItem(keys.DAILY_PLAN, JSON.stringify(state.dailyPlan)),
+          AsyncStorage.setItem(keys.DAILY_PLAN_DATE, state.dailyPlanDate),
+          AsyncStorage.setItem(keys.DAILY_PLAN_EDITED, state.dailyPlanEdited.toString()),
+          AsyncStorage.setItem(keys.HISTORY, JSON.stringify(state.history)),
+          AsyncStorage.setItem(keys.SETTINGS, JSON.stringify(state.settings)),
+          AsyncStorage.setItem(keys.TODAY_COMPLETED, JSON.stringify(state.todayCompleted)),
+          AsyncStorage.setItem(keys.TODAY_DATE, getToday()),
+          AsyncStorage.setItem(keys.STREAK, state.streak.toString()),
+          AsyncStorage.setItem(keys.UNLOCKED_AWARDS, JSON.stringify(state.unlockedAwards)),
+        ]);
+      } catch (error) {
+        console.error("[WorkoutStore] Failed to persist state:", error);
+      }
+    };
+    persist();
+  }, [state]);
+
+  const setPlan = useCallback((plan: string[]) => dispatch({ type: "SET_PLAN", payload: plan }), []);
+  const addToPlan = useCallback((id: string) => dispatch({ type: "ADD_TO_PLAN", payload: id }), []);
+  const removeFromPlan = useCallback((id: string) => dispatch({ type: "REMOVE_FROM_PLAN", payload: id }), []);
+  const reorderPlan = useCallback((plan: string[]) => dispatch({ type: "REORDER_PLAN", payload: plan }), []);
+  const editDailyPlan = useCallback((plan: string[]) => dispatch({ type: "EDIT_DAILY_PLAN", payload: plan }), []);
+  const refreshDailyPlan = useCallback(() => dispatch({ type: "REFRESH_DAILY_PLAN" }), []);
+  const completeWorkout = useCallback(
+    (exerciseIds: string[], totalDuration: number) =>
+      dispatch({ type: "COMPLETE_WORKOUT", payload: { exerciseIds, totalDuration } }),
+    [],
+  );
+  const updateSettings = useCallback(
+    (settings: Partial<WorkoutSettings>) => dispatch({ type: "UPDATE_SETTINGS", payload: settings }),
+    [],
+  );
+
+  const getDailyPlanExercises = useCallback(() => {
+    return state.dailyPlan
+      .map((id) => EXERCISES.find((e) => e.id === id))
+      .filter(Boolean) as typeof EXERCISES;
+  }, [state.dailyPlan]);
+
+  const getTotalPlanDuration = useCallback(() => {
+    const exercises = getDailyPlanExercises();
+    const exerciseTime = exercises.reduce((sum, e) => sum + e.defaultDuration, 0);
+    const restTime = Math.max(0, exercises.length - 1) * state.settings.restTime;
+    return exerciseTime + restTime;
+  }, [getDailyPlanExercises, state.settings.restTime]);
+
+  const getUnlockedAwards = useCallback(() => {
+    return AWARDS.filter((a) => state.unlockedAwards.includes(a.id));
+  }, [state.unlockedAwards]);
+
+  const getLockedAwards = useCallback(() => {
+    return AWARDS.filter((a) => !state.unlockedAwards.includes(a.id));
+  }, [state.unlockedAwards]);
+
+  const value: WorkoutContextType = {
+    state,
+    setPlan,
+    addToPlan,
+    removeFromPlan,
+    reorderPlan,
+    editDailyPlan,
+    refreshDailyPlan,
+    completeWorkout,
+    updateSettings,
+    getDailyPlanExercises,
+    getTotalPlanDuration,
+    getUnlockedAwards,
+    getLockedAwards,
+    setUserId,
+  };
+
+  return <WorkoutContext.Provider value={value}>{children}</WorkoutContext.Provider>;
+}
+
+export function useWorkout() {
+  const ctx = useContext(WorkoutContext);
+  if (!ctx) throw new Error("useWorkout must be used within WorkoutProvider");
+  return ctx;
+}

@@ -1,0 +1,30 @@
+{
+  "cli": {
+    "version": ">= 5.0.0"
+  },
+  "build": {
+    "production": {
+      "env": {
+        "EXPO_PUBLIC_API_BASE_URL": "https://fitness-app-ios-production.up.railway.app"
+      },
+      "ios": {
+        "distribution": "store"
+      }
+    },
+    "preview": {
+      "env": {
+        "EXPO_PUBLIC_API_BASE_URL": "https://fitness-app-ios-production.up.railway.app"
+      },
+      "ios": {
+        "distribution": "internal"
+      }
+    }
+  },
+  "submit": {
+    "production": {
+      "ios": {
+        "ascAppId": "6759778064"
+      }
+    }
+  }
+}
