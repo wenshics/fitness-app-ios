@@ -1,0 +1,74 @@
+{
+  "identifier" : "pulse_products",
+  "nonConsumableProducts" : [],
+  "consumableProducts" : [],
+  "subscriptionGroups" : [
+    {
+      "id" : "pulse_premium_group",
+      "localizations" : [
+        {
+          "description" : "Full access to all Pulse features",
+          "displayName" : "Pulse Premium",
+          "locale" : "en_US"
+        }
+      ],
+      "name" : "Pulse Premium",
+      "subscriptions" : [
+        {
+          "adHocOffers" : [],
+          "codeOffers" : [],
+          "displayPrice" : "19.99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "introductoryOffer" : {
+            "duration" : "P7D",
+            "offerIdentifier" : "pulse_monthly_trial",
+            "offerMode" : "FREE_TRIAL",
+            "periodCount" : 1
+          },
+          "localizations" : [
+            {
+              "description" : "Full access to all Pulse features, billed monthly",
+              "displayName" : "Pulse Monthly",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "pulse_monthly",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "Pulse Monthly",
+          "subscriptionGroupID" : "pulse_premium_group",
+          "type" : "RecurringSubscription"
+        },
+        {
+          "adHocOffers" : [],
+          "codeOffers" : [],
+          "displayPrice" : "149.99",
+          "familyShareable" : false,
+          "groupNumber" : 2,
+          "introductoryOffer" : {
+            "duration" : "P7D",
+            "offerIdentifier" : "pulse_yearly_trial",
+            "offerMode" : "FREE_TRIAL",
+            "periodCount" : 1
+          },
+          "localizations" : [
+            {
+              "description" : "Full access to all Pulse features, billed yearly",
+              "displayName" : "Pulse Yearly",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "pulse_yearly",
+          "recurringSubscriptionPeriod" : "P1Y",
+          "referenceName" : "Pulse Yearly",
+          "subscriptionGroupID" : "pulse_premium_group",
+          "type" : "RecurringSubscription"
+        }
+      ]
+    }
+  ],
+  "version" : {
+    "major" : 2,
+    "minor" : 0
+  }
+}

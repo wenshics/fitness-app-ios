@@ -8,8 +8,6 @@ import { useSubscription } from "@/lib/subscription-store";
 import type { PlanType } from "@/lib/subscription-store";
 import { scheduleAllReminders, cancelAllReminders, initializeNotifications } from "@/lib/notification-service";
 const PLANS = [
-  { id: "daily" as const, label: "Daily", price: "$0.99", period: "/day", perWeek: "$6.93/wk", savings: "Save 0%", popular: false },
-  { id: "weekly" as const, label: "Weekly", price: "$5.99", period: "/week", perWeek: "$5.99/wk", savings: "Save 14%", popular: false },
   { id: "monthly" as const, label: "Monthly", price: "$19.99", period: "/month", perWeek: "$4.61/wk", savings: "Save 33%", popular: true },
   { id: "yearly" as const, label: "Yearly", price: "$149.99", period: "/year", perWeek: "$2.88/wk", savings: "Save 58%", popular: false },
 ]
@@ -22,6 +20,7 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
+  Linking,
   Modal,
   Platform,
   Pressable,
@@ -40,11 +39,15 @@ export default function ProfileScreen() {
   const { subscription, getCurrentPlan, refreshSubscription } = useSubscription();
 
   // Helpers derived from subscription state
-  const isTrialActive = () => false; // Apple IAP doesn't expose trial state here
   const getDaysRemaining = () => {
     if (!subscription.expiresAt) return 0;
     const diff = new Date(subscription.expiresAt).getTime() - Date.now();
     return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
+  };
+  const isTrialActive = () => {
+    if (!subscription.isSubscribed || !subscription.expiresAt) return false;
+    // Consider it a trial if subscribed and more than 6 days remain on first period
+    return getDaysRemaining() >= 6;
   };
   const canUpgradeTo = (planId: string) => planId !== subscription.plan;
   const router = useRouter();
@@ -130,14 +133,10 @@ export default function ProfileScreen() {
   };
 
   const handleLogout = async () => {
-    console.log('[Profile] Logout button tapped');
     try {
       await logout();
-      console.log('[Profile] Logout successful, redirecting to login-screen');
-      // Force redirect to login-screen after logout
-      router.replace('/login-screen');
+      // AuthGuard handles navigation to login-screen when isAuthenticated → false
     } catch (error) {
-      console.error('[Profile] Logout error:', error);
       Alert.alert('Error', 'Failed to logout');
     }
   };
@@ -659,10 +658,9 @@ export default function ProfileScreen() {
                 <Text style={[styles.confirmCancelText, { color: colors.foreground }]}>Keep Subscription</Text>
               </Pressable>
               <Pressable
-                onPress={async () => {
+                onPress={() => {
                   setShowCancelConfirm(false);
                   // Apple IAP subscriptions must be cancelled through iOS Settings
-                  const { Linking } = await import("react-native");
                   Linking.openURL("https://apps.apple.com/account/subscriptions");
                 }}
                 disabled={isCanceling}
