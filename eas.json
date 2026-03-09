@@ -1,11 +1,10 @@
 {
   "cli": {
     "version": ">= 5.0.0",
-    "appVersionSource": "remote"
+    "appVersionSource": "local"
   },
   "build": {
     "production": {
-      "autoIncrement": true,
       "env": {
         "EXPO_PUBLIC_API_BASE_URL": "https://fitness-app-ios-production.up.railway.app"
       },
@@ -14,7 +13,6 @@
       }
     },
     "preview": {
-      "autoIncrement": true,
       "env": {
         "EXPO_PUBLIC_API_BASE_URL": "https://fitness-app-ios-production.up.railway.app"
       },

@@ -41,7 +41,7 @@ const env = {
 const config: ExpoConfig = {
   name: "Pulse",
   slug: env.appSlug,
-  version: "1.0.2",
+  version: "1.1.0",
   orientation: "portrait",
   icon: "./assets/images/icon.png",
   scheme: env.scheme,
@@ -50,6 +50,7 @@ const config: ExpoConfig = {
   ios: {
     supportsTablet: true,
     bundleIdentifier: env.iosBundleId,
+    buildNumber: "6",
     "infoPlist": {
       "ITSAppUsesNonExemptEncryption": false,
       "NSCameraUsageDescription": "Camera access is required by video playback libraries used in this app, even though the app does not directly use the camera.",
