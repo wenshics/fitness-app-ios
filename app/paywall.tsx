@@ -2,7 +2,7 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useColors } from "@/hooks/use-colors";
 import { useAuth } from "@/hooks/use-auth";
 import { PLANS, type PlanType, useSubscription } from "@/lib/subscription-store";
-import { getOffering, purchasePackage, restorePurchases, waitForInit, saveMockCustomerInfo } from "@/lib/_core/purchases";
+import { getOffering, purchasePackage, restorePurchases, waitForInit, saveMockCustomerInfo, PRODUCT_IDS } from "@/lib/_core/purchases";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useState, useEffect } from "react";
@@ -105,7 +105,7 @@ export default function PaywallScreen() {
 
     try {
       const pkg = packages.find((p) =>
-        p.product.identifier === `${selectedPlan}_pro`
+        p.product.identifier === PRODUCT_IDS[selectedPlan]
       ) ?? packages[0];
 
       const customerInfo = await purchasePackage(pkg);
