@@ -2,9 +2,9 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useColors } from "@/hooks/use-colors";
 import { useAuth } from "@/hooks/use-auth";
 import { PLANS, type PlanType, useSubscription } from "@/lib/subscription-store";
-import { getOffering, purchasePackage, restorePurchases } from "@/lib/_core/purchases";
+import { getOffering, purchasePackage, restorePurchases, waitForInit, saveMockCustomerInfo } from "@/lib/_core/purchases";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter, useLocalSearchParams } from "expo-router";
+import { useRouter } from "expo-router";
 import { useState, useEffect } from "react";
 import {
   ActivityIndicator,
@@ -25,7 +25,6 @@ export default function PaywallScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const { onPurchaseSuccess, refreshSubscription } = useSubscription();
-  const { from } = useLocalSearchParams<{ from?: string }>();
 
   const [selectedPlan, setSelectedPlan] = useState<PlanType>("monthly");
   const [isProcessing, setIsProcessing] = useState(false);
@@ -37,9 +36,9 @@ export default function PaywallScreen() {
     if (!user) router.replace("/login-screen");
   }, [user, router]);
 
-  // Load available packages from RevenueCat
+  // Load available packages from RevenueCat — wait for SDK init first
   useEffect(() => {
-    getOffering().then((offering) => {
+    waitForInit().then(() => getOffering()).then((offering) => {
       if (offering?.availablePackages?.length) {
         setPackages(offering.availablePackages);
       }
@@ -51,13 +50,53 @@ export default function PaywallScreen() {
   const handleSubscribe = async () => {
     if (isProcessing) return;
 
-    // RevenueCat only works on real iOS/Android devices
     if (packages.length === 0) {
-      Alert.alert(
-        "Available on iOS",
-        "Subscriptions are purchased through the App Store. Please use the iOS app to subscribe.",
-        [{ text: "OK" }]
-      );
+      if (__DEV__) {
+        const trialEnd = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+        const planLabel = selectedPlan === "yearly" ? "Pulse Yearly ($149.99/yr)" : "Pulse Monthly ($19.99/mo)";
+        Alert.alert(
+          "Simulator Mode",
+          `Simulate a 7-day free trial for ${planLabel}?`,
+          [
+            { text: "Cancel", style: "cancel" },
+            {
+              text: "Start Free Trial",
+              onPress: () => {
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                const mockCi = {
+                  entitlements: {
+                    active: {
+                      pro: {
+                        productIdentifier: `${selectedPlan}_pro`,
+                        expirationDate: trialEnd,
+                        isActive: true,
+                        willRenew: true,
+                      },
+                    },
+                  },
+                  activeSubscriptions: [`${selectedPlan}_pro`],
+                } as any;
+                if (user?.id) saveMockCustomerInfo(mockCi, user.id);
+                onPurchaseSuccess(mockCi);
+                Alert.alert(
+                  "Welcome to Pulse Pro!",
+                  "Your 7-day free trial has started.",
+                  [{ text: "Let's Go!", onPress: () => {
+                    if (router.canDismiss()) router.dismiss();
+                    else router.replace("/(tabs)" as any);
+                  }}]
+                );
+              },
+            },
+          ]
+        );
+      } else {
+        Alert.alert(
+          "Available on iOS",
+          "Subscriptions are purchased through the App Store. Please use the iOS app to subscribe.",
+          [{ text: "OK" }]
+        );
+      }
       return;
     }
 
@@ -66,14 +105,15 @@ export default function PaywallScreen() {
 
     try {
       const pkg = packages.find((p) =>
-        p.product.identifier === `pulse_${selectedPlan}`
+        p.product.identifier === `${selectedPlan}_pro`
       ) ?? packages[0];
 
       const customerInfo = await purchasePackage(pkg);
       if (customerInfo) {
         onPurchaseSuccess(customerInfo);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        router.replace("/(tabs)" as any);
+        if (router.canDismiss()) router.dismiss();
+        else router.replace("/(tabs)" as any);
       }
     } catch (err: any) {
       console.error("[Paywall] Purchase error:", err);
@@ -96,7 +136,10 @@ export default function PaywallScreen() {
         await refreshSubscription();
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         Alert.alert("Restored", "Your subscription has been restored!", [
-          { text: "OK", onPress: () => router.replace("/(tabs)" as any) },
+          { text: "OK", onPress: () => {
+            if (router.canDismiss()) router.dismiss();
+            else router.replace("/(tabs)" as any);
+          }},
         ]);
       } else {
         Alert.alert("No purchase found", "No existing subscription found. Please subscribe to continue.");

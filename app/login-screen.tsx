@@ -54,6 +54,29 @@ export default function LoginScreen() {
         return;
       }
 
+      // Retry any profile data that couldn't be saved during signup
+      // (Supabase upsert fails during signup if email confirmation is pending)
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          const { default: AsyncStorage } = await import("@react-native-async-storage/async-storage");
+          const raw = await AsyncStorage.getItem(`user_profile_${session.user.id}`);
+          if (raw) {
+            const local = JSON.parse(raw);
+            if (local.dateOfBirth || local.height || local.weight) {
+              await supabase.from("profiles").upsert({
+                id: session.user.id,
+                birthday: local.dateOfBirth ?? null,
+                height_cm: local.height ?? null,
+                weight_kg: local.weight ?? null,
+              }, { onConflict: "id" });
+            }
+          }
+        }
+      } catch {
+        // Non-fatal — local profile still works
+      }
+
       // onAuthStateChange in use-auth.ts will handle updating global state
       // Navigate to home
       router.replace("/(tabs)");

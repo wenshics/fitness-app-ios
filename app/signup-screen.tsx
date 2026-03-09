@@ -125,6 +125,7 @@ export default function SignupScreen() {
         password: password.trim(),
         options: {
           data: { name: name.trim() },
+          emailRedirectTo: "manus20260212000221://verify-callback",
         },
       });
 
@@ -151,14 +152,17 @@ export default function SignupScreen() {
 
         if (profileError) {
           console.warn("[Signup] Profile upsert failed (will retry on next login):", profileError.message);
-          // Store locally as fallback so profile page can show data
-          const { default: AsyncStorage } = await import("@react-native-async-storage/async-storage");
-          await AsyncStorage.setItem(`pending_profile_${signUpData.user.id}`, JSON.stringify({
-            birthday: birthday.trim() || null,
-            height_cm: height ? parseFloat(height) : null,
-            weight_kg: weight ? parseFloat(weight) : null,
-          }));
         }
+        // Always save profile data locally under the key UserProvider reads.
+        // This is the reliable source of truth since the Supabase upsert may
+        // fail when email confirmation is pending (no active session = RLS blocks).
+        const { default: AsyncStorage } = await import("@react-native-async-storage/async-storage");
+        await AsyncStorage.setItem(`user_profile_${signUpData.user.id}`, JSON.stringify({
+          dateOfBirth: birthday.trim() || null,
+          height: height ? parseFloat(height) : null,
+          weight: weight ? parseFloat(weight) : null,
+          onboardingCompleted: true,
+        }));
       }
 
       // Supabase sends verification email automatically

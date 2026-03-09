@@ -27,6 +27,8 @@ import { UserProvider } from "@/lib/user-store";
 import { AuthModalProvider } from "@/lib/auth-modal-context";
 import { setupNotificationHandler, requestNotificationPermissions } from "@/lib/_core/notifications";
 import { initializePurchases } from "@/lib/_core/purchases";
+import * as Linking from "expo-linking";
+import { supabase } from "@/lib/_core/supabase";
 
 const DEFAULT_WEB_INSETS: EdgeInsets = { top: 0, right: 0, bottom: 0, left: 0 };
 const DEFAULT_WEB_FRAME: Rect = { x: 0, y: 0, width: 0, height: 0 };
@@ -80,6 +82,37 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   // Track whether we've done the initial redirect so we don't loop
   const hasRedirected = useRef(false);
 
+  // Handle Supabase auth deep links at root level — bypasses Expo Router route matching
+  useEffect(() => {
+    const handleAuthUrl = async (url: string) => {
+      if (!url.includes("manus20260212000221://")) return;
+
+      // PKCE: ?code=xxx
+      const qs = url.split("?")[1]?.split("#")[0] ?? "";
+      const code = new URLSearchParams(qs).get("code");
+      if (code) {
+        const { error } = await supabase.auth.exchangeCodeForSession(code);
+        if (!error) router.replace("/(tabs)");
+        return;
+      }
+
+      // Implicit: #access_token=xxx
+      const fragment = url.split("#")[1] ?? "";
+      const fp = new URLSearchParams(fragment);
+      const accessToken = fp.get("access_token");
+      const refreshToken = fp.get("refresh_token");
+      const type = fp.get("type");
+      if (accessToken && refreshToken) {
+        await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
+        router.replace(type === "recovery" ? "/reset-password" : "/(tabs)");
+      }
+    };
+
+    Linking.getInitialURL().then((url) => { if (url) handleAuthUrl(url); });
+    const sub = Linking.addEventListener("url", ({ url }) => handleAuthUrl(url));
+    return () => sub.remove();
+  }, [router]);
+
   useEffect(() => {
     // Wait until auth finishes loading from local storage
     if (isLoading) return;
@@ -87,6 +120,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     const inAuthGroup =
       segments[0] === "oauth" ||
       segments[0] === "auth" ||
+      segments[0] === "verify-callback" ||
       segments[0] === "login-screen" ||
       segments[0] === "signup-screen" ||
       segments[0] === "verify-email" ||
@@ -206,13 +240,11 @@ export default function RootLayout() {
                     <Stack.Screen name="login" options={{ presentation: "fullScreenModal" }} />
                     <Stack.Screen name="login-screen" options={{ presentation: "fullScreenModal" }} />
                     <Stack.Screen name="signup-screen" options={{ presentation: "fullScreenModal" }} />
-                    <Stack.Screen name="auth" options={{ presentation: "fullScreenModal" }} />
+                    <Stack.Screen name="verify-callback" />
                     <Stack.Screen name="verify-email" options={{ presentation: "fullScreenModal" }} />
                     <Stack.Screen name="forgot-password" options={{ presentation: "fullScreenModal" }} />
                     <Stack.Screen name="reset-password" options={{ presentation: "fullScreenModal" }} />
                     <Stack.Screen name="paywall" options={{ presentation: "fullScreenModal", gestureEnabled: true }} />
-                    <Stack.Screen name="payment-info" options={{ presentation: "fullScreenModal", gestureEnabled: true }} />
-                    <Stack.Screen name="payment-success" options={{ presentation: "fullScreenModal", gestureEnabled: false }} />
                     <Stack.Screen name="oauth/callback" />
                     <Stack.Screen
                       name="exercise/[id]"

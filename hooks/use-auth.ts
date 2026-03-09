@@ -15,6 +15,9 @@ let globalLoading = true;
 let initStarted = false;
 
 function emit(user: Auth.User | null, loading: boolean) {
+  // Skip if nothing changed — prevents double-renders when signOut triggers
+  // onAuthStateChange after we already called emit(null) manually in logout().
+  if (globalUser === user && globalLoading === loading) return;
   globalUser = user;
   globalLoading = loading;
   listeners.forEach((l) => l(user, loading));

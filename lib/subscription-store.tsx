@@ -4,6 +4,7 @@ import {
   getCustomerInfo,
   isPro,
   getActivePlanId,
+  initializePurchases,
 } from "@/lib/_core/purchases";
 import type { CustomerInfo } from "react-native-purchases";
 
@@ -100,7 +101,12 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     await load();
   }, [load]);
 
-  const setUserId = useCallback((_userId: string | null) => { load(); }, [load]);
+  const setUserId = useCallback(async (userId: string | null) => {
+    if (userId) {
+      await initializePurchases(userId);
+    }
+    load();
+  }, [load]);
 
   const onPurchaseSuccess = useCallback((ci: CustomerInfo) => {
     setSubscription({ ...customerInfoToState(ci), loaded: true });

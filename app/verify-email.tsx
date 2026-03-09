@@ -49,6 +49,7 @@ export default function VerifyEmailScreen() {
       const { error: resendError } = await supabase.auth.resend({
         type: "signup",
         email,
+        options: { emailRedirectTo: "manus20260212000221://verify-callback" },
       });
       if (resendError) {
         setError("Failed to resend. Please try again.");

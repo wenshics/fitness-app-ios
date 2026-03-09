@@ -2,8 +2,8 @@
  * RevenueCat In-App Purchase integration.
  *
  * Products (create these in App Store Connect → Subscriptions):
- *   pulse_monthly  — $19.99/month
- *   pulse_yearly   — $149.99/year
+ *   monthly_pro  — $19.99/month
+ *   yearly_pro   — $149.99/year
  *
  * RevenueCat setup:
  *   1. Create a RevenueCat project at https://app.revenuecat.com
@@ -18,20 +18,48 @@ import Purchases, {
   LOG_LEVEL,
 } from "react-native-purchases";
 import { Platform } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+// ─── Dev-only mock persistence (never runs in production builds) ─────────────
+const devMockKey = (userId: string) => `__dev_mock_ci__${userId}`;
+
+export async function saveMockCustomerInfo(ci: CustomerInfo, userId: string): Promise<void> {
+  if (!__DEV__) return;
+  await AsyncStorage.setItem(devMockKey(userId), JSON.stringify(ci));
+}
+
+async function getDevMockCustomerInfo(userId: string): Promise<CustomerInfo | null> {
+  if (!__DEV__) return null;
+  try {
+    const raw = await AsyncStorage.getItem(devMockKey(userId));
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+let _devUserId: string | null = null;
 
 // Product IDs — must match App Store Connect exactly
 export const PRODUCT_IDS = {
-  monthly: "pulse_monthly",
-  yearly: "pulse_yearly",
+  monthly: "monthly_pro",
+  yearly: "yearly_pro",
 } as const;
 
 // RevenueCat entitlement that unlocks pro features
 export const PRO_ENTITLEMENT = "pro";
 
 let _initialized = false;
+let _initResolvers: Array<() => void> = [];
+
+/** Resolves immediately if already initialized, or waits until configure() completes. */
+export function waitForInit(): Promise<void> {
+  if (_initialized) return Promise.resolve();
+  return new Promise((resolve) => _initResolvers.push(resolve));
+}
 
 export async function initializePurchases(userId?: string): Promise<void> {
-  if (Platform.OS === "web") return; // IAP not available on web
+  if (Platform.OS === "web") return;
 
   const apiKey = process.env.EXPO_PUBLIC_REVENUECAT_API_KEY;
   if (!apiKey) {
@@ -40,28 +68,31 @@ export async function initializePurchases(userId?: string): Promise<void> {
   }
 
   if (_initialized) {
-    // If user changed, update the RevenueCat user ID
     if (userId) {
+      _devUserId = userId;
       await Purchases.logIn(userId);
     }
     return;
   }
 
-  Purchases.setLogLevel(
-    process.env.NODE_ENV === "development" ? LOG_LEVEL.DEBUG : LOG_LEVEL.ERROR
-  );
+  Purchases.setLogLevel(LOG_LEVEL.ERROR);
   await Purchases.configure({ apiKey });
 
   if (userId) {
+    _devUserId = userId;
     await Purchases.logIn(userId);
   }
 
   _initialized = true;
   console.log("[Purchases] RevenueCat initialized");
+  _initResolvers.forEach((r) => r());
+  _initResolvers = [];
 }
 
 export async function getOffering(): Promise<PurchasesOffering | null> {
   if (Platform.OS === "web") return null;
+  // Wait for initialization before fetching offerings
+  await waitForInit();
   try {
     const offerings = await Purchases.getOfferings();
     return offerings.current ?? null;
@@ -82,7 +113,11 @@ export async function purchasePackage(packageToPurchase: any): Promise<CustomerI
 }
 
 export async function getCustomerInfo(): Promise<CustomerInfo | null> {
-  if (Platform.OS === "web") return null;
+  if (Platform.OS === "web" || !_initialized) return null;
+  if (__DEV__ && _devUserId) {
+    const mock = await getDevMockCustomerInfo(_devUserId);
+    if (mock) return mock;
+  }
   try {
     return await Purchases.getCustomerInfo();
   } catch (err) {
@@ -118,7 +153,10 @@ export function getActivePlanId(customerInfo: CustomerInfo | null): "monthly" | 
 export async function logoutPurchases(): Promise<void> {
   if (Platform.OS === "web" || !_initialized) return;
   try {
-    await Purchases.logOut();
+    const info = await Purchases.getCustomerInfo();
+    if (info && !info.originalAppUserId.startsWith("$RCAnonymousID")) {
+      await Purchases.logOut();
+    }
   } catch (err) {
     console.warn("[Purchases] logOut error (ignored):", err);
   }
