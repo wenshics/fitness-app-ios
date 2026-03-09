@@ -6,7 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as React from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "react-native-reanimated";
-import { Platform } from "react-native";
+import { Platform, View } from "react-native";
 import "@/lib/_core/nativewind-pressable";
 import { ThemeProvider } from "@/lib/theme-provider";
 import {
@@ -81,6 +81,11 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   // Track whether we've done the initial redirect so we don't loop
   const hasRedirected = useRef(false);
+
+  // Block rendering until auth state is known — prevents tabs flashing for unauthenticated users
+  if (isLoading) {
+    return <View style={{ flex: 1 }} />;
+  }
 
   // Handle Supabase auth deep links at root level — bypasses Expo Router route matching
   useEffect(() => {

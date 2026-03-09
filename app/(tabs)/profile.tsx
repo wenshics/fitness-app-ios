@@ -9,7 +9,6 @@ import { scheduleAllReminders, cancelAllReminders, initializeNotifications } fro
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import { useCallback, useState, useEffect } from "react";
-import { useAuthModal } from "@/lib/auth-modal-context";
 import {
   ActivityIndicator,
   Alert,
@@ -120,11 +119,8 @@ export default function ProfileScreen() {
     }
   };
 
-  const { showAuthModal } = useAuthModal();
-
   const handleLogin = () => {
-    console.log('[Profile] Login button tapped');
-    showAuthModal();
+    router.push("/login-screen");
   };
 
   return (
