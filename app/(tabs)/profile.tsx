@@ -5,14 +5,8 @@ import { useAuth } from "@/hooks/use-auth";
 import { useUser } from "@/lib/user-store";
 import { useWorkout } from "@/lib/workout-store";
 import { useSubscription } from "@/lib/subscription-store";
-import type { PlanType } from "@/lib/subscription-store";
 import { scheduleAllReminders, cancelAllReminders, initializeNotifications } from "@/lib/notification-service";
-const PLANS = [
-  { id: "monthly" as const, label: "Monthly", price: "$19.99", period: "/month", perWeek: "$4.61/wk", savings: "Save 33%", popular: true },
-  { id: "yearly" as const, label: "Yearly", price: "$149.99", period: "/year", perWeek: "$2.88/wk", savings: "Save 58%", popular: false },
-]
 import * as Haptics from "expo-haptics";
-import * as Notifications from "expo-notifications";
 import { useRouter } from "expo-router";
 import { useCallback, useState, useEffect } from "react";
 import { useAuthModal } from "@/lib/auth-modal-context";
@@ -49,11 +43,7 @@ export default function ProfileScreen() {
     // Consider it a trial if subscribed and more than 6 days remain on first period
     return getDaysRemaining() >= 6;
   };
-  const canUpgradeTo = (planId: string) => planId !== subscription.plan;
   const router = useRouter();
-  const [showUpgradePlan, setShowUpgradePlan] = useState(false);
-  const [selectedUpgradePlan, setSelectedUpgradePlan] = useState<PlanType | null>(null);
-  const [upgradingPlan, setUpgradingPlan] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [isCanceling, setIsCanceling] = useState(false);
 
@@ -120,17 +110,6 @@ export default function ProfileScreen() {
       setEditingReminder(null);
     }
   }, [editingReminder, pickerHour, pickerMinute, reminders, updateSettings, remindersEnabled]);
-
-  const handleUpgradeConfirm = async () => {
-    if (!selectedUpgradePlan || selectedUpgradePlan === subscription.plan) {
-      setShowUpgradePlan(false);
-      return;
-    }
-
-    // Navigate to paywall to handle Apple IAP upgrade
-    setShowUpgradePlan(false);
-    router.push("/paywall");
-  };
 
   const handleLogout = async () => {
     try {
@@ -238,8 +217,7 @@ export default function ProfileScreen() {
               <Pressable
                 onPress={() => {
                   if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  setSelectedUpgradePlan(subscription.plan as PlanType);
-                  setShowUpgradePlan(true);
+                  router.push("/paywall");
                 }}
                 style={({ pressed }) => [
                   styles.changePlanBtn,
@@ -492,50 +470,6 @@ export default function ProfileScreen() {
           </View>
         )}
 
-        {/* Test Notification Button (Dev Only) */}
-        {user && (
-          <View style={{ marginTop: 16, marginHorizontal: 16 }}>
-            <TouchableOpacity
-              onPress={async () => {
-                try {
-                  if (Platform.OS === 'web') {
-                    console.log('✅ Test notification would fire in 2 seconds on mobile devices.');
-                    alert('Test notification would fire in 2 seconds on mobile devices.');
-                  } else {
-                    const notificationId = await Notifications.scheduleNotificationAsync({
-                      content: {
-                        title: 'Test Workout Reminder',
-                        body: 'This is a test notification to verify reminders are working.',
-                        sound: 'default',
-                        badge: 1,
-                      },
-                      trigger: {
-                        type: 'time_interval',
-                        seconds: 2,
-                      } as any,
-                    });
-                    console.log(`✅ Test notification scheduled (ID: ${notificationId})`);
-                    Alert.alert('Success', `Test notification scheduled (ID: ${notificationId})`);
-                    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                  }
-                } catch (error) {
-                  console.error('❌ Failed to schedule test notification:', error);
-                  alert(`Failed to schedule test notification: ${error}`);
-                }
-              }}
-              activeOpacity={0.7}
-              style={[{ backgroundColor: colors.primary, padding: 12, borderRadius: 8, alignItems: 'center' }]}
-            >
-              <Text style={{ color: 'white', fontSize: 14, fontWeight: '600' }}>
-                🔔 Test Notification
-              </Text>
-            </TouchableOpacity>
-            <Text style={{ fontSize: 12, color: colors.muted, marginTop: 8, textAlign: 'center' }}>
-              Dev only: Fires in 2 seconds on mobile
-            </Text>
-          </View>
-        )}
-
       </ScrollView>
       
       {/* Login/Logout Button - Outside ScrollView */}
@@ -553,87 +487,6 @@ export default function ProfileScreen() {
       </View>
 
       {/* Upgrade Plan Modal */}
-      <Modal visible={showUpgradePlan} transparent animationType="slide">
-        <Pressable style={styles.modalOverlay} onPress={() => setShowUpgradePlan(false)}>
-          <Pressable
-            style={[styles.modalContent, { backgroundColor: colors.background }]}
-            onPress={(e) => e.stopPropagation()}
-          >
-            <View style={styles.modalHeader}>
-              <Pressable onPress={() => setShowUpgradePlan(false)} style={({ pressed }) => [pressed && { opacity: 0.6 }]}>
-                <Text style={[styles.modalCancel, { color: colors.muted }]}>Cancel</Text>
-              </Pressable>
-              <Text style={[styles.modalTitle, { color: colors.foreground }]}>Choose Plan</Text>
-              <Pressable
-                onPress={handleUpgradeConfirm}
-                disabled={!selectedUpgradePlan || selectedUpgradePlan === subscription.plan}
-                style={({ pressed }) => [pressed && { opacity: 0.6 }]}
-              >
-                <Text style={[styles.modalSave, { color: selectedUpgradePlan && selectedUpgradePlan !== subscription.plan ? colors.primary : colors.muted }]}>
-                  {upgradingPlan ? "Loading..." : "Next"}
-                </Text>
-              </Pressable>
-            </View>
-
-            <Text style={[styles.changePlanNote, { color: colors.muted }]}>
-              Select a plan to upgrade. You can only upgrade to higher tiers, not downgrade.
-            </Text>
-
-            <View style={styles.plansList}>
-              {PLANS.map((plan: any) => {
-                const isSelected = selectedUpgradePlan === plan.id;
-                const isCurrent = subscription.plan === plan.id;
-                const canUpgrade = canUpgradeTo(plan.id);
-                return (
-                  <Pressable
-                    key={plan.id}
-                    onPress={() => {
-                      setSelectedUpgradePlan(plan.id);
-                      if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    }}
-                    style={({ pressed }) => [
-                      styles.planOption,
-                      { borderColor: isSelected ? colors.primary : colors.border, backgroundColor: isSelected ? colors.primary + "08" : colors.surface },
-                      pressed && { opacity: 0.8 },
-                      !canUpgrade && isCurrent && { opacity: 0.6 },
-                    ]}
-                  >
-                    <View style={styles.planOptionLeft}>
-                      <View style={[styles.planRadio, { borderColor: isSelected ? colors.primary : colors.border }]}>
-                        {isSelected && <View style={[styles.planRadioInner, { backgroundColor: colors.primary }]} />}
-                      </View>
-                      <View>
-                        <View style={styles.planLabelRow}>
-                          <Text style={[styles.planOptionLabel, { color: colors.foreground }]}>{plan.label}</Text>
-                          {isCurrent && (
-                            <View style={[styles.currentBadge, { backgroundColor: colors.primary + "20" }]}>
-                              <Text style={[styles.currentBadgeText, { color: colors.primary }]}>Current</Text>
-                            </View>
-                          )}
-                          {plan.popular && !isCurrent && (
-                            <View style={[styles.currentBadge, { backgroundColor: colors.warning + "20" }]}>
-                              <Text style={[styles.currentBadgeText, { color: colors.warning }]}>Popular</Text>
-                            </View>
-                          )}
-                        </View>
-                        <Text style={[styles.planOptionPerWeek, { color: colors.muted }]}>
-                          {plan.perWeek}
-                          {plan.savings ? " · " + plan.savings : ""}
-                        </Text>
-                      </View>
-                    </View>
-                    <Text style={[styles.planOptionPrice, { color: colors.foreground }]}>
-                      {plan.price}
-                      <Text style={{ fontSize: 13, color: colors.muted }}>{plan.period}</Text>
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-          </Pressable>
-        </Pressable>
-      </Modal>
-
       {/* Cancel Subscription Confirmation Modal */}
       <Modal visible={showCancelConfirm} transparent animationType="fade">
         <View style={[styles.modalOverlay, { backgroundColor: "rgba(55, 65, 81, 0.4)" }]}>
