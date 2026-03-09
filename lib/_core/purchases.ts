@@ -50,6 +50,7 @@ export const PRODUCT_IDS = {
 export const PRO_ENTITLEMENT = "pro";
 
 let _initialized = false;
+let _initializing: Promise<void> | null = null;
 let _initResolvers: Array<() => void> = [];
 
 /** Resolves immediately if already initialized, or waits until configure() completes. */
@@ -75,18 +76,31 @@ export async function initializePurchases(userId?: string): Promise<void> {
     return;
   }
 
-  Purchases.setLogLevel(LOG_LEVEL.ERROR);
-  await Purchases.configure({ apiKey });
+  // If initialization is in progress, wait for it then log in
+  if (_initializing) {
+    await _initializing;
+    if (userId) {
+      _devUserId = userId;
+      await Purchases.logIn(userId);
+    }
+    return;
+  }
+
+  _initializing = (async () => {
+    Purchases.setLogLevel(LOG_LEVEL.ERROR);
+    await Purchases.configure({ apiKey });
+    _initialized = true;
+    console.log("[Purchases] RevenueCat initialized");
+    _initResolvers.forEach((r) => r());
+    _initResolvers = [];
+  })();
+
+  await _initializing;
 
   if (userId) {
     _devUserId = userId;
     await Purchases.logIn(userId);
   }
-
-  _initialized = true;
-  console.log("[Purchases] RevenueCat initialized");
-  _initResolvers.forEach((r) => r());
-  _initResolvers = [];
 }
 
 export async function getOffering(): Promise<PurchasesOffering | null> {
@@ -152,12 +166,11 @@ export function getActivePlanId(customerInfo: CustomerInfo | null): "monthly" | 
 
 export async function logoutPurchases(): Promise<void> {
   if (Platform.OS === "web" || !_initialized) return;
+  _devUserId = null;
   try {
-    const info = await Purchases.getCustomerInfo();
-    if (info && !info.originalAppUserId.startsWith("$RCAnonymousID")) {
-      await Purchases.logOut();
-    }
-  } catch (err) {
+    await Purchases.logOut();
+  } catch (err: any) {
+    // RevenueCat throws if user is already anonymous — safe to ignore
     console.warn("[Purchases] logOut error (ignored):", err);
   }
 }

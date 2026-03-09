@@ -121,6 +121,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
       segments[0] === "oauth" ||
       segments[0] === "auth" ||
       segments[0] === "verify-callback" ||
+      segments[0] === "login" ||
       segments[0] === "login-screen" ||
       segments[0] === "signup-screen" ||
       segments[0] === "verify-email" ||

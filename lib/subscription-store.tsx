@@ -105,7 +105,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     if (userId) {
       await initializePurchases(userId);
     }
-    load();
+    await load();
   }, [load]);
 
   const onPurchaseSuccess = useCallback((ci: CustomerInfo) => {

@@ -50,7 +50,7 @@ const config: ExpoConfig = {
   ios: {
     supportsTablet: true,
     bundleIdentifier: env.iosBundleId,
-    buildNumber: "6",
+    buildNumber: "7",
     "infoPlist": {
       "ITSAppUsesNonExemptEncryption": false,
       "NSCameraUsageDescription": "Camera access is required by video playback libraries used in this app, even though the app does not directly use the camera.",
@@ -92,6 +92,12 @@ const config: ExpoConfig = {
   plugins: [
     "expo-router",
     "expo-notifications",
+    [
+      "expo-audio",
+      {
+        microphonePermission: "Allow $(PRODUCT_NAME) to access your microphone.",
+      },
+    ],
     [
       "expo-video",
       {
