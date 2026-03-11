@@ -82,11 +82,6 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   // Track whether we've done the initial redirect so we don't loop
   const hasRedirected = useRef(false);
 
-  // Block rendering until auth state is known — prevents tabs flashing for unauthenticated users
-  if (isLoading) {
-    return <View style={{ flex: 1 }} />;
-  }
-
   // Handle Supabase auth deep links at root level — bypasses Expo Router route matching
   useEffect(() => {
     const handleAuthUrl = async (url: string) => {
@@ -148,6 +143,11 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
       hasRedirected.current = false;
     }
   }, [isAuthenticated, isLoading, segments, router]);
+
+  // Block rendering until auth state is known — prevents tabs flashing for unauthenticated users
+  if (isLoading) {
+    return <View style={{ flex: 1 }} />;
+  }
 
   return <>{children}</>;
 }
