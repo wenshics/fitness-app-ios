@@ -276,7 +276,7 @@ export default function PaywallScreen() {
               <Text style={styles.legalText}>Terms of Use</Text>
             </Pressable>
             <Text style={styles.legalDot}>·</Text>
-            <Pressable onPress={() => Linking.openURL("https://fitness-app-ios-production.up.railway.app/privacy")} style={({ pressed }) => [pressed && { opacity: 0.7 }]}>
+            <Pressable onPress={() => Linking.openURL("https://wenshics.github.io/fitness-app-ios/privacy.html")} style={({ pressed }) => [pressed && { opacity: 0.7 }]}>
               <Text style={styles.legalText}>Privacy Policy</Text>
             </Pressable>
             <Text style={styles.legalDot}>·</Text>
